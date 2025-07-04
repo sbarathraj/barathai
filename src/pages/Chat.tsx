@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -6,6 +5,7 @@ import { Send, Mic, MicOff, Menu, X, Plus, Settings, LogOut, Moon, Sun, User, Se
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
 
 interface Message {
@@ -400,19 +400,33 @@ export const Chat = () => {
     }
   };
 
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('barathAI-settings');
+    if (savedSettings) {
+      const settings = JSON.parse(savedSettings);
+      setDarkMode(settings.darkMode ?? true);
+      // Apply theme
+      if (settings.darkMode) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+  }, []);
+
   const filteredSessions = chatSessions.filter(session =>
     session.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
     <div className={`min-h-screen flex ${darkMode ? 'dark' : ''}`}>
-      <div className="flex w-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+      <div className="flex w-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 bg-white text-white dark:text-white text-slate-900">
         
         {/* Sidebar */}
-        <div className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 fixed lg:relative z-50 w-80 lg:w-72 h-full bg-slate-800/90 backdrop-blur-lg border-r border-slate-700 transition-transform duration-300`}>
+        <div className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 fixed lg:relative z-50 w-80 lg:w-72 h-full bg-slate-800/90 backdrop-blur-lg border-r border-slate-700 dark:bg-slate-800/90 dark:border-slate-700 bg-white/90 border-slate-200 transition-transform duration-300`}>
           <div className="flex flex-col h-full">
             {/* Sidebar Header */}
-            <div className="p-4 border-b border-slate-700">
+            <div className="p-4 border-b border-slate-700 dark:border-slate-700 border-slate-200">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
                   BarathAI
@@ -421,7 +435,7 @@ export const Chat = () => {
                   variant="ghost"
                   size="icon"
                   onClick={() => setSidebarOpen(false)}
-                  className="lg:hidden text-slate-400 hover:text-white"
+                  className="lg:hidden text-slate-400 hover:text-white dark:text-slate-400 dark:hover:text-white"
                 >
                   <X size={20} />
                 </Button>
@@ -436,13 +450,13 @@ export const Chat = () => {
               
               {/* Search */}
               <div className="mt-4 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 dark:text-slate-400" size={16} />
                 <input
                   type="text"
                   placeholder="Search chats..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 pr-4 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700/50 dark:border-slate-600 bg-slate-100 border-slate-300 text-slate-900 placeholder:text-slate-500"
                 />
               </div>
             </div>
@@ -455,7 +469,7 @@ export const Chat = () => {
                   className={`group relative p-3 rounded-lg transition-colors cursor-pointer ${
                     session.id === currentSessionId
                       ? 'bg-blue-600/20 border border-blue-500/30'
-                      : 'hover:bg-slate-700/50'
+                      : 'hover:bg-slate-700/50 dark:hover:bg-slate-700/50 hover:bg-slate-200/50'
                   }`}
                   onClick={() => switchToSession(session.id)}
                 >
@@ -470,20 +484,20 @@ export const Chat = () => {
                           renameSession(session.id, editingTitle);
                         }
                       }}
-                      className="w-full bg-transparent text-white text-sm font-medium focus:outline-none"
+                      className="w-full bg-transparent text-white dark:text-white text-slate-900 text-sm font-medium focus:outline-none"
                       autoFocus
                     />
                   ) : (
                     <>
                       <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-white truncate flex-1">
+                        <p className="text-sm font-medium text-white dark:text-white text-slate-900 truncate flex-1">
                           {session.title}
                         </p>
                         <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-6 w-6 text-slate-400 hover:text-white"
+                            className="h-6 w-6 text-slate-400 hover:text-white dark:text-slate-400 dark:hover:text-white"
                             onClick={(e) => {
                               e.stopPropagation();
                               setEditingSessionId(session.id);
@@ -495,7 +509,7 @@ export const Chat = () => {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-6 w-6 text-slate-400 hover:text-red-400"
+                            className="h-6 w-6 text-slate-400 hover:text-red-400 dark:text-slate-400 dark:hover:text-red-400"
                             onClick={(e) => {
                               e.stopPropagation();
                               deleteSession(session.id);
@@ -505,7 +519,7 @@ export const Chat = () => {
                           </Button>
                         </div>
                       </div>
-                      <p className="text-xs text-slate-400 mt-1">
+                      <p className="text-xs text-slate-400 dark:text-slate-400 text-slate-500 mt-1">
                         {new Date(session.created_at).toLocaleDateString()}
                       </p>
                     </>
@@ -515,10 +529,11 @@ export const Chat = () => {
             </div>
 
             {/* Sidebar Footer */}
-            <div className="p-4 border-t border-slate-700 space-y-2">
+            <div className="p-4 border-t border-slate-700 dark:border-slate-700 border-slate-200 space-y-2">
               <Button
+                onClick={() => navigate('/settings')}
                 variant="ghost"
-                className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-700"
+                className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-700 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-700"
               >
                 <Settings className="mr-2" size={16} />
                 Settings
@@ -526,7 +541,7 @@ export const Chat = () => {
               <Button
                 onClick={handleLogout}
                 variant="ghost"
-                className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-700"
+                className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-700 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-700"
               >
                 <LogOut className="mr-2" size={16} />
                 Logout
@@ -538,19 +553,19 @@ export const Chat = () => {
         {/* Main Chat Area */}
         <div className="flex-1 flex flex-col">
           {/* Top Bar */}
-          <header className="flex items-center justify-between p-4 bg-slate-800/50 backdrop-blur-lg border-b border-slate-700">
+          <header className="flex items-center justify-between p-4 bg-slate-800/50 backdrop-blur-lg border-b border-slate-700 dark:bg-slate-800/50 dark:border-slate-700 bg-white/50 border-slate-200">
             <div className="flex items-center space-x-4">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setSidebarOpen(true)}
-                className="lg:hidden text-slate-400 hover:text-white"
+                className="lg:hidden text-slate-400 hover:text-white dark:text-slate-400 dark:hover:text-white"
               >
                 <Menu size={20} />
               </Button>
               <div className="flex items-center space-x-2">
                 <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-                <span className="text-sm text-slate-300">Online</span>
+                <span className="text-sm text-slate-300 dark:text-slate-300 text-slate-600">Online</span>
               </div>
             </div>
 
@@ -559,14 +574,14 @@ export const Chat = () => {
                 variant="ghost"
                 size="icon"
                 onClick={() => setDarkMode(!darkMode)}
-                className="text-slate-400 hover:text-white"
+                className="text-slate-400 hover:text-white dark:text-slate-400 dark:hover:text-white"
               >
                 {darkMode ? <Sun size={20} /> : <Moon size={20} />}
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-slate-400 hover:text-white"
+                className="text-slate-400 hover:text-white dark:text-slate-400 dark:hover:text-white"
               >
                 <User size={20} />
               </Button>
@@ -580,8 +595,8 @@ export const Chat = () => {
                 <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
                   <span className="text-2xl font-bold">B</span>
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-2">Welcome to BarathAI</h3>
-                <p className="text-slate-400">How can I help you today?</p>
+                <h3 className="text-xl font-semibold text-white dark:text-white text-slate-900 mb-2">Welcome to BarathAI</h3>
+                <p className="text-slate-400 dark:text-slate-400 text-slate-600">How can I help you today?</p>
               </div>
             )}
 
@@ -594,7 +609,7 @@ export const Chat = () => {
                   className={`max-w-[80%] p-4 rounded-2xl ${
                     msg.role === 'user'
                       ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
-                      : 'bg-slate-700/50 text-slate-100 border border-slate-600'
+                      : 'bg-slate-700/50 text-slate-100 border border-slate-600 dark:bg-slate-700/50 dark:text-slate-100 dark:border-slate-600 bg-slate-100 text-slate-900 border-slate-300'
                   }`}
                 >
                   {msg.role === 'assistant' && (
@@ -602,10 +617,14 @@ export const Chat = () => {
                       <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mr-2">
                         <span className="text-xs font-bold">B</span>
                       </div>
-                      <span className="text-xs text-slate-400">BarathAI</span>
+                      <span className="text-xs text-slate-400 dark:text-slate-400 text-slate-500">BarathAI</span>
                     </div>
                   )}
-                  <p className="whitespace-pre-wrap">{msg.content}</p>
+                  {msg.role === 'assistant' ? (
+                    <MarkdownRenderer content={msg.content} />
+                  ) : (
+                    <p className="whitespace-pre-wrap">{msg.content}</p>
+                  )}
                   <div className="text-xs opacity-70 mt-2">
                     {msg.timestamp.toLocaleTimeString()}
                   </div>
@@ -615,7 +634,7 @@ export const Chat = () => {
 
             {isTyping && (
               <div className="flex justify-start">
-                <div className="bg-slate-700/50 border border-slate-600 p-4 rounded-2xl">
+                <div className="bg-slate-700/50 border border-slate-600 dark:bg-slate-700/50 dark:border-slate-600 bg-slate-100 border-slate-300 p-4 rounded-2xl">
                   <div className="flex items-center space-x-2">
                     <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
                       <span className="text-xs font-bold">B</span>
@@ -633,8 +652,8 @@ export const Chat = () => {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input Area */}
-          <div className="p-4 bg-slate-800/50 backdrop-blur-lg border-t border-slate-700">
+          {/* Enhanced Input Area */}
+          <div className="p-4 bg-slate-800/50 backdrop-blur-lg border-t border-slate-700 dark:bg-slate-800/50 dark:border-slate-700 bg-white/50 border-slate-200">
             <div className="flex items-end space-x-2 max-w-4xl mx-auto">
               <div className="flex-1 relative">
                 <Textarea
@@ -643,14 +662,18 @@ export const Chat = () => {
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Ask anything..."
-                  className="min-h-[60px] max-h-[120px] bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 resize-none pr-12"
+                  className="min-h-[60px] max-h-[120px] bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 resize-none pr-12 dark:bg-slate-700/50 dark:border-slate-600 dark:text-white dark:placeholder:text-slate-400 bg-white border-slate-300 text-slate-900 placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-xl transition-all duration-200"
                   disabled={isLoading}
                 />
                 <Button
                   onClick={toggleVoiceInput}
                   variant="ghost"
                   size="icon"
-                  className={`absolute right-2 top-2 ${isListening ? 'text-red-400' : 'text-slate-400'} hover:text-white`}
+                  className={`absolute right-2 top-2 transition-colors duration-200 ${
+                    isListening 
+                      ? 'text-red-400 hover:text-red-300 animate-pulse' 
+                      : 'text-slate-400 hover:text-white dark:text-slate-400 dark:hover:text-white hover:text-slate-600'
+                  }`}
                 >
                   {isListening ? <MicOff size={20} /> : <Mic size={20} />}
                 </Button>
@@ -658,11 +681,21 @@ export const Chat = () => {
               <Button
                 onClick={sendMessage}
                 disabled={!message.trim() || isLoading}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white p-4 rounded-xl"
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white p-4 rounded-xl transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
                 <Send size={20} />
               </Button>
             </div>
+            
+            {/* Voice Input Status */}
+            {isListening && (
+              <div className="flex items-center justify-center mt-2">
+                <div className="flex items-center space-x-2 text-red-400 text-sm">
+                  <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></div>
+                  <span>Listening...</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
