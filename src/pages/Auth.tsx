@@ -1,14 +1,16 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Eye, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 export const Auth = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("login");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -20,6 +22,27 @@ export const Auth = () => {
   const [signupForm, setSignupForm] = useState({ email: '', password: '', confirmPassword: '' });
   const [resetForm, setResetForm] = useState({ email: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    // Check if user is already authenticated
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        navigate('/chat');
+      }
+    };
+    
+    checkUser();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        navigate('/chat');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   const validateEmail = (email: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -42,12 +65,33 @@ export const Auth = () => {
       return;
     }
 
-    // Simulate login (replace with actual auth logic)
-    setTimeout(() => {
-      localStorage.setItem('barath_ai_user', JSON.stringify({ email: loginForm.email }));
-      navigate('/chat');
-      setIsLoading(false);
-    }, 1000);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: loginForm.email,
+        password: loginForm.password,
+      });
+
+      if (error) {
+        toast({
+          title: "Login Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Welcome back!",
+          description: "Successfully logged in to BarathAI.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    }
+
+    setIsLoading(false);
   };
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -73,12 +117,36 @@ export const Auth = () => {
       return;
     }
 
-    // Simulate signup (replace with actual auth logic)
-    setTimeout(() => {
-      localStorage.setItem('barath_ai_user', JSON.stringify({ email: signupForm.email }));
-      navigate('/chat');
-      setIsLoading(false);
-    }, 1000);
+    try {
+      const { error } = await supabase.auth.signUp({
+        email: signupForm.email,
+        password: signupForm.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/chat`
+        }
+      });
+
+      if (error) {
+        toast({
+          title: "Signup Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Account Created!",
+          description: "Please check your email to verify your account.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    }
+
+    setIsLoading(false);
   };
 
   const handlePasswordReset = async (e: React.FormEvent) => {
@@ -92,11 +160,33 @@ export const Auth = () => {
       return;
     }
 
-    // Simulate password reset
-    setTimeout(() => {
-      setResetSuccess(true);
-      setIsLoading(false);
-    }, 1000);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(resetForm.email, {
+        redirectTo: `${window.location.origin}/auth`,
+      });
+
+      if (error) {
+        toast({
+          title: "Reset Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        setResetSuccess(true);
+        toast({
+          title: "Reset Link Sent!",
+          description: "Check your email for password reset instructions.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    }
+
+    setIsLoading(false);
   };
 
   return (
@@ -180,6 +270,7 @@ export const Auth = () => {
               </form>
             </TabsContent>
 
+            
             <TabsContent value="signup" className="space-y-4">
               <form onSubmit={handleSignup} className="space-y-4">
                 <div className="space-y-2">
