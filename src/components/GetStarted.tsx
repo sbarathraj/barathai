@@ -1,8 +1,11 @@
 
 import { Button } from "@/components/ui/button";
 import { Sparkles } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export const GetStarted = () => {
+  const navigate = useNavigate();
+
   return (
     <section className="py-20 px-4 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-teal-600/10">
       <div className="max-w-4xl mx-auto text-center">
@@ -23,6 +26,7 @@ export const GetStarted = () => {
         
         <Button 
           size="lg"
+          onClick={() => navigate('/chat')}
           className="bg-gradient-to-r from-blue-600 via-purple-600 to-teal-600 hover:from-blue-500 hover:via-purple-500 hover:to-teal-500 text-white px-12 py-6 text-xl rounded-full transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/25 animate-pulse"
         >
           <Sparkles className="mr-3 h-6 w-6" />

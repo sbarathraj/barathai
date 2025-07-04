@@ -1,8 +1,11 @@
 
 import { Button } from "@/components/ui/button";
 import { ArrowRight, MessageCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export const Hero = () => {
+  const navigate = useNavigate();
+
   return (
     <section className="relative min-h-screen flex items-center justify-center px-4 overflow-hidden">
       {/* Animated background gradient */}
@@ -33,6 +36,7 @@ export const Hero = () => {
         <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in delay-500">
           <Button 
             size="lg" 
+            onClick={() => navigate('/chat')}
             className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white px-8 py-4 text-lg rounded-full transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-blue-500/25"
           >
             <MessageCircle className="mr-2 h-5 w-5" />
@@ -42,9 +46,10 @@ export const Hero = () => {
           <Button 
             variant="outline" 
             size="lg"
+            onClick={() => navigate('/auth')}
             className="border-slate-600 text-slate-300 hover:bg-slate-800 px-8 py-4 text-lg rounded-full transition-all duration-300 hover:scale-105"
           >
-            Learn More
+            Sign In
             <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
         </div>
