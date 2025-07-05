@@ -33,7 +33,6 @@ interface Message {
 interface ChatSession {
   id: string;
   title: string;
-  unique_url: string;
   created_at: string;
   updated_at: string;
 }
@@ -50,7 +49,6 @@ export const Chat = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<any>(null);
@@ -120,7 +118,7 @@ export const Chat = () => {
     const loadChatSessions = async () => {
       try {
         const { data: sessions, error } = await supabase
-          .from('chat_sessions_new')
+          .from('chat_sessions')
           .select('*')
           .eq('user_id', user.id)
           .order('updated_at', { ascending: false });
@@ -132,24 +130,18 @@ export const Chat = () => {
 
         setChatHistory(sessions || []);
 
-        // Handle routing logic
-        if (sessionUrl) {
-          // Load specific session by URL
-          const session = sessions?.find(s => s.unique_url === sessionUrl);
+        // Always create new session for /chat route
+        if (!sessionUrl) {
+          await createNewSession();
+        } else {
+          // Handle specific session loading if needed
+          const session = sessions?.find(s => s.id === sessionUrl);
           if (session) {
             setCurrentSession(session);
             await loadMessages(session.id);
           } else {
-            toast({
-              title: "Session Not Found",
-              description: "The requested chat session could not be found.",
-              variant: "destructive",
-            });
-            navigate('/chat');
+            await createNewSession();
           }
-        } else {
-          // Create new session for authenticated users
-          await createNewSession();
         }
       } catch (error) {
         console.error('Error in loadChatSessions:', error);
@@ -169,7 +161,7 @@ export const Chat = () => {
 
     try {
       const { data: newSession, error } = await supabase
-        .from('chat_sessions_new')
+        .from('chat_sessions')
         .insert({
           user_id: user.id,
           title: 'New Chat'
@@ -191,7 +183,7 @@ export const Chat = () => {
       setMessages([]);
       
       // Update URL without triggering a page reload
-      window.history.replaceState(null, '', `/chat/${newSession.unique_url}`);
+      window.history.replaceState(null, '', `/chat/${newSession.id}`);
     } catch (error) {
       console.error('Error in createNewSession:', error);
     }
@@ -210,7 +202,13 @@ export const Chat = () => {
         return;
       }
 
-      setMessages(sessionMessages || []);
+      // Type assertion to ensure role is correct type
+      const typedMessages: Message[] = (sessionMessages || []).map(msg => ({
+        ...msg,
+        role: msg.role as 'user' | 'assistant'
+      }));
+
+      setMessages(typedMessages);
     } catch (error) {
       console.error('Error in loadMessages:', error);
     }
@@ -271,7 +269,7 @@ export const Chat = () => {
     
     try {
       const { error } = await supabase
-        .from('chat_sessions_new')
+        .from('chat_sessions')
         .update({ 
           title,
           updated_at: new Date().toISOString()
@@ -302,7 +300,6 @@ export const Chat = () => {
     const userMessage = message.trim();
     setMessage('');
     setIsLoading(true);
-    setRetryCount(0);
 
     // Add user message to UI immediately
     const newUserMessage: Message = {
@@ -395,7 +392,7 @@ export const Chat = () => {
     setMessages([]);
     setShowHistory(false);
     await loadMessages(session.id);
-    navigate(`/chat/${session.unique_url}`);
+    navigate(`/chat/${session.id}`);
   };
 
   const startNewChat = async () => {
