@@ -1,262 +1,44 @@
 
-import React, { useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { Copy, Check } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import React from 'react';
 
 interface MarkdownRendererProps {
   content: string;
-  className?: string;
 }
 
-export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, className = "" }) => {
-  const [copiedBlocks, setCopiedBlocks] = useState<Set<number>>(new Set());
-  const { toast } = useToast();
-
-  const copyToClipboard = async (text: string, blockIndex: number) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedBlocks(prev => new Set(prev).add(blockIndex));
-      toast({
-        title: "Copied!",
-        description: "Code copied to clipboard",
-      });
-      setTimeout(() => {
-        setCopiedBlocks(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(blockIndex);
-          return newSet;
-        });
-      }, 2000);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to copy code",
-        variant: "destructive",
-      });
-    }
-  };
-
+export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
+  // Simple markdown renderer for basic formatting
   const renderMarkdown = (text: string) => {
-    const lines = text.split('\n');
-    const rendered: JSX.Element[] = [];
-    let inCodeBlock = false;
-    let codeBlockContent: string[] = [];
-    let codeLanguage = '';
-    let inTable = false;
-    let tableRows: string[] = [];
-    let blockIndex = 0;
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-
-      // Handle code blocks
-      if (line.startsWith('```')) {
-        if (!inCodeBlock) {
-          inCodeBlock = true;
-          codeLanguage = line.slice(3).trim();
-          codeBlockContent = [];
-        } else {
-          inCodeBlock = false;
-          const codeContent = codeBlockContent.join('\n');
-          const currentBlockIndex = blockIndex++;
-          rendered.push(
-            <div key={i} className="my-4 rounded-lg bg-slate-800 dark:bg-slate-800 bg-gray-100 border border-slate-700 dark:border-slate-700 border-gray-300 overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-2 bg-slate-700 dark:bg-slate-700 bg-gray-200 text-xs text-slate-300 dark:text-slate-300 text-gray-600 border-b border-slate-600 dark:border-slate-600 border-gray-300">
-                <span>{codeLanguage || 'code'}</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => copyToClipboard(codeContent, currentBlockIndex)}
-                  className="h-6 w-6 text-slate-400 hover:text-blue-400 dark:text-slate-400 dark:hover:text-blue-400 text-gray-500 hover:text-blue-500"
-                >
-                  {copiedBlocks.has(currentBlockIndex) ? (
-                    <Check size={12} className="text-green-500" />
-                  ) : (
-                    <Copy size={12} />
-                  )}
-                </Button>
-              </div>
-              <pre className="p-4 overflow-x-auto">
-                <code className="text-sm text-slate-100 dark:text-slate-100 text-gray-800 font-mono">
-                  {codeContent}
-                </code>
-              </pre>
-            </div>
-          );
-          codeLanguage = '';
-        }
-        continue;
-      }
-
-      if (inCodeBlock) {
-        codeBlockContent.push(line);
-        continue;
-      }
-
-      // Handle tables
-      if (line.includes('|') && line.trim().length > 0) {
-        if (!inTable) {
-          inTable = true;
-          tableRows = [];
-        }
-        tableRows.push(line);
-        continue;
-      } else if (inTable) {
-        inTable = false;
-        rendered.push(renderTable(tableRows, i));
-        tableRows = [];
-      }
-
-      // Handle headings
-      if (line.startsWith('### ')) {
-        rendered.push(
-          <h3 key={i} className="text-lg font-semibold text-white dark:text-white text-gray-900 mt-4 mb-2">
-            {renderInlineMarkdown(line.slice(4))}
-          </h3>
-        );
-      } else if (line.startsWith('## ')) {
-        rendered.push(
-          <h2 key={i} className="text-xl font-semibold text-white dark:text-white text-gray-900 mt-4 mb-2">
-            {renderInlineMarkdown(line.slice(3))}
-          </h2>
-        );
-      } else if (line.startsWith('# ')) {
-        rendered.push(
-          <h1 key={i} className="text-2xl font-bold text-white dark:text-white text-gray-900 mt-4 mb-2">
-            {renderInlineMarkdown(line.slice(2))}
-          </h1>
-        );
-      } else if (line.startsWith('- ') || line.startsWith('* ')) {
-        rendered.push(
-          <ul key={i} className="list-disc list-inside text-slate-100 dark:text-slate-100 text-gray-800 my-1">
-            <li>{renderInlineMarkdown(line.slice(2))}</li>
-          </ul>
-        );
-      } else if (/^\d+\. /.test(line)) {
-        rendered.push(
-          <ol key={i} className="list-decimal list-inside text-slate-100 dark:text-slate-100 text-gray-800 my-1">
-            <li>{renderInlineMarkdown(line.replace(/^\d+\. /, ''))}</li>
-          </ol>
-        );
-      } else if (line.trim() === '') {
-        rendered.push(<br key={i} />);
-      } else {
-        rendered.push(
-          <p key={i} className="text-slate-100 dark:text-slate-100 text-gray-800 my-1 leading-relaxed">
-            {renderInlineMarkdown(line)}
-          </p>
-        );
-      }
-    }
-
-    if (inTable && tableRows.length > 0) {
-      rendered.push(renderTable(tableRows, lines.length));
-    }
-
-    return rendered;
+    // Handle bold text with **text** or <BOLD>text</BOLD>
+    text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    text = text.replace(/<BOLD>(.*?)<\/BOLD>/g, '<strong>$1</strong>');
+    
+    // Handle italic text with *text* or <ITALIC>text</ITALIC>
+    text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    text = text.replace(/<ITALIC>(.*?)<\/ITALIC>/g, '<em>$1</em>');
+    
+    // Handle inline code with `code` or <INLINECODE>code</INLINECODE>
+    text = text.replace(/`([^`]+)`/g, '<code class="bg-muted px-1 py-0.5 rounded text-sm font-mono">$1</code>');
+    text = text.replace(/<INLINECODE>(.*?)<\/INLINECODE>/g, '<code class="bg-muted px-1 py-0.5 rounded text-sm font-mono">$1</code>');
+    
+    // Handle headers
+    text = text.replace(/^#### (.*$)/gim, '<h4 class="text-lg font-semibold mt-4 mb-2">$1</h4>');
+    text = text.replace(/^### (.*$)/gim, '<h3 class="text-xl font-semibold mt-4 mb-2">$1</h3>');
+    text = text.replace(/^## (.*$)/gim, '<h2 class="text-2xl font-semibold mt-4 mb-2">$1</h2>');
+    text = text.replace(/^# (.*$)/gim, '<h1 class="text-3xl font-bold mt-4 mb-2">$1</h1>');
+    
+    // Handle line breaks
+    text = text.replace(/\n/g, '<br>');
+    
+    // Handle horizontal rules
+    text = text.replace(/^---$/gm, '<hr class="my-4 border-border">');
+    
+    return text;
   };
 
-  const renderInlineMarkdown = (text: string) => {
-    const parts: (string | JSX.Element)[] = [];
-
-    // Handle complex inline code with tags like <INLINECODE>Scanner</INLINECODE>
-    text = text.replace(/<INLINECODE>(.*?)<\/INLINECODE>/g, (match, code) => {
-      return `<INLINE_CODE>${code}</INLINE_CODE>`;
-    });
-
-    // Handle nested tags like <INLINE<ITALIC>CODE>Scanner</INLINE</ITALIC>CODE>
-    text = text.replace(/<INLINE<ITALIC>CODE>(.*?)<\/INLINE<\/ITALIC>CODE>/g, (match, code) => {
-      return `<INLINE_CODE>${code}</INLINE_CODE>`;
-    });
-
-    // Handle regular inline code
-    text = text.replace(/`([^`]+)`/g, (match, code) => {
-      return `<INLINE_CODE>${code}</INLINE_CODE>`;
-    });
-
-    // Handle bold text (** or __)
-    text = text.replace(/\*\*([^*]+)\*\*/g, (match, bold) => {
-      return `<BOLD>${bold}</BOLD>`;
-    });
-    text = text.replace(/__([^_]+)__/g, (match, bold) => {
-      return `<BOLD>${bold}</BOLD>`;
-    });
-
-    // Handle italic text (* or _)
-    text = text.replace(/\*([^*]+)\*/g, (match, italic) => {
-      return `<ITALIC>${italic}</ITALIC>`;
-    });
-    text = text.replace(/_([^_]+)_/g, (match, italic) => {
-      return `<ITALIC>${italic}</ITALIC>`;
-    });
-
-    const segments = text.split(/(<BOLD>.*?<\/BOLD>|<ITALIC>.*?<\/ITALIC>|<INLINE_CODE>.*?<\/INLINE_CODE>)/);
-
-    return segments.map((segment, index) => {
-      if (segment.startsWith('<BOLD>')) {
-        const content = segment.replace(/<\/?BOLD>/g, '');
-        return (
-          <strong key={index} className="font-semibold text-white dark:text-white text-gray-900">
-            {content}
-          </strong>
-        );
-      } else if (segment.startsWith('<ITALIC>')) {
-        const content = segment.replace(/<\/?ITALIC>/g, '');
-        return (
-          <em key={index} className="italic text-slate-200 dark:text-slate-200 text-gray-700">
-            {content}
-          </em>
-        );
-      } else if (segment.startsWith('<INLINE_CODE>')) {
-        const content = segment.replace(/<\/?INLINE_CODE>/g, '');
-        return (
-          <code key={index} className="px-1.5 py-0.5 bg-slate-700 dark:bg-slate-700 bg-gray-200 text-blue-300 dark:text-blue-300 text-blue-600 rounded text-sm font-mono">
-            {content}
-          </code>
-        );
-      } else {
-        return segment;
-      }
-    });
-  };
-
-  const renderTable = (rows: string[], key: number) => {
-    if (rows.length < 2) return null;
-
-    const headerRow = rows[0].split('|').map(cell => cell.trim()).filter(cell => cell);
-    const separatorRow = rows[1];
-    const dataRows = rows.slice(2).map(row => 
-      row.split('|').map(cell => cell.trim()).filter(cell => cell)
-    );
-
-    return (
-      <div key={key} className="my-4 overflow-x-auto">
-        <table className="min-w-full bg-slate-800 dark:bg-slate-800 bg-white border border-slate-700 dark:border-slate-700 border-gray-300 rounded-lg">
-          <thead>
-            <tr className="bg-slate-700 dark:bg-slate-700 bg-gray-100">
-              {headerRow.map((header, index) => (
-                <th key={index} className="px-4 py-2 text-left text-white dark:text-white text-gray-900 font-semibold border-b border-slate-600 dark:border-slate-600 border-gray-300">
-                  {renderInlineMarkdown(header)}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {dataRows.map((row, rowIndex) => (
-              <tr key={rowIndex} className="border-b border-slate-700 dark:border-slate-700 border-gray-200 hover:bg-slate-750 dark:hover:bg-slate-750 hover:bg-gray-50">
-                {row.map((cell, cellIndex) => (
-                  <td key={cellIndex} className="px-4 py-2 text-slate-200 dark:text-slate-200 text-gray-700">
-                    {renderInlineMarkdown(cell)}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    );
-  };
-
-  return <div className={className}>{renderMarkdown(content)}</div>;
+  return (
+    <div 
+      className="prose prose-sm dark:prose-invert max-w-none"
+      dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
+    />
+  );
 };
