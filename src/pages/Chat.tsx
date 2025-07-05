@@ -24,6 +24,7 @@ interface ChatSession {
   messages: Message[];
   created_at: string;
   updated_at: string;
+  unique_url?: string;
 }
 
 export const Chat = () => {
@@ -77,7 +78,8 @@ export const Chat = () => {
 
       recognitionRef.current!.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
-        setMessage(transcript);
+        // Append to existing message instead of replacing
+        setMessage(prev => prev + (prev ? ' ' : '') + transcript);
         setIsListening(false);
       };
 
@@ -107,7 +109,17 @@ export const Chat = () => {
       }
       setSession(session);
       setUser(session.user);
-      loadChatSessions(session.user.id);
+      
+      // Check URL for specific chat session
+      const urlParams = new URLSearchParams(window.location.search);
+      const chatId = urlParams.get('chat');
+      
+      if (chatId) {
+        loadSpecificChat(chatId, session.user.id);
+      } else {
+        // Create new session for signed-in users
+        createNewSession(session.user.id);
+      }
     };
 
     initAuth();
@@ -146,6 +158,38 @@ export const Chat = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const generateUniqueUrl = () => {
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  };
+
+  const loadSpecificChat = async (chatId: string, userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('chat_sessions')
+        .select('*')
+        .eq('unique_url', chatId)
+        .eq('user_id', userId)
+        .single();
+
+      if (error || !data) {
+        toast({
+          title: "Chat not found",
+          description: "The requested chat session could not be found.",
+          variant: "destructive",
+        });
+        createNewSession(userId);
+        return;
+      }
+
+      setCurrentSessionId(data.id);
+      loadMessages(data.id);
+      loadChatSessions(userId);
+    } catch (error) {
+      console.error('Error loading specific chat:', error);
+      createNewSession(userId);
+    }
+  };
+
   const loadChatSessions = async (userId: string) => {
     try {
       const { data, error } = await supabase
@@ -161,10 +205,6 @@ export const Chat = () => {
           ...session,
           messages: []
         })));
-        setCurrentSessionId(data[0].id);
-        loadMessages(data[0].id);
-      } else {
-        createNewSession();
       }
     } catch (error) {
       console.error('Error loading chat sessions:', error);
@@ -196,15 +236,18 @@ export const Chat = () => {
     }
   };
 
-  const createNewSession = async () => {
-    if (!user) return;
+  const createNewSession = async (userId?: string) => {
+    const currentUserId = userId || user?.id;
+    if (!currentUserId) return;
 
     try {
+      const uniqueUrl = generateUniqueUrl();
       const { data, error } = await supabase
         .from('chat_sessions')
         .insert({
-          user_id: user.id,
-          title: 'New Chat'
+          user_id: currentUserId,
+          title: 'New Chat',
+          unique_url: uniqueUrl
         })
         .select()
         .single();
@@ -220,6 +263,9 @@ export const Chat = () => {
       setCurrentSessionId(data.id);
       setMessages([]);
       setSidebarOpen(false);
+      
+      // Update URL without page reload
+      window.history.pushState({}, '', `/chat?chat=${uniqueUrl}`);
     } catch (error) {
       console.error('Error creating new session:', error);
       setError('Failed to create new chat session');
@@ -360,10 +406,15 @@ export const Chat = () => {
     setIsTyping(false);
   };
 
-  const switchToSession = (sessionId: string) => {
-    setCurrentSessionId(sessionId);
-    loadMessages(sessionId);
+  const switchToSession = (session: ChatSession) => {
+    setCurrentSessionId(session.id);
+    loadMessages(session.id);
     setSidebarOpen(false);
+    
+    // Update URL with unique chat identifier
+    if (session.unique_url) {
+      window.history.pushState({}, '', `/chat?chat=${session.unique_url}`);
+    }
   };
 
   const deleteSession = async (sessionId: string) => {
@@ -380,7 +431,7 @@ export const Chat = () => {
       if (sessionId === currentSessionId) {
         const remainingSessions = chatSessions.filter(session => session.id !== sessionId);
         if (remainingSessions.length > 0) {
-          switchToSession(remainingSessions[0].id);
+          switchToSession(remainingSessions[0]);
         } else {
           createNewSession();
         }
@@ -511,7 +562,7 @@ export const Chat = () => {
                 </Button>
               </div>
               <Button
-                onClick={createNewSession}
+                onClick={() => createNewSession()}
                 className="w-full mt-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-xl"
               >
                 <Plus className="mr-2" size={16} />
@@ -541,7 +592,7 @@ export const Chat = () => {
                       ? 'bg-blue-600/20 border border-blue-500/30'
                       : 'hover:bg-slate-700/50 dark:hover:bg-slate-700/50 hover:bg-slate-200/50'
                   }`}
-                  onClick={() => switchToSession(session.id)}
+                  onClick={() => switchToSession(session)}
                 >
                   {editingSessionId === session.id ? (
                     <input
@@ -598,8 +649,8 @@ export const Chat = () => {
               ))}
             </div>
 
-            {/* Sidebar Footer - Always visible */}
-            <div className="p-4 border-t border-slate-700 dark:border-slate-700 border-slate-200 space-y-2 mt-auto">
+            {/* Fixed Sidebar Footer */}
+            <div className="p-4 border-t border-slate-700 dark:border-slate-700 border-slate-200 space-y-2 bg-slate-800/90 dark:bg-slate-800/90 bg-white/90">
               <Button
                 onClick={() => navigate('/settings')}
                 variant="ghost"

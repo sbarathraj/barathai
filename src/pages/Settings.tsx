@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Moon, Sun, Mic, Volume2, Trash2, Bell, Globe } from "lucide-react";
+import { ArrowLeft, Moon, Sun, Mic, Volume2, Trash2, Bell, Globe, Settings as SettingsIcon, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -102,51 +101,91 @@ export const Settings = () => {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      toast({
+        title: "Success",
+        description: "Logged out successfully",
+      });
+      navigate('/');
+    } catch (error) {
+      console.error('Error logging out:', error);
+      toast({
+        title: "Error",
+        description: "Failed to log out",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className={`min-h-screen ${darkMode ? 'dark' : ''}`}>
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 bg-gray-50 text-white dark:text-white text-slate-900 flex flex-col">
-        {/* Header */}
-        <header className="p-6 border-b border-slate-700 dark:border-slate-700 border-slate-200">
-          <div className="flex items-center justify-between max-w-4xl mx-auto">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 transition-colors duration-300 text-slate-900 dark:text-white flex flex-col">
+        
+        {/* Fixed Header with Settings and Logout */}
+        <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-b border-slate-200 dark:border-slate-700 transition-colors duration-300">
+          <div className="flex items-center justify-between p-4 max-w-7xl mx-auto">
             <div className="flex items-center space-x-4">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => navigate('/chat')}
-                className="text-slate-400 hover:text-white dark:text-slate-400 dark:hover:text-white hover:text-slate-600"
+                className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
               >
                 <ArrowLeft size={20} />
               </Button>
               <div className="flex items-center space-x-3">
                 <Logo size={32} />
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                   Settings
                 </h1>
               </div>
+            </div>
+
+            {/* Fixed Settings and Logout buttons */}
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+              >
+                <SettingsIcon className="mr-2 h-4 w-4" />
+                Settings
+              </Button>
+              <Button
+                onClick={handleLogout}
+                variant="ghost"
+                className="text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
+              </Button>
             </div>
           </div>
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 p-6">
+        <main className="flex-1 pt-20 p-6">
           <div className="max-w-4xl mx-auto space-y-6">
             
             {/* Appearance Settings */}
-            <Card className="bg-slate-800/50 border-slate-700 dark:bg-slate-800/50 dark:border-slate-700 bg-white border-slate-200">
+            <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-lg border border-slate-200 dark:border-slate-700 shadow-lg">
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2 text-white dark:text-white text-slate-900">
+                <CardTitle className="flex items-center space-x-2 text-slate-900 dark:text-white">
                   {darkMode ? <Moon size={20} /> : <Sun size={20} />}
                   <span>Appearance</span>
                 </CardTitle>
-                <CardDescription className="text-slate-400 dark:text-slate-400 text-slate-600">
+                <CardDescription className="text-slate-600 dark:text-slate-400">
                   Customize the look and feel of BarathAI
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-white dark:text-white text-slate-900">Dark Mode</p>
-                    <p className="text-sm text-slate-400 dark:text-slate-400 text-slate-600">
+                    <p className="font-medium text-slate-900 dark:text-white">Dark Mode</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
                       Toggle between light and dark themes
                     </p>
                   </div>
@@ -160,21 +199,21 @@ export const Settings = () => {
             </Card>
 
             {/* Voice Settings */}
-            <Card className="bg-slate-800/50 border-slate-700 dark:bg-slate-800/50 dark:border-slate-700 bg-white border-slate-200">
+            <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-lg border border-slate-200 dark:border-slate-700 shadow-lg">
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2 text-white dark:text-white text-slate-900">
+                <CardTitle className="flex items-center space-x-2 text-slate-900 dark:text-white">
                   <Mic size={20} />
                   <span>Voice Assistant</span>
                 </CardTitle>
-                <CardDescription className="text-slate-400 dark:text-slate-400 text-slate-600">
+                <CardDescription className="text-slate-600 dark:text-slate-400">
                   Configure voice input and output settings
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-white dark:text-white text-slate-900">Voice Input</p>
-                    <p className="text-sm text-slate-400 dark:text-slate-400 text-slate-600">
+                    <p className="font-medium text-slate-900 dark:text-white">Voice Input</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
                       Enable speech-to-text functionality
                     </p>
                   </div>
@@ -190,10 +229,10 @@ export const Settings = () => {
                 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <Volume2 size={16} className="text-slate-400 dark:text-slate-400 text-slate-600" />
+                    <Volume2 size={16} className="text-slate-600 dark:text-slate-400" />
                     <div>
-                      <p className="font-medium text-white dark:text-white text-slate-900">Voice Output</p>
-                      <p className="text-sm text-slate-400 dark:text-slate-400 text-slate-600">
+                      <p className="font-medium text-slate-900 dark:text-white">Voice Output</p>
+                      <p className="text-sm text-slate-600 dark:text-slate-400">
                         Enable text-to-speech for AI responses
                       </p>
                     </div>
@@ -211,21 +250,21 @@ export const Settings = () => {
             </Card>
 
             {/* Audio & Notifications */}
-            <Card className="bg-slate-800/50 border-slate-700 dark:bg-slate-800/50 dark:border-slate-700 bg-white border-slate-200">
+            <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-lg border border-slate-200 dark:border-slate-700 shadow-lg">
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2 text-white dark:text-white text-slate-900">
+                <CardTitle className="flex items-center space-x-2 text-slate-900 dark:text-white">
                   <Bell size={20} />
                   <span>Audio & Notifications</span>
                 </CardTitle>
-                <CardDescription className="text-slate-400 dark:text-slate-400 text-slate-600">
+                <CardDescription className="text-slate-600 dark:text-slate-400">
                   Manage sound effects and notifications
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-white dark:text-white text-slate-900">Sound Effects</p>
-                    <p className="text-sm text-slate-400 dark:text-slate-400 text-slate-600">
+                    <p className="font-medium text-slate-900 dark:text-white">Sound Effects</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
                       Play sounds for various actions
                     </p>
                   </div>
@@ -241,8 +280,8 @@ export const Settings = () => {
                 
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-white dark:text-white text-slate-900">Notifications</p>
-                    <p className="text-sm text-slate-400 dark:text-slate-400 text-slate-600">
+                    <p className="font-medium text-slate-900 dark:text-white">Notifications</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
                       Receive notifications for new messages
                     </p>
                   </div>
@@ -259,21 +298,21 @@ export const Settings = () => {
             </Card>
 
             {/* Language Settings */}
-            <Card className="bg-slate-800/50 border-slate-700 dark:bg-slate-800/50 dark:border-slate-700 bg-white border-slate-200">
+            <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-lg border border-slate-200 dark:border-slate-700 shadow-lg">
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2 text-white dark:text-white text-slate-900">
+                <CardTitle className="flex items-center space-x-2 text-slate-900 dark:text-white">
                   <Globe size={20} />
                   <span>Language</span>
                 </CardTitle>
-                <CardDescription className="text-slate-400 dark:text-slate-400 text-slate-600">
+                <CardDescription className="text-slate-600 dark:text-slate-400">
                   Choose your preferred language
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-white dark:text-white text-slate-900">Interface Language</p>
-                    <p className="text-sm text-slate-400 dark:text-slate-400 text-slate-600">
+                    <p className="font-medium text-slate-900 dark:text-white">Interface Language</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
                       Select the language for the interface
                     </p>
                   </div>
@@ -284,10 +323,10 @@ export const Settings = () => {
                       saveSettings({ language: value });
                     }}
                   >
-                    <SelectTrigger className="w-40 bg-slate-700 border-slate-600 text-white dark:bg-slate-700 dark:border-slate-600 dark:text-white bg-white border-slate-300 text-slate-900">
+                    <SelectTrigger className="w-40 bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-slate-700 border-slate-600 text-white dark:bg-slate-700 dark:border-slate-600 dark:text-white bg-white border-slate-300 text-slate-900">
+                    <SelectContent className="bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white">
                       <SelectItem value="en">English</SelectItem>
                       <SelectItem value="es">Español</SelectItem>
                       <SelectItem value="fr">Français</SelectItem>
@@ -304,21 +343,21 @@ export const Settings = () => {
             </Card>
 
             {/* Data Management */}
-            <Card className="bg-slate-800/50 border-slate-700 dark:bg-slate-800/50 dark:border-slate-700 bg-white border-slate-200">
+            <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-lg border border-slate-200 dark:border-slate-700 shadow-lg">
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2 text-white dark:text-white text-slate-900">
+                <CardTitle className="flex items-center space-x-2 text-slate-900 dark:text-white">
                   <Trash2 size={20} />
                   <span>Data Management</span>
                 </CardTitle>
-                <CardDescription className="text-slate-400 dark:text-slate-400 text-slate-600">
+                <CardDescription className="text-slate-600 dark:text-slate-400">
                   Manage your chat data and history
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-white dark:text-white text-slate-900">Clear Chat History</p>
-                    <p className="text-sm text-slate-400 dark:text-slate-400 text-slate-600">
+                    <p className="font-medium text-slate-900 dark:text-white">Clear Chat History</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
                       Permanently delete all your chat conversations
                     </p>
                   </div>
@@ -336,10 +375,10 @@ export const Settings = () => {
             {/* Clear History Confirmation Dialog */}
             {showClearDialog && (
               <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                <Card className="w-full max-w-md mx-4 bg-slate-800 border-slate-700 dark:bg-slate-800 dark:border-slate-700 bg-white border-slate-200">
+                <Card className="w-full max-w-md mx-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                   <CardHeader>
-                    <CardTitle className="text-white dark:text-white text-slate-900">Confirm Deletion</CardTitle>
-                    <CardDescription className="text-slate-400 dark:text-slate-400 text-slate-600">
+                    <CardTitle className="text-slate-900 dark:text-white">Confirm Deletion</CardTitle>
+                    <CardDescription className="text-slate-600 dark:text-slate-400">
                       Are you sure you want to clear all your chat history? This action cannot be undone.
                     </CardDescription>
                   </CardHeader>
@@ -347,7 +386,7 @@ export const Settings = () => {
                     <Button
                       variant="ghost"
                       onClick={() => setShowClearDialog(false)}
-                      className="text-slate-400 hover:text-white dark:text-slate-400 dark:hover:text-white hover:text-slate-600"
+                      className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                     >
                       Cancel
                     </Button>

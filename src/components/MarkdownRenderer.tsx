@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Copy, Check } from "lucide-react";
@@ -160,56 +159,60 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
   const renderInlineMarkdown = (text: string) => {
     const parts: (string | JSX.Element)[] = [];
 
-    // Handle complex inline code with tags like <INLINECODE>Scanner</INLINECODE>
-    text = text.replace(/<INLINECODE>(.*?)<\/INLINECODE>/g, (match, code) => {
-      return `<INLINE_CODE>${code}</INLINE_CODE>`;
+    // Handle complex inline code patterns
+    text = text.replace(/<BOLD>(.*?)<\/BOLD>/g, (match, content) => {
+      return `<BOLD_TAG>${content}</BOLD_TAG>`;
     });
 
-    // Handle nested tags like <INLINE<ITALIC>CODE>Scanner</INLINE</ITALIC>CODE>
+    text = text.replace(/<INLINECODE>(.*?)<\/INLINECODE>/g, (match, code) => {
+      return `<INLINE_CODE_TAG>${code}</INLINE_CODE_TAG>`;
+    });
+
+    // Handle nested patterns like <INLINE<ITALIC>CODE>Scanner</INLINE</ITALIC>CODE>
     text = text.replace(/<INLINE<ITALIC>CODE>(.*?)<\/INLINE<\/ITALIC>CODE>/g, (match, code) => {
-      return `<INLINE_CODE>${code}</INLINE_CODE>`;
+      return `<INLINE_CODE_TAG>${code}</INLINE_CODE_TAG>`;
     });
 
     // Handle regular inline code
     text = text.replace(/`([^`]+)`/g, (match, code) => {
-      return `<INLINE_CODE>${code}</INLINE_CODE>`;
+      return `<INLINE_CODE_TAG>${code}</INLINE_CODE_TAG>`;
     });
 
     // Handle bold text (** or __)
     text = text.replace(/\*\*([^*]+)\*\*/g, (match, bold) => {
-      return `<BOLD>${bold}</BOLD>`;
+      return `<BOLD_TAG>${bold}</BOLD_TAG>`;
     });
     text = text.replace(/__([^_]+)__/g, (match, bold) => {
-      return `<BOLD>${bold}</BOLD>`;
+      return `<BOLD_TAG>${bold}</BOLD_TAG>`;
     });
 
     // Handle italic text (* or _)
     text = text.replace(/\*([^*]+)\*/g, (match, italic) => {
-      return `<ITALIC>${italic}</ITALIC>`;
+      return `<ITALIC_TAG>${italic}</ITALIC_TAG>`;
     });
     text = text.replace(/_([^_]+)_/g, (match, italic) => {
-      return `<ITALIC>${italic}</ITALIC>`;
+      return `<ITALIC_TAG>${italic}</ITALIC_TAG>`;
     });
 
-    const segments = text.split(/(<BOLD>.*?<\/BOLD>|<ITALIC>.*?<\/ITALIC>|<INLINE_CODE>.*?<\/INLINE_CODE>)/);
+    const segments = text.split(/(<BOLD_TAG>.*?<\/BOLD_TAG>|<ITALIC_TAG>.*?<\/ITALIC_TAG>|<INLINE_CODE_TAG>.*?<\/INLINE_CODE_TAG>)/);
 
     return segments.map((segment, index) => {
-      if (segment.startsWith('<BOLD>')) {
-        const content = segment.replace(/<\/?BOLD>/g, '');
+      if (segment.startsWith('<BOLD_TAG>')) {
+        const content = segment.replace(/<\/?BOLD_TAG>/g, '');
         return (
           <strong key={index} className="font-semibold text-white dark:text-white text-gray-900">
             {content}
           </strong>
         );
-      } else if (segment.startsWith('<ITALIC>')) {
-        const content = segment.replace(/<\/?ITALIC>/g, '');
+      } else if (segment.startsWith('<ITALIC_TAG>')) {
+        const content = segment.replace(/<\/?ITALIC_TAG>/g, '');
         return (
           <em key={index} className="italic text-slate-200 dark:text-slate-200 text-gray-700">
             {content}
           </em>
         );
-      } else if (segment.startsWith('<INLINE_CODE>')) {
-        const content = segment.replace(/<\/?INLINE_CODE>/g, '');
+      } else if (segment.startsWith('<INLINE_CODE_TAG>')) {
+        const content = segment.replace(/<\/?INLINE_CODE_TAG>/g, '');
         return (
           <code key={index} className="px-1.5 py-0.5 bg-slate-700 dark:bg-slate-700 bg-gray-200 text-blue-300 dark:text-blue-300 text-blue-600 rounded text-sm font-mono">
             {content}
