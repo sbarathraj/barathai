@@ -68,20 +68,20 @@ export const Chat = () => {
 
   // Initialize speech recognition
   useEffect(() => {
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = false;
-      recognitionRef.current.interimResults = false;
-      recognitionRef.current.lang = 'en-US';
+    if (typeof window !== 'undefined' && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+      const SpeechRecognitionConstructor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      recognitionRef.current = new SpeechRecognitionConstructor();
+      recognitionRef.current!.continuous = false;
+      recognitionRef.current!.interimResults = false;
+      recognitionRef.current!.lang = 'en-US';
 
-      recognitionRef.current.onresult = (event) => {
+      recognitionRef.current!.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
         setMessage(transcript);
         setIsListening(false);
       };
 
-      recognitionRef.current.onerror = (event) => {
+      recognitionRef.current!.onerror = (event) => {
         console.error('Speech recognition error:', event.error);
         setIsListening(false);
         toast({
@@ -91,7 +91,7 @@ export const Chat = () => {
         });
       };
 
-      recognitionRef.current.onend = () => {
+      recognitionRef.current!.onend = () => {
         setIsListening(false);
       };
     }
