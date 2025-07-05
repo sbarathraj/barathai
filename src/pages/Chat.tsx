@@ -48,7 +48,7 @@ export const Chat = () => {
   const [retryCount, setRetryCount] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<any>(null);
 
   const OPENROUTER_API_KEY = "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";
 
@@ -75,13 +75,13 @@ export const Chat = () => {
       recognitionRef.current!.interimResults = false;
       recognitionRef.current!.lang = 'en-US';
 
-      recognitionRef.current!.onresult = (event) => {
+      recognitionRef.current!.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
         setMessage(transcript);
         setIsListening(false);
       };
 
-      recognitionRef.current!.onerror = (event) => {
+      recognitionRef.current!.onerror = (event: any) => {
         console.error('Speech recognition error:', event.error);
         setIsListening(false);
         toast({
