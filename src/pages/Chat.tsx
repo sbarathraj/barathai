@@ -1,11 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Mic, MicOff, Menu, X, Plus, Settings, LogOut, Moon, Sun, User, Search, Edit2, Trash2 } from "lucide-react";
+import { Send, Mic, MicOff, Menu, X, Plus, Settings, LogOut, Moon, Sun, User, Search, Edit2, Trash2, Wifi, WifiOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
+import { TextToSpeech } from "@/components/TextToSpeech";
+import { ErrorBanner, LoadingSpinner } from "@/components/ErrorBoundary";
+import { Logo } from "@/components/Logo";
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
 
 interface Message {
@@ -40,10 +43,59 @@ export const Chat = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingSessionId, setEditingSessionId] = useState<string>('');
   const [editingTitle, setEditingTitle] = useState('');
+  const [error, setError] = useState<string>('');
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [retryCount, setRetryCount] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   const OPENROUTER_API_KEY = "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";
+
+  // Network status monitoring
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // Initialize speech recognition
+  useEffect(() => {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = false;
+      recognitionRef.current.interimResults = false;
+      recognitionRef.current.lang = 'en-US';
+
+      recognitionRef.current.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        setMessage(transcript);
+        setIsListening(false);
+      };
+
+      recognitionRef.current.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        setIsListening(false);
+        toast({
+          title: "Voice input error",
+          description: "Please try again or check microphone permissions",
+          variant: "destructive",
+        });
+      };
+
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+      };
+    }
+  }, [toast]);
 
   useEffect(() => {
     // Check authentication and get user
@@ -77,6 +129,19 @@ export const Chat = () => {
     scrollToBottom();
   }, [messages, isTyping]);
 
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('barathAI-settings');
+    if (savedSettings) {
+      const settings = JSON.parse(savedSettings);
+      setDarkMode(settings.darkMode ?? true);
+      if (settings.darkMode) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+  }, []);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -103,11 +168,7 @@ export const Chat = () => {
       }
     } catch (error) {
       console.error('Error loading chat sessions:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load chat sessions",
-        variant: "destructive",
-      });
+      setError('Failed to load chat sessions');
     }
   };
 
@@ -131,11 +192,7 @@ export const Chat = () => {
       setMessages(formattedMessages);
     } catch (error) {
       console.error('Error loading messages:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load messages",
-        variant: "destructive",
-      });
+      setError('Failed to load messages');
     }
   };
 
@@ -165,11 +222,7 @@ export const Chat = () => {
       setSidebarOpen(false);
     } catch (error) {
       console.error('Error creating new session:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create new chat session",
-        variant: "destructive",
-      });
+      setError('Failed to create new chat session');
     }
   };
 
@@ -211,8 +264,13 @@ export const Chat = () => {
     }
   };
 
-  const sendMessage = async () => {
+  const sendMessage = async (retryAttempt = false) => {
     if (!message.trim() || isLoading || !currentSessionId || !user) return;
+
+    if (!isOnline) {
+      setError('No internet connection. Please check your network and try again.');
+      return;
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -226,13 +284,14 @@ export const Chat = () => {
     setMessage('');
     setIsLoading(true);
     setIsTyping(true);
+    setError('');
 
-    // Save user message
-    await saveMessage(currentSessionId, userMessage.content, 'user');
-
-    // Update session title if this is the first message
-    if (messages.length === 0) {
-      updateSessionTitle(currentSessionId, userMessage.content);
+    if (!retryAttempt) {
+      await saveMessage(currentSessionId, userMessage.content, 'user');
+      
+      if (messages.length === 0) {
+        updateSessionTitle(currentSessionId, userMessage.content);
+      }
     }
 
     try {
@@ -260,7 +319,7 @@ export const Chat = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to get response from AI');
+        throw new Error(`API responded with status ${response.status}`);
       }
 
       const data = await response.json();
@@ -273,25 +332,28 @@ export const Chat = () => {
 
       const updatedMessages = [...newMessages, assistantMessage];
       setMessages(updatedMessages);
+      setRetryCount(0);
 
-      // Save assistant message
       await saveMessage(currentSessionId, assistantMessage.content, 'assistant');
 
     } catch (error) {
       console.error('Error sending message:', error);
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        content: "I'm sorry, I'm having trouble connecting right now. Please try again later.",
-        role: 'assistant',
-        timestamp: new Date()
-      };
-      setMessages([...newMessages, errorMessage]);
+      setRetryCount(prev => prev + 1);
       
-      toast({
-        title: "Error",
-        description: "Failed to get AI response. Please try again.",
-        variant: "destructive",
-      });
+      if (retryCount < 2) {
+        setError(`Connection failed. Retrying... (${retryCount + 1}/3)`);
+        setTimeout(() => sendMessage(true), 2000);
+      } else {
+        setError('Failed to get response. Please check your connection and try again.');
+        const errorMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          content: "I'm sorry, I'm having trouble connecting right now. Please try again later.",
+          role: 'assistant',
+          timestamp: new Date()
+        };
+        setMessages([...newMessages, errorMessage]);
+        setRetryCount(0);
+      }
     }
 
     setIsLoading(false);
@@ -330,11 +392,7 @@ export const Chat = () => {
       });
     } catch (error) {
       console.error('Error deleting session:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete chat session",
-        variant: "destructive",
-      });
+      setError('Failed to delete chat session');
     }
   };
 
@@ -360,11 +418,7 @@ export const Chat = () => {
       });
     } catch (error) {
       console.error('Error renaming session:', error);
-      toast({
-        title: "Error",
-        description: "Failed to rename chat session",
-        variant: "destructive",
-      });
+      setError('Failed to rename chat session');
     }
   };
 
@@ -380,17 +434,36 @@ export const Chat = () => {
       navigate('/');
     } catch (error) {
       console.error('Error logging out:', error);
-      toast({
-        title: "Error",
-        description: "Failed to log out",
-        variant: "destructive",
-      });
+      setError('Failed to log out');
     }
   };
 
   const toggleVoiceInput = () => {
-    setIsListening(!isListening);
-    // Voice input functionality would be implemented here
+    if (!recognitionRef.current) {
+      toast({
+        title: "Voice input not supported",
+        description: "Your browser doesn't support voice input",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      try {
+        recognitionRef.current.start();
+        setIsListening(true);
+      } catch (error) {
+        console.error('Error starting speech recognition:', error);
+        toast({
+          title: "Voice input error",
+          description: "Please check microphone permissions",
+          variant: "destructive",
+        });
+      }
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -400,37 +473,34 @@ export const Chat = () => {
     }
   };
 
-  useEffect(() => {
-    const savedSettings = localStorage.getItem('barathAI-settings');
-    if (savedSettings) {
-      const settings = JSON.parse(savedSettings);
-      setDarkMode(settings.darkMode ?? true);
-      // Apply theme
-      if (settings.darkMode) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-    }
-  }, []);
-
   const filteredSessions = chatSessions.filter(session =>
     session.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
     <div className={`min-h-screen flex ${darkMode ? 'dark' : ''}`}>
-      <div className="flex w-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 bg-white text-white dark:text-white text-slate-900">
+      <div className="flex w-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 bg-gray-50 text-white dark:text-white text-slate-900">
         
+        {/* Connection Status */}
+        {!isOnline && (
+          <div className="fixed top-0 left-0 right-0 z-50 bg-red-600 text-white text-center py-2 text-sm flex items-center justify-center">
+            <WifiOff size={16} className="mr-2" />
+            No internet connection
+          </div>
+        )}
+
         {/* Sidebar */}
         <div className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 fixed lg:relative z-50 w-80 lg:w-72 h-full bg-slate-800/90 backdrop-blur-lg border-r border-slate-700 dark:bg-slate-800/90 dark:border-slate-700 bg-white/90 border-slate-200 transition-transform duration-300`}>
           <div className="flex flex-col h-full">
             {/* Sidebar Header */}
             <div className="p-4 border-b border-slate-700 dark:border-slate-700 border-slate-200">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                  BarathAI
-                </h2>
+                <div className="flex items-center space-x-2">
+                  <Logo size={32} />
+                  <h2 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                    BarathAI
+                  </h2>
+                </div>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -528,8 +598,8 @@ export const Chat = () => {
               ))}
             </div>
 
-            {/* Sidebar Footer */}
-            <div className="p-4 border-t border-slate-700 dark:border-slate-700 border-slate-200 space-y-2">
+            {/* Sidebar Footer - Always visible */}
+            <div className="p-4 border-t border-slate-700 dark:border-slate-700 border-slate-200 space-y-2 mt-auto">
               <Button
                 onClick={() => navigate('/settings')}
                 variant="ghost"
@@ -564,8 +634,17 @@ export const Chat = () => {
                 <Menu size={20} />
               </Button>
               <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-                <span className="text-sm text-slate-300 dark:text-slate-300 text-slate-600">Online</span>
+                {isOnline ? (
+                  <>
+                    <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                    <span className="text-sm text-slate-300 dark:text-slate-300 text-slate-600">Online</span>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-3 h-3 bg-red-400 rounded-full"></div>
+                    <span className="text-sm text-slate-300 dark:text-slate-300 text-slate-600">Offline</span>
+                  </>
+                )}
               </div>
             </div>
 
@@ -590,11 +669,22 @@ export const Chat = () => {
 
           {/* Messages Area */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {error && (
+              <ErrorBanner
+                message={error}
+                onRetry={() => {
+                  setError('');
+                  if (message.trim()) {
+                    sendMessage(true);
+                  }
+                }}
+                onDismiss={() => setError('')}
+              />
+            )}
+
             {messages.length === 0 && (
               <div className="text-center py-12">
-                <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl font-bold">B</span>
-                </div>
+                <Logo size={64} className="mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-white dark:text-white text-slate-900 mb-2">Welcome to BarathAI</h3>
                 <p className="text-slate-400 dark:text-slate-400 text-slate-600">How can I help you today?</p>
               </div>
@@ -614,9 +704,7 @@ export const Chat = () => {
                 >
                   {msg.role === 'assistant' && (
                     <div className="flex items-center mb-2">
-                      <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mr-2">
-                        <span className="text-xs font-bold">B</span>
-                      </div>
+                      <Logo size={24} className="mr-2" />
                       <span className="text-xs text-slate-400 dark:text-slate-400 text-slate-500">BarathAI</span>
                     </div>
                   )}
@@ -625,8 +713,13 @@ export const Chat = () => {
                   ) : (
                     <p className="whitespace-pre-wrap">{msg.content}</p>
                   )}
-                  <div className="text-xs opacity-70 mt-2">
-                    {msg.timestamp.toLocaleTimeString()}
+                  <div className="flex items-center justify-between mt-2">
+                    <div className="text-xs opacity-70">
+                      {msg.timestamp.toLocaleTimeString()}
+                    </div>
+                    {msg.role === 'assistant' && (
+                      <TextToSpeech text={msg.content} className="ml-2" />
+                    )}
                   </div>
                 </div>
               </div>
@@ -635,16 +728,11 @@ export const Chat = () => {
             {isTyping && (
               <div className="flex justify-start">
                 <div className="bg-slate-700/50 border border-slate-600 dark:bg-slate-700/50 dark:border-slate-600 bg-slate-100 border-slate-300 p-4 rounded-2xl">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                      <span className="text-xs font-bold">B</span>
-                    </div>
-                    <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                    </div>
+                  <div className="flex items-center mb-2">
+                    <Logo size={24} className="mr-2" />
+                    <span className="text-xs text-slate-400 dark:text-slate-400 text-slate-500">BarathAI</span>
                   </div>
+                  <LoadingSpinner message="Thinking..." />
                 </div>
               </div>
             )}
@@ -675,15 +763,26 @@ export const Chat = () => {
                       : 'text-slate-400 hover:text-white dark:text-slate-400 dark:hover:text-white hover:text-slate-600'
                   }`}
                 >
-                  {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+                  {isListening ? (
+                    <div className="relative">
+                      <MicOff size={20} />
+                      <div className="absolute -inset-1 bg-red-400/20 rounded-full animate-ping"></div>
+                    </div>
+                  ) : (
+                    <Mic size={20} />
+                  )}
                 </Button>
               </div>
               <Button
-                onClick={sendMessage}
-                disabled={!message.trim() || isLoading}
+                onClick={() => sendMessage()}
+                disabled={!message.trim() || isLoading || !isOnline}
                 className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white p-4 rounded-xl transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
-                <Send size={20} />
+                {isLoading ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                ) : (
+                  <Send size={20} />
+                )}
               </Button>
             </div>
             

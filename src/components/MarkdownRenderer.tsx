@@ -1,5 +1,8 @@
 
-import React from 'react';
+import React, { useState } from 'react';
+import { Button } from "@/components/ui/button";
+import { Copy, Check } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface MarkdownRendererProps {
   content: string;
@@ -7,8 +10,34 @@ interface MarkdownRendererProps {
 }
 
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, className = "" }) => {
+  const [copiedBlocks, setCopiedBlocks] = useState<Set<number>>(new Set());
+  const { toast } = useToast();
+
+  const copyToClipboard = async (text: string, blockIndex: number) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedBlocks(prev => new Set(prev).add(blockIndex));
+      toast({
+        title: "Copied!",
+        description: "Code copied to clipboard",
+      });
+      setTimeout(() => {
+        setCopiedBlocks(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(blockIndex);
+          return newSet;
+        });
+      }, 2000);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to copy code",
+        variant: "destructive",
+      });
+    }
+  };
+
   const renderMarkdown = (text: string) => {
-    // Split text into lines to handle different markdown elements
     const lines = text.split('\n');
     const rendered: JSX.Element[] = [];
     let inCodeBlock = false;
@@ -16,6 +45,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
     let codeLanguage = '';
     let inTable = false;
     let tableRows: string[] = [];
+    let blockIndex = 0;
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
@@ -28,16 +58,28 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
           codeBlockContent = [];
         } else {
           inCodeBlock = false;
+          const codeContent = codeBlockContent.join('\n');
+          const currentBlockIndex = blockIndex++;
           rendered.push(
-            <div key={i} className="my-4 rounded-lg bg-slate-800 border border-slate-700 overflow-hidden">
-              {codeLanguage && (
-                <div className="px-4 py-2 bg-slate-700 text-xs text-slate-300 border-b border-slate-600">
-                  {codeLanguage}
-                </div>
-              )}
+            <div key={i} className="my-4 rounded-lg bg-slate-800 dark:bg-slate-800 bg-gray-100 border border-slate-700 dark:border-slate-700 border-gray-300 overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-2 bg-slate-700 dark:bg-slate-700 bg-gray-200 text-xs text-slate-300 dark:text-slate-300 text-gray-600 border-b border-slate-600 dark:border-slate-600 border-gray-300">
+                <span>{codeLanguage || 'code'}</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => copyToClipboard(codeContent, currentBlockIndex)}
+                  className="h-6 w-6 text-slate-400 hover:text-blue-400 dark:text-slate-400 dark:hover:text-blue-400 text-gray-500 hover:text-blue-500"
+                >
+                  {copiedBlocks.has(currentBlockIndex) ? (
+                    <Check size={12} className="text-green-500" />
+                  ) : (
+                    <Copy size={12} />
+                  )}
+                </Button>
+              </div>
               <pre className="p-4 overflow-x-auto">
-                <code className="text-sm text-slate-100 font-mono">
-                  {codeBlockContent.join('\n')}
+                <code className="text-sm text-slate-100 dark:text-slate-100 text-gray-800 font-mono">
+                  {codeContent}
                 </code>
               </pre>
             </div>
@@ -61,7 +103,6 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
         tableRows.push(line);
         continue;
       } else if (inTable) {
-        // End of table
         inTable = false;
         rendered.push(renderTable(tableRows, i));
         tableRows = [];
@@ -70,31 +111,31 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
       // Handle headings
       if (line.startsWith('### ')) {
         rendered.push(
-          <h3 key={i} className="text-lg font-semibold text-white mt-4 mb-2">
+          <h3 key={i} className="text-lg font-semibold text-white dark:text-white text-gray-900 mt-4 mb-2">
             {renderInlineMarkdown(line.slice(4))}
           </h3>
         );
       } else if (line.startsWith('## ')) {
         rendered.push(
-          <h2 key={i} className="text-xl font-semibold text-white mt-4 mb-2">
+          <h2 key={i} className="text-xl font-semibold text-white dark:text-white text-gray-900 mt-4 mb-2">
             {renderInlineMarkdown(line.slice(3))}
           </h2>
         );
       } else if (line.startsWith('# ')) {
         rendered.push(
-          <h1 key={i} className="text-2xl font-bold text-white mt-4 mb-2">
+          <h1 key={i} className="text-2xl font-bold text-white dark:text-white text-gray-900 mt-4 mb-2">
             {renderInlineMarkdown(line.slice(2))}
           </h1>
         );
       } else if (line.startsWith('- ') || line.startsWith('* ')) {
         rendered.push(
-          <ul key={i} className="list-disc list-inside text-slate-100 my-1">
+          <ul key={i} className="list-disc list-inside text-slate-100 dark:text-slate-100 text-gray-800 my-1">
             <li>{renderInlineMarkdown(line.slice(2))}</li>
           </ul>
         );
       } else if (/^\d+\. /.test(line)) {
         rendered.push(
-          <ol key={i} className="list-decimal list-inside text-slate-100 my-1">
+          <ol key={i} className="list-decimal list-inside text-slate-100 dark:text-slate-100 text-gray-800 my-1">
             <li>{renderInlineMarkdown(line.replace(/^\d+\. /, ''))}</li>
           </ol>
         );
@@ -102,14 +143,13 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
         rendered.push(<br key={i} />);
       } else {
         rendered.push(
-          <p key={i} className="text-slate-100 my-1 leading-relaxed">
+          <p key={i} className="text-slate-100 dark:text-slate-100 text-gray-800 my-1 leading-relaxed">
             {renderInlineMarkdown(line)}
           </p>
         );
       }
     }
 
-    // Handle any remaining table
     if (inTable && tableRows.length > 0) {
       rendered.push(renderTable(tableRows, lines.length));
     }
@@ -119,9 +159,18 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
 
   const renderInlineMarkdown = (text: string) => {
     const parts: (string | JSX.Element)[] = [];
-    let currentIndex = 0;
 
-    // Handle inline code
+    // Handle complex inline code with tags like <INLINECODE>Scanner</INLINECODE>
+    text = text.replace(/<INLINECODE>(.*?)<\/INLINECODE>/g, (match, code) => {
+      return `<INLINE_CODE>${code}</INLINE_CODE>`;
+    });
+
+    // Handle nested tags like <INLINE<ITALIC>CODE>Scanner</INLINE</ITALIC>CODE>
+    text = text.replace(/<INLINE<ITALIC>CODE>(.*?)<\/INLINE<\/ITALIC>CODE>/g, (match, code) => {
+      return `<INLINE_CODE>${code}</INLINE_CODE>`;
+    });
+
+    // Handle regular inline code
     text = text.replace(/`([^`]+)`/g, (match, code) => {
       return `<INLINE_CODE>${code}</INLINE_CODE>`;
     });
@@ -142,28 +191,27 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
       return `<ITALIC>${italic}</ITALIC>`;
     });
 
-    // Split by custom tags and render
     const segments = text.split(/(<BOLD>.*?<\/BOLD>|<ITALIC>.*?<\/ITALIC>|<INLINE_CODE>.*?<\/INLINE_CODE>)/);
 
     return segments.map((segment, index) => {
       if (segment.startsWith('<BOLD>')) {
         const content = segment.replace(/<\/?BOLD>/g, '');
         return (
-          <strong key={index} className="font-semibold text-white">
+          <strong key={index} className="font-semibold text-white dark:text-white text-gray-900">
             {content}
           </strong>
         );
       } else if (segment.startsWith('<ITALIC>')) {
         const content = segment.replace(/<\/?ITALIC>/g, '');
         return (
-          <em key={index} className="italic text-slate-200">
+          <em key={index} className="italic text-slate-200 dark:text-slate-200 text-gray-700">
             {content}
           </em>
         );
       } else if (segment.startsWith('<INLINE_CODE>')) {
         const content = segment.replace(/<\/?INLINE_CODE>/g, '');
         return (
-          <code key={index} className="px-1.5 py-0.5 bg-slate-700 text-blue-300 rounded text-sm font-mono">
+          <code key={index} className="px-1.5 py-0.5 bg-slate-700 dark:bg-slate-700 bg-gray-200 text-blue-300 dark:text-blue-300 text-blue-600 rounded text-sm font-mono">
             {content}
           </code>
         );
@@ -184,11 +232,11 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
 
     return (
       <div key={key} className="my-4 overflow-x-auto">
-        <table className="min-w-full bg-slate-800 border border-slate-700 rounded-lg">
+        <table className="min-w-full bg-slate-800 dark:bg-slate-800 bg-white border border-slate-700 dark:border-slate-700 border-gray-300 rounded-lg">
           <thead>
-            <tr className="bg-slate-700">
+            <tr className="bg-slate-700 dark:bg-slate-700 bg-gray-100">
               {headerRow.map((header, index) => (
-                <th key={index} className="px-4 py-2 text-left text-white font-semibold border-b border-slate-600">
+                <th key={index} className="px-4 py-2 text-left text-white dark:text-white text-gray-900 font-semibold border-b border-slate-600 dark:border-slate-600 border-gray-300">
                   {renderInlineMarkdown(header)}
                 </th>
               ))}
@@ -196,9 +244,9 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
           </thead>
           <tbody>
             {dataRows.map((row, rowIndex) => (
-              <tr key={rowIndex} className="border-b border-slate-700 hover:bg-slate-750">
+              <tr key={rowIndex} className="border-b border-slate-700 dark:border-slate-700 border-gray-200 hover:bg-slate-750 dark:hover:bg-slate-750 hover:bg-gray-50">
                 {row.map((cell, cellIndex) => (
-                  <td key={cellIndex} className="px-4 py-2 text-slate-200">
+                  <td key={cellIndex} className="px-4 py-2 text-slate-200 dark:text-slate-200 text-gray-700">
                     {renderInlineMarkdown(cell)}
                   </td>
                 ))}

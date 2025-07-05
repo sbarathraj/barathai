@@ -1,20 +1,10 @@
 
-export const Footer = () => {
+import React from 'react';
+
+export const Footer: React.FC = () => {
   return (
-    <footer className="py-12 px-4 bg-slate-900/50 border-t border-slate-800">
-      <div className="max-w-6xl mx-auto text-center">
-        <p className="text-slate-400 text-lg">
-          Created with{" "}
-          <span className="text-red-400 text-xl animate-pulse">❤️</span>
-          {" "}by{" "}
-          <span className="text-white font-semibold">Barathraj</span>
-          {" "}—{" "}
-          <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent font-semibold">
-            BarathAI
-          </span>
-          {" "}© 2025
-        </p>
-      </div>
+    <footer className="text-center py-4 text-gray-400 dark:text-gray-400 text-sm select-none border-t border-gray-200 dark:border-gray-700 mt-auto">
+      Created with <span className="text-red-500 hover:text-red-400 transition-colors cursor-default">❤️</span> by Barathraj — BarathAI © 2025
     </footer>
   );
 };
