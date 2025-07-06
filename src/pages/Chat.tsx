@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -164,7 +163,7 @@ export const Chat = () => {
   const loadSpecificChat = async (chatId: string, userId: string) => {
     try {
       const { data, error } = await supabase
-        .from('chat_sessions_new')
+        .from('chat_sessions')
         .select('*')
         .eq('unique_url', chatId)
         .eq('user_id', userId)
@@ -192,7 +191,7 @@ export const Chat = () => {
   const loadChatSessions = async (userId: string) => {
     try {
       const { data, error } = await supabase
-        .from('chat_sessions_new')
+        .from('chat_sessions')
         .select('*')
         .eq('user_id', userId)
         .order('updated_at', { ascending: false });
@@ -246,7 +245,7 @@ export const Chat = () => {
     try {
       const uniqueUrl = generateUniqueUrl();
       const { data, error } = await supabase
-        .from('chat_sessions_new')
+        .from('chat_sessions')
         .insert({
           user_id: currentUserId,
           title: 'New Chat',
@@ -294,7 +293,7 @@ export const Chat = () => {
     
     try {
       const { error } = await supabase
-        .from('chat_sessions_new')
+        .from('chat_sessions')
         .update({ title, updated_at: new Date().toISOString() })
         .eq('id', sessionId);
 
@@ -436,7 +435,7 @@ export const Chat = () => {
   const deleteSession = async (sessionId: string) => {
     try {
       const { error } = await supabase
-        .from('chat_sessions_new')
+        .from('chat_sessions')
         .delete()
         .eq('id', sessionId);
 
@@ -466,7 +465,7 @@ export const Chat = () => {
   const renameSession = async (sessionId: string, newTitle: string) => {
     try {
       const { error } = await supabase
-        .from('chat_sessions_new')
+        .from('chat_sessions')
         .update({ title: newTitle, updated_at: new Date().toISOString() })
         .eq('id', sessionId);
 
