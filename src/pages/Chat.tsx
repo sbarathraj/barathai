@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -117,7 +118,9 @@ export const Chat = () => {
       if (chatId) {
         loadSpecificChat(chatId, session.user.id);
       } else {
-        // Create new session for signed-in users
+        // Load chat sessions and either switch to most recent or create new
+        await loadChatSessions(session.user.id);
+        // Always create a new session for fresh start
         createNewSession(session.user.id);
       }
     };
@@ -252,7 +255,15 @@ export const Chat = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database error:', error);
+        toast({
+          title: "Error",
+          description: "Failed to create new chat session: " + error.message,
+          variant: "destructive",
+        });
+        return;
+      }
 
       const newSession = {
         ...data,
@@ -268,7 +279,11 @@ export const Chat = () => {
       window.history.pushState({}, '', `/chat?chat=${uniqueUrl}`);
     } catch (error) {
       console.error('Error creating new session:', error);
-      setError('Failed to create new chat session');
+      toast({
+        title: "Error",
+        description: "Failed to create new chat session",
+        variant: "destructive",
+      });
     }
   };
 
