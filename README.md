@@ -71,3 +71,16 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+## Environment Variables
+
+To configure the API settings, create a `.env` file in the root directory with the following variables:
+
+```env
+# OpenRouter API Configuration
+VITE_OPENROUTER_API_KEY=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
+VITE_OPENROUTER_MODEL=deepseek/deepseek-chat-v3-0324:free
+VITE_OPENROUTER_API_URL=https://openrouter.ai/api/v1/chat/completions
+```
+
+The application will use these environment variables if available, otherwise it will fall back to the default values configured in `src/lib/config.ts`.

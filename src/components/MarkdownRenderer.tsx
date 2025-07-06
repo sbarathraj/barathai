@@ -157,44 +157,64 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
   };
 
   const renderInlineMarkdown = (text: string) => {
+    // First, convert all custom tags to a standardized format
+    let processedText = text;
+    
+    // Convert custom tags to internal format - comprehensive coverage
+    // Primary tags
+    processedText = processedText.replace(/<BOLDTAG>(.*?)<\/BOLDTAG>/gs, '**$1**');
+    processedText = processedText.replace(/<ITALICTAG>(.*?)<\/ITALICTAG>/gs, '*$1*');
+    processedText = processedText.replace(/<INLINECODETAG>(.*?)<\/INLINECODETAG>/gs, '`$1`');
+    processedText = processedText.replace(/<CODETAG>(.*?)<\/CODETAG>/gs, '`$1`');
+    
+    // Alternative variations
+    processedText = processedText.replace(/<BOLD>(.*?)<\/BOLD>/gs, '**$1**');
+    processedText = processedText.replace(/<ITALIC>(.*?)<\/ITALIC>/gs, '*$1*');
+    processedText = processedText.replace(/<INLINECODE>(.*?)<\/INLINECODE>/gs, '`$1`');
+    
+    // Case variations (in case AI sends different cases)
+    processedText = processedText.replace(/<boldtag>(.*?)<\/boldtag>/gs, '**$1**');
+    processedText = processedText.replace(/<italictag>(.*?)<\/italictag>/gs, '*$1*');
+    processedText = processedText.replace(/<inlinecodetag>(.*?)<\/inlinecodetag>/gs, '`$1`');
+    processedText = processedText.replace(/<codetag>(.*?)<\/codetag>/gs, '`$1`');
+    
+    // Mixed case variations
+    processedText = processedText.replace(/<BoldTag>(.*?)<\/BoldTag>/gs, '**$1**');
+    processedText = processedText.replace(/<ItalicTag>(.*?)<\/ItalicTag>/gs, '*$1*');
+    processedText = processedText.replace(/<InlineCodeTag>(.*?)<\/InlineCodeTag>/gs, '`$1`');
+    processedText = processedText.replace(/<CodeTag>(.*?)<\/CodeTag>/gs, '`$1`');
+    
+    // Handle any remaining custom tag variations
+    processedText = processedText.replace(/<BOLD[^>]*>(.*?)<\/BOLD[^>]*>/gs, '**$1**');
+    processedText = processedText.replace(/<ITALIC[^>]*>(.*?)<\/ITALIC[^>]*>/gs, '*$1*');
+    processedText = processedText.replace(/<CODE[^>]*>(.*?)<\/CODE[^>]*>/gs, '`$1`');
+    
+    // Now process standard markdown
     const parts: (string | JSX.Element)[] = [];
-
-    // Handle complex inline code patterns - FIXED IMPLEMENTATION
-    text = text.replace(/<BOLD>(.*?)<\/BOLD>/g, (match, content) => {
-      return `<BOLD_TAG>${content}</BOLD_TAG>`;
-    });
-
-    text = text.replace(/<INLINECODE>(.*?)<\/INLINECODE>/g, (match, code) => {
-      return `<INLINE_CODE_TAG>${code}</INLINE_CODE_TAG>`;
-    });
-
-    // Handle nested patterns like <INLINE<ITALIC>CODE>Scanner</INLINE</ITALIC>CODE>
-    text = text.replace(/<INLINE<ITALIC>CODE>(.*?)<\/INLINE<\/ITALIC>CODE>/g, (match, code) => {
-      return `<INLINE_CODE_TAG>${code}</INLINE_CODE_TAG>`;
-    });
-
-    // Handle regular inline code
-    text = text.replace(/`([^`]+)`/g, (match, code) => {
-      return `<INLINE_CODE_TAG>${code}</INLINE_CODE_TAG>`;
-    });
-
-    // Handle bold text (** or __)
-    text = text.replace(/\*\*([^*]+)\*\*/g, (match, bold) => {
+    
+    // Handle bold text (** or __) - more robust regex
+    processedText = processedText.replace(/\*\*([^*]+)\*\*/g, (match, bold) => {
       return `<BOLD_TAG>${bold}</BOLD_TAG>`;
     });
-    text = text.replace(/__([^_]+)__/g, (match, bold) => {
+    processedText = processedText.replace(/__([^_]+)__/g, (match, bold) => {
       return `<BOLD_TAG>${bold}</BOLD_TAG>`;
     });
 
-    // Handle italic text (* or _)
-    text = text.replace(/\*([^*]+)\*/g, (match, italic) => {
+    // Handle italic text (* or _) - more robust regex
+    processedText = processedText.replace(/\*([^*]+)\*/g, (match, italic) => {
       return `<ITALIC_TAG>${italic}</ITALIC_TAG>`;
     });
-    text = text.replace(/_([^_]+)_/g, (match, italic) => {
+    processedText = processedText.replace(/_([^_]+)_/g, (match, italic) => {
       return `<ITALIC_TAG>${italic}</ITALIC_TAG>`;
     });
 
-    const segments = text.split(/(<BOLD_TAG>.*?<\/BOLD_TAG>|<ITALIC_TAG>.*?<\/ITALIC_TAG>|<INLINE_CODE_TAG>.*?<\/INLINE_CODE_TAG>)/);
+    // Handle inline code - more robust regex
+    processedText = processedText.replace(/`([^`]+)`/g, (match, code) => {
+      return `<INLINE_CODE_TAG>${code}</INLINE_CODE_TAG>`;
+    });
+
+    // Split by tags and process
+    const segments = processedText.split(/(<BOLD_TAG>.*?<\/BOLD_TAG>|<ITALIC_TAG>.*?<\/ITALIC_TAG>|<INLINE_CODE_TAG>.*?<\/INLINE_CODE_TAG>)/);
 
     return segments.map((segment, index) => {
       if (segment.startsWith('<BOLD_TAG>')) {
