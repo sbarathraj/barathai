@@ -110,31 +110,31 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
       // Handle headings
       if (line.startsWith('### ')) {
         rendered.push(
-          <h3 key={i} className="text-lg font-semibold text-white dark:text-white text-gray-900 mt-4 mb-2">
+          <h3 key={i} className="text-lg font-semibold text-slate-900 dark:text-white mt-4 mb-2">
             {renderInlineMarkdown(line.slice(4))}
           </h3>
         );
       } else if (line.startsWith('## ')) {
         rendered.push(
-          <h2 key={i} className="text-xl font-semibold text-white dark:text-white text-gray-900 mt-4 mb-2">
+          <h2 key={i} className="text-xl font-semibold text-slate-900 dark:text-white mt-4 mb-2">
             {renderInlineMarkdown(line.slice(3))}
           </h2>
         );
       } else if (line.startsWith('# ')) {
         rendered.push(
-          <h1 key={i} className="text-2xl font-bold text-white dark:text-white text-gray-900 mt-4 mb-2">
+          <h1 key={i} className="text-2xl font-bold text-slate-900 dark:text-white mt-4 mb-2">
             {renderInlineMarkdown(line.slice(2))}
           </h1>
         );
       } else if (line.startsWith('- ') || line.startsWith('* ')) {
         rendered.push(
-          <ul key={i} className="list-disc list-inside text-slate-100 dark:text-slate-100 text-gray-800 my-1">
+          <ul key={i} className="list-disc list-inside text-slate-900 dark:text-white my-1">
             <li>{renderInlineMarkdown(line.slice(2))}</li>
           </ul>
         );
       } else if (/^\d+\. /.test(line)) {
         rendered.push(
-          <ol key={i} className="list-decimal list-inside text-slate-100 dark:text-slate-100 text-gray-800 my-1">
+          <ol key={i} className="list-decimal list-inside text-slate-900 dark:text-white my-1">
             <li>{renderInlineMarkdown(line.replace(/^\d+\. /, ''))}</li>
           </ol>
         );
@@ -142,7 +142,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
         rendered.push(<br key={i} />);
       } else {
         rendered.push(
-          <p key={i} className="text-slate-100 dark:text-slate-100 text-gray-800 my-1 leading-relaxed">
+          <p key={i} className="text-slate-900 dark:text-white my-1 leading-relaxed">
             {renderInlineMarkdown(line)}
           </p>
         );
@@ -159,7 +159,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
   const renderInlineMarkdown = (text: string) => {
     const parts: (string | JSX.Element)[] = [];
 
-    // Handle complex inline code patterns
+    // Handle complex inline code patterns - FIXED IMPLEMENTATION
     text = text.replace(/<BOLD>(.*?)<\/BOLD>/g, (match, content) => {
       return `<BOLD_TAG>${content}</BOLD_TAG>`;
     });
@@ -200,21 +200,21 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
       if (segment.startsWith('<BOLD_TAG>')) {
         const content = segment.replace(/<\/?BOLD_TAG>/g, '');
         return (
-          <strong key={index} className="font-semibold text-white dark:text-white text-gray-900">
+          <strong key={index} className="font-semibold text-slate-900 dark:text-white">
             {content}
           </strong>
         );
       } else if (segment.startsWith('<ITALIC_TAG>')) {
         const content = segment.replace(/<\/?ITALIC_TAG>/g, '');
         return (
-          <em key={index} className="italic text-slate-200 dark:text-slate-200 text-gray-700">
+          <em key={index} className="italic text-slate-700 dark:text-slate-300">
             {content}
           </em>
         );
       } else if (segment.startsWith('<INLINE_CODE_TAG>')) {
         const content = segment.replace(/<\/?INLINE_CODE_TAG>/g, '');
         return (
-          <code key={index} className="px-1.5 py-0.5 bg-slate-700 dark:bg-slate-700 bg-gray-200 text-blue-300 dark:text-blue-300 text-blue-600 rounded text-sm font-mono">
+          <code key={index} className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 text-blue-600 dark:text-blue-400 rounded text-sm font-mono">
             {content}
           </code>
         );
@@ -235,11 +235,11 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
 
     return (
       <div key={key} className="my-4 overflow-x-auto">
-        <table className="min-w-full bg-slate-800 dark:bg-slate-800 bg-white border border-slate-700 dark:border-slate-700 border-gray-300 rounded-lg">
+        <table className="min-w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg">
           <thead>
-            <tr className="bg-slate-700 dark:bg-slate-700 bg-gray-100">
+            <tr className="bg-slate-100 dark:bg-slate-700">
               {headerRow.map((header, index) => (
-                <th key={index} className="px-4 py-2 text-left text-white dark:text-white text-gray-900 font-semibold border-b border-slate-600 dark:border-slate-600 border-gray-300">
+                <th key={index} className="px-4 py-2 text-left text-slate-900 dark:text-white font-semibold border-b border-slate-300 dark:border-slate-600">
                   {renderInlineMarkdown(header)}
                 </th>
               ))}
@@ -247,9 +247,9 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
           </thead>
           <tbody>
             {dataRows.map((row, rowIndex) => (
-              <tr key={rowIndex} className="border-b border-slate-700 dark:border-slate-700 border-gray-200 hover:bg-slate-750 dark:hover:bg-slate-750 hover:bg-gray-50">
+              <tr key={rowIndex} className="border-b border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750">
                 {row.map((cell, cellIndex) => (
-                  <td key={cellIndex} className="px-4 py-2 text-slate-200 dark:text-slate-200 text-gray-700">
+                  <td key={cellIndex} className="px-4 py-2 text-slate-800 dark:text-slate-200">
                     {renderInlineMarkdown(cell)}
                   </td>
                 ))}

@@ -53,7 +53,9 @@ export const Chat = () => {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<any>(null);
 
+  // Updated API configuration with better error handling
   const OPENROUTER_API_KEY = "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";
+  const API_URL = "https://openrouter.ai/api/v1/chat/completions";
 
   // Apply dark mode changes
   useEffect(() => {
@@ -92,6 +94,7 @@ export const Chat = () => {
 
         recognitionRef.current.onresult = (event: any) => {
           const transcript = event.results[0][0].transcript;
+          // Fix: Append to existing message instead of replacing
           setMessage(prev => prev + (prev ? ' ' : '') + transcript);
           setIsListening(false);
         };
@@ -130,6 +133,7 @@ export const Chat = () => {
         loadSpecificChat(chatId, session.user.id);
       } else {
         await loadChatSessions(session.user.id);
+        // Always create a new session for fresh start
         createNewSession(session.user.id);
       }
     };
@@ -357,7 +361,27 @@ export const Chat = () => {
     }
 
     try {
-      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      console.log('Sending request to OpenRouter API...');
+      
+      const requestBody = {
+        "model": "deepseek/deepseek-chat",
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are BarathAI, a helpful and intelligent AI assistant created by Barathraj. You are knowledgeable, friendly, and always strive to provide accurate and helpful information. You communicate in a natural, conversational manner."
+          },
+          ...newMessages.map(msg => ({
+            "role": msg.role,
+            "content": msg.content
+          }))
+        ],
+        "temperature": 0.7,
+        "max_tokens": 2000
+      };
+
+      console.log('Request body:', requestBody);
+
+      const response = await fetch(API_URL, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
@@ -365,26 +389,25 @@ export const Chat = () => {
           "X-Title": "BarathAI",
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({
-          "model": "deepseek/deepseek-chat-v3-0324:free",
-          "messages": [
-            {
-              "role": "system",
-              "content": "You are BarathAI, a helpful and intelligent AI assistant created by Barathraj. You are knowledgeable, friendly, and always strive to provide accurate and helpful information. You communicate in a natural, conversational manner."
-            },
-            ...newMessages.map(msg => ({
-              "role": msg.role,
-              "content": msg.content
-            }))
-          ]
-        })
+        body: JSON.stringify(requestBody)
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
-        throw new Error(`API responded with status ${response.status}`);
+        const errorText = await response.text();
+        console.error('API Error Response:', errorText);
+        throw new Error(`API responded with status ${response.status}: ${errorText}`);
       }
 
       const data = await response.json();
+      console.log('API Response:', data);
+
+      if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+        throw new Error('Invalid response format from API');
+      }
+
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         content: data.choices[0].message.content,
@@ -686,8 +709,8 @@ export const Chat = () => {
 
         {/* Main Chat Area */}
         <div className="flex-1 flex flex-col">
-          {/* Professional Header */}
-          <header className="flex items-center justify-between p-4 bg-white/80 dark:bg-slate-800/80 backdrop-blur-lg border-b border-slate-200 dark:border-slate-700 transition-colors duration-300">
+          {/* Fixed Header with Settings and Logout */}
+          <header className="fixed top-0 right-0 left-0 lg:left-72 z-40 flex items-center justify-between p-4 bg-white/80 dark:bg-slate-800/80 backdrop-blur-lg border-b border-slate-200 dark:border-slate-700 transition-colors duration-300">
             <div className="flex items-center space-x-4">
               <Button
                 variant="ghost"
@@ -698,20 +721,14 @@ export const Chat = () => {
                 <Menu size={20} />
               </Button>
               <div className="flex items-center space-x-2">
-                {isOnline ? (
-                  <>
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <span className="text-sm text-slate-600 dark:text-slate-300 font-medium">Online</span>
-                  </>
-                ) : (
-                  <>
-                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                    <span className="text-sm text-slate-600 dark:text-slate-300 font-medium">Offline</span>
-                  </>
-                )}
+                <Logo size={24} />
+                <span className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  BarathAI
+                </span>
               </div>
             </div>
 
+            {/* Fixed Settings and Logout buttons */}
             <div className="flex items-center space-x-2">
               <Button
                 variant="ghost"
@@ -722,17 +739,26 @@ export const Chat = () => {
                 {darkMode ? <Sun size={20} /> : <Moon size={20} />}
               </Button>
               <Button
+                onClick={() => navigate('/settings')}
                 variant="ghost"
-                size="icon"
-                className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white transition-colors duration-200"
+                className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
               >
-                <User size={20} />
+                <Settings className="mr-2 h-4 w-4" />
+                Settings
+              </Button>
+              <Button
+                onClick={handleLogout}
+                variant="ghost"
+                className="text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
               </Button>
             </div>
           </header>
 
-          {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* Messages Area with top padding for fixed header */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 pt-20">
             {error && (
               <ErrorBanner
                 message={error}
