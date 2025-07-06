@@ -24,7 +24,7 @@ interface ChatSession {
   title: string;
   created_at: string;
   updated_at: string;
-  unique_url?: string;
+  unique_url: string;
 }
 
 export const Chat = () => {
@@ -200,7 +200,14 @@ export const Chat = () => {
       if (error) throw error;
 
       if (data && data.length > 0) {
-        setChatSessions(data);
+        const sessions: ChatSession[] = data.map(session => ({
+          id: session.id,
+          title: session.title,
+          created_at: session.created_at,
+          updated_at: session.updated_at,
+          unique_url: session.unique_url
+        }));
+        setChatSessions(sessions);
       }
     } catch (error) {
       console.error('Error loading chat sessions:', error);
