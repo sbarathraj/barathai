@@ -1,8 +1,7 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Mic, MicOff, Menu, X, Plus, Settings, LogOut, Moon, Sun, User, Search, Edit2, Trash2, Wifi, WifiOff } from "lucide-react";
+import { Send, Mic, MicOff, Menu, X, Plus, Settings, LogOut, Moon, Sun, User, Search, Edit2, Trash2, WifiOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -12,6 +11,7 @@ import { ErrorBanner, LoadingSpinner } from "@/components/ErrorBoundary";
 import { Logo } from "@/components/Logo";
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
 
+// Fixed type definitions to prevent infinite type instantiation
 interface Message {
   id: string;
   content: string;
@@ -22,7 +22,6 @@ interface Message {
 interface ChatSession {
   id: string;
   title: string;
-  messages: Message[];
   created_at: string;
   updated_at: string;
   unique_url?: string;
@@ -50,7 +49,7 @@ export const Chat = () => {
   const [retryCount, setRetryCount] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   const OPENROUTER_API_KEY = "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";
 
@@ -73,30 +72,33 @@ export const Chat = () => {
     if (typeof window !== 'undefined' && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
       const SpeechRecognitionConstructor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       recognitionRef.current = new SpeechRecognitionConstructor();
-      recognitionRef.current!.continuous = false;
-      recognitionRef.current!.interimResults = false;
-      recognitionRef.current!.lang = 'en-US';
+      
+      if (recognitionRef.current) {
+        recognitionRef.current.continuous = false;
+        recognitionRef.current.interimResults = false;
+        recognitionRef.current.lang = 'en-US';
 
-      recognitionRef.current!.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        // Append to existing message instead of replacing
-        setMessage(prev => prev + (prev ? ' ' : '') + transcript);
-        setIsListening(false);
-      };
+        recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
+          const transcript = event.results[0][0].transcript;
+          // Append to existing message instead of replacing
+          setMessage(prev => prev + (prev ? ' ' : '') + transcript);
+          setIsListening(false);
+        };
 
-      recognitionRef.current!.onerror = (event: any) => {
-        console.error('Speech recognition error:', event.error);
-        setIsListening(false);
-        toast({
-          title: "Voice input error",
-          description: "Please try again or check microphone permissions",
-          variant: "destructive",
-        });
-      };
+        recognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => {
+          console.error('Speech recognition error:', event.error);
+          setIsListening(false);
+          toast({
+            title: "Voice input error",
+            description: "Please try again or check microphone permissions",
+            variant: "destructive",
+          });
+        };
 
-      recognitionRef.current!.onend = () => {
-        setIsListening(false);
-      };
+        recognitionRef.current.onend = () => {
+          setIsListening(false);
+        };
+      }
     }
   }, [toast]);
 
@@ -161,7 +163,7 @@ export const Chat = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const generateUniqueUrl = () => {
+  const generateUniqueUrl = (): string => {
     return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
   };
 
@@ -204,10 +206,7 @@ export const Chat = () => {
       if (error) throw error;
 
       if (data && data.length > 0) {
-        setChatSessions(data.map(session => ({
-          ...session,
-          messages: []
-        })));
+        setChatSessions(data);
       }
     } catch (error) {
       console.error('Error loading chat sessions:', error);
@@ -225,7 +224,7 @@ export const Chat = () => {
 
       if (error) throw error;
 
-      const formattedMessages = data?.map(msg => ({
+      const formattedMessages: Message[] = data?.map(msg => ({
         id: msg.id,
         content: msg.content,
         role: msg.role as 'user' | 'assistant',
@@ -265,9 +264,12 @@ export const Chat = () => {
         return;
       }
 
-      const newSession = {
-        ...data,
-        messages: []
+      const newSession: ChatSession = {
+        id: data.id,
+        title: data.title,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+        unique_url: data.unique_url
       };
 
       setChatSessions(prev => [newSession, ...prev]);
