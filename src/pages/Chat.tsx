@@ -80,7 +80,7 @@ export const Chat = () => {
   const OPENROUTER_API_KEY2 = import.meta.env.VITE_OPENROUTER_API_KEY2;
   const API_URL = "https://openrouter.ai/api/v1/chat/completions";
   const API_URL2 = import.meta.env.VITE_OPENROUTER_API_URL2 || API_URL;
-  const OPENROUTER_MODEL = "deepseek/deepseek-chat";
+  const OPENROUTER_MODEL = "deepseek/deepseek-chat-v3-0324:free";
 
   // Apply dark mode changes
   useEffect(() => {
