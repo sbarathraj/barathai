@@ -77,7 +77,9 @@ export const Chat = () => {
 
   // API Configuration - Exact curl implementation
   const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
+  const OPENROUTER_API_KEY2 = import.meta.env.VITE_OPENROUTER_API_KEY2;
   const API_URL = "https://openrouter.ai/api/v1/chat/completions";
+  const API_URL2 = import.meta.env.VITE_OPENROUTER_API_URL2 || API_URL;
   const OPENROUTER_MODEL = "deepseek/deepseek-chat-v3-0324:free";
 
   // Apply dark mode changes
@@ -398,21 +400,34 @@ export const Chat = () => {
         "temperature": 0.7
       };
 
-      const response = await fetch(API_URL, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(requestBody)
-      });
-
+      let usedApiKey = OPENROUTER_API_KEY;
+      let usedApiUrl = API_URL;
+      let triedSecondary = false;
+      let response, data;
+      while (true) {
+        response = await fetch(usedApiUrl, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${usedApiKey}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(requestBody)
+        });
+        if (response.status !== 429) break;
+        if (triedSecondary || !OPENROUTER_API_KEY2) {
+          // Already tried secondary or no secondary key, break
+          break;
+        }
+        // Switch to secondary key and URL, and retry once
+        usedApiKey = OPENROUTER_API_KEY2;
+        usedApiUrl = API_URL2;
+        triedSecondary = true;
+      }
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`API error (${response.status}): ${errorText}`);
       }
-
-      const data = await response.json();
+      data = await response.json();
 
       if (!data.choices || !data.choices[0] || !data.choices[0].message) {
         throw new Error('Invalid response format from API');
