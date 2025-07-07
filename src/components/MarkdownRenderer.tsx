@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { atomOneDark } from 'react-syntax-highlighter/dist/styles/atom-one-dark';
 import { Copy, Check } from 'lucide-react';
 
 interface MarkdownRendererProps {
@@ -76,7 +76,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
                   <span className="text-xs">{copiedIndex === blockIdx ? 'Copied!' : 'Copy'}</span>
                 </button>
                 <SyntaxHighlighter
-                  style={atomDark}
+                  style={atomOneDark}
                   language={language}
                   PreTag="div"
                   className="rounded-lg text-base !pl-4 !pr-4 !pt-4 !pb-4"
