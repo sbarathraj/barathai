@@ -134,6 +134,7 @@ export const Settings = () => {
                 size="icon"
                 onClick={() => navigate('/chat')}
                 className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+                title="Back to Chat"
               >
                 <ArrowLeft size={20} />
               </Button>
@@ -144,23 +145,25 @@ export const Settings = () => {
                 </h1>
               </div>
             </div>
-
-            {/* Fixed Settings and Logout buttons */}
+            {/* Only icons for Settings and Logout, mobile responsive */}
             <div className="flex items-center space-x-2">
               <Button
                 variant="ghost"
+                size="icon"
                 className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+                title="Settings"
+                onClick={() => navigate('/settings')}
               >
-                <SettingsIcon className="mr-2 h-4 w-4" />
-                Settings
+                <SettingsIcon className="h-5 w-5" />
               </Button>
               <Button
                 onClick={handleLogout}
                 variant="ghost"
+                size="icon"
                 className="text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                title="Logout"
               >
-                <LogOut className="mr-2 h-4 w-4" />
-                Logout
+                <LogOut className="h-5 w-5" />
               </Button>
             </div>
           </div>

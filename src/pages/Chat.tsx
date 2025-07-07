@@ -26,6 +26,16 @@ interface ChatSession {
   unique_url: string;
 }
 
+// Utility to chunk a string into max 1000-word chunks
+function chunkByWords(text: string, maxWords = 1000): string[] {
+  const words = text.split(/\s+/);
+  const chunks = [];
+  for (let i = 0; i < words.length; i += maxWords) {
+    chunks.push(words.slice(i, i + maxWords).join(' '));
+  }
+  return chunks;
+}
+
 export const Chat = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -52,9 +62,21 @@ export const Chat = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<any>(null);
+  const [settings, setSettings] = useState(() => {
+    const saved = localStorage.getItem('barathAI-settings');
+    return saved ? JSON.parse(saved) : {
+      voiceInputEnabled: true,
+      voiceOutputEnabled: true,
+      soundEffectsEnabled: true,
+      notificationsEnabled: true,
+      language: 'en',
+    };
+  });
+  const [wordCount, setWordCount] = useState(0);
+  const [wordLimitError, setWordLimitError] = useState('');
 
   // API Configuration - Exact curl implementation
-  const OPENROUTER_API_KEY = "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";
+  const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
   const API_URL = "https://openrouter.ai/api/v1/chat/completions";
   const OPENROUTER_MODEL = "deepseek/deepseek-chat-v3-0324:free";
 
@@ -101,7 +123,6 @@ export const Chat = () => {
         };
 
         recognitionRef.current.onerror = (event: any) => {
-          console.error('Speech recognition error:', event.error);
           setIsListening(false);
           toast({
             title: "Voice input error",
@@ -116,6 +137,17 @@ export const Chat = () => {
       }
     }
   }, [toast]);
+
+  // Listen for settings changes in localStorage (for real-time updates)
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'barathAI-settings') {
+        setSettings(e.newValue ? JSON.parse(e.newValue) : settings);
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [settings]);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -190,7 +222,6 @@ export const Chat = () => {
       loadMessages(data.id);
       loadChatSessions(userId);
     } catch (error) {
-      console.error('Error loading specific chat:', error);
       createNewSession(userId);
     }
   };
@@ -216,7 +247,6 @@ export const Chat = () => {
       
         setChatSessions(sessions);
     } catch (error) {
-      console.error('Error loading chat sessions:', error);
       setError('Failed to load chat history');
     }
   };
@@ -240,7 +270,6 @@ export const Chat = () => {
 
       setMessages(formattedMessages);
     } catch (error) {
-      console.error('Error loading messages:', error);
       setError('Failed to load messages');
     }
   };
@@ -267,7 +296,6 @@ export const Chat = () => {
       setMessages([]);
       await loadChatSessions(sessionUserId);
     } catch (error) {
-      console.error('Error creating new session:', error);
       setError('Failed to create new chat session');
     }
   };
@@ -283,7 +311,6 @@ export const Chat = () => {
       if (error) throw error;
       await loadChatSessions(user?.id || '');
     } catch (error) {
-      console.error('Error updating session title:', error);
     }
   };
 
@@ -300,7 +327,6 @@ export const Chat = () => {
 
       if (error) throw error;
     } catch (error) {
-      console.error('Error saving message:', error);
     }
   };
 
@@ -315,10 +341,19 @@ export const Chat = () => {
       return;
     }
 
+    if (wordCount > 1000) {
+      setWordLimitError('Message cannot exceed 1000 words.');
+      setIsLoading(false);
+      setIsTyping(false);
+      setIsBarathAITyping(false);
+      return;
+    }
+
     // Create user message
+    const userChunks = chunkByWords(message.trim(), 1000);
     const userMessage: Message = {
       id: Date.now().toString(),
-      content: message.trim(),
+      content: userChunks[0], // Only send the first chunk for now
       role: 'user',
       timestamp: new Date()
     };
@@ -339,18 +374,15 @@ export const Chat = () => {
         await updateSessionTitle(currentSessionId, userMessage.content);
       }
     } catch (dbError) {
-      console.error('Database error (non-critical):', dbError);
     }
 
     // Make API call - BarathAI with chat history
     try {
-      console.log('🚀 Making API call with BarathAI and chat history...');
-      
       // Prepare messages array with system message and chat history
       const apiMessages = [
           {
             "role": "system",
-          "content": "You are BarathAI, an intelligent AI assistant created by Barathraj. You are knowledgeable, friendly, and always strive to provide accurate and helpful information. You communicate in a natural, conversational manner. You can help with coding, problem-solving, research, creative writing, and general questions. Always be helpful, accurate, and engaging in your responses. IMPORTANT: Use ONLY standard markdown formatting in your responses - **bold** for emphasis, *italic* for emphasis, `code` for inline code, and ```code blocks``` for multi-line code. NEVER use custom tags like <BOLDTAG>, <ITALICTAG>, <INLINECODETAG>, or any other custom HTML-like tags. Always use proper markdown syntax with ** for bold and * for italic. Do not send responses with custom tags."
+            "content": "You are BarathAI, an intelligent AI assistant created by Barathraj. You are knowledgeable, friendly, and always strive to provide accurate and helpful information. You communicate in a natural, conversational manner. You can help with coding, problem-solving, research, creative writing, and general questions. Always be helpful, accurate, and engaging in your responses."
           },
         // Include previous messages for context (last 10 messages to avoid token limits)
         ...newMessages.slice(-10).map(msg => ({
@@ -366,8 +398,6 @@ export const Chat = () => {
         "temperature": 0.7
       };
 
-      console.log('📦 Request body:', JSON.stringify(requestBody, null, 2));
-
       const response = await fetch(API_URL, {
         method: "POST",
         headers: {
@@ -377,24 +407,22 @@ export const Chat = () => {
         body: JSON.stringify(requestBody)
       });
 
-      console.log('📊 Response status:', response.status);
-
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`API error (${response.status}): ${errorText}`);
       }
 
       const data = await response.json();
-      console.log('✅ API call successful');
 
       if (!data.choices || !data.choices[0] || !data.choices[0].message) {
         throw new Error('Invalid response format from API');
       }
 
       // Create assistant message
+      const assistantChunks = chunkByWords(data.choices[0].message.content, 1000);
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: data.choices[0].message.content,
+        content: assistantChunks[0], // Only save the first chunk for now
         role: 'assistant',
         timestamp: new Date()
       };
@@ -407,11 +435,9 @@ export const Chat = () => {
       try {
       await saveMessage(currentSessionId, assistantMessage.content, 'assistant');
       } catch (dbError) {
-        console.error('Database error saving assistant message (non-critical):', dbError);
       }
 
     } catch (error) {
-      console.error('❌ API call failed:', error.message);
       setError(`Failed to get response: ${error.message}`);
       
       // Add error message to chat
@@ -465,7 +491,6 @@ export const Chat = () => {
         description: "Chat session deleted successfully",
       });
     } catch (error) {
-      console.error('Error deleting session:', error);
       setError('Failed to delete chat session');
     }
   };
@@ -491,7 +516,6 @@ export const Chat = () => {
         description: "Chat session renamed successfully",
       });
     } catch (error) {
-      console.error('Error renaming session:', error);
       setError('Failed to rename chat session');
     }
   };
@@ -508,12 +532,19 @@ export const Chat = () => {
       
       navigate('/auth');
     } catch (error) {
-      console.error('Error logging out:', error);
       setError('Failed to log out');
     }
   };
 
   const toggleVoiceInput = () => {
+    if (!settings.voiceInputEnabled) {
+      toast({
+        title: "Voice input disabled",
+        description: "Enable voice input in Settings to use this feature.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (!recognitionRef.current) {
       toast({
         title: "Voice input not supported",
@@ -522,12 +553,11 @@ export const Chat = () => {
       });
       return;
     }
-
     if (isListening) {
       recognitionRef.current.stop();
     } else {
-        recognitionRef.current.start();
-        setIsListening(true);
+      recognitionRef.current.start();
+      setIsListening(true);
     }
   };
 
@@ -541,6 +571,26 @@ export const Chat = () => {
   const filteredSessions = chatSessions.filter(session =>
     session.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Example: Set recognition language from settings
+  useEffect(() => {
+    if (recognitionRef.current && settings.language) {
+      recognitionRef.current.lang = settings.language;
+    }
+  }, [settings.language]);
+
+  // Update word count and error in the input handler
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    const words = value.trim().split(/\s+/).filter(Boolean);
+    setWordCount(words.length);
+    if (words.length > 1000) {
+      setWordLimitError('Message cannot exceed 1000 words.');
+    } else {
+      setWordLimitError('');
+    }
+    setMessage(value);
+  };
 
   return (
     <div className={`min-h-screen flex ${darkMode ? 'dark' : ''}`}>
@@ -894,21 +944,18 @@ export const Chat = () => {
                 <Textarea
                   ref={inputRef}
                   value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Ask anything..."
-                  className="min-h-[60px] max-h-[120px] bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400 resize-none pr-12 focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-xl transition-all duration-200 shadow-sm"
-                  disabled={isLoading}
+                  onChange={handleInputChange}
+                  onKeyDown={handleKeyPress}
+                  placeholder="Type your message... (max 1000 words)"
+                  className="w-full resize-none rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-base text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-all min-h-[56px] max-h-40"
+                  rows={2}
+                  maxLength={10000}
+                  disabled={isLoading || !isOnline}
                 />
-                <Button
-                  onClick={toggleVoiceInput}
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-2 bottom-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white transition-colors duration-200"
-                  disabled={isLoading}
-                >
-                  {isListening ? <Square size={16} /> : <Mic size={16} />}
-                </Button>
+                <div className="flex justify-between items-center mt-1">
+                  <span className={`text-xs ${wordCount > 1000 ? 'text-red-500' : 'text-slate-400 dark:text-slate-500'}`}>{wordCount}/1000 words</span>
+                  {wordLimitError && <span className="text-xs text-red-500 ml-2">{wordLimitError}</span>}
+                </div>
               </div>
               
               <Button

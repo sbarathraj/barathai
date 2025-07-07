@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -138,7 +137,7 @@ export const Auth = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md shadow-xl border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900/90 backdrop-blur-lg">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
             <Logo size={48} />
@@ -152,11 +151,10 @@ export const Auth = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="signin" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
               <TabsTrigger value="signin">Sign In</TabsTrigger>
               <TabsTrigger value="signup">Sign Up</TabsTrigger>
             </TabsList>
-            
             <TabsContent value="signin" className="space-y-4">
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
@@ -170,7 +168,7 @@ export const Auth = () => {
                       placeholder="Enter your email"
                       value={formData.email}
                       onChange={handleInputChange}
-                      className="pl-10"
+                      className="pl-10 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
                       required
                     />
                   </div>
@@ -186,7 +184,7 @@ export const Auth = () => {
                       placeholder="Enter your password"
                       value={formData.password}
                       onChange={handleInputChange}
-                      className="pl-10 pr-10"
+                      className="pl-10 pr-10 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
                       required
                     />
                     <Button
@@ -195,6 +193,7 @@ export const Auth = () => {
                       size="icon"
                       className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                       onClick={() => setShowPassword(!showPassword)}
+                      tabIndex={-1}
                     >
                       {showPassword ? (
                         <EyeOff className="h-4 w-4 text-gray-400" />
@@ -204,12 +203,26 @@ export const Auth = () => {
                     </Button>
                   </div>
                 </div>
+                <div className="flex justify-between items-center">
+                  <div />
+                  <button
+                    type="button"
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline focus:outline-none"
+                    onClick={() => toast({ title: 'Forgot password?', description: 'Password reset coming soon!' })}
+                  >
+                    Forgot password?
+                  </button>
+                </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Signing In..." : "Sign In"}
                 </Button>
               </form>
             </TabsContent>
-            
+            <div className="flex items-center my-4">
+              <div className="flex-grow border-t border-slate-200 dark:border-slate-700" />
+              <span className="mx-2 text-xs text-slate-400 dark:text-slate-500">or</span>
+              <div className="flex-grow border-t border-slate-200 dark:border-slate-700" />
+            </div>
             <TabsContent value="signup" className="space-y-4">
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="space-y-2">
@@ -223,7 +236,7 @@ export const Auth = () => {
                       placeholder="Enter your full name"
                       value={formData.fullName}
                       onChange={handleInputChange}
-                      className="pl-10"
+                      className="pl-10 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
                       required
                     />
                   </div>
@@ -239,7 +252,7 @@ export const Auth = () => {
                       placeholder="Enter your email"
                       value={formData.email}
                       onChange={handleInputChange}
-                      className="pl-10"
+                      className="pl-10 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
                       required
                     />
                   </div>
@@ -255,7 +268,7 @@ export const Auth = () => {
                       placeholder="Create a password"
                       value={formData.password}
                       onChange={handleInputChange}
-                      className="pl-10 pr-10"
+                      className="pl-10 pr-10 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
                       required
                     />
                     <Button
@@ -264,6 +277,7 @@ export const Auth = () => {
                       size="icon"
                       className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                       onClick={() => setShowPassword(!showPassword)}
+                      tabIndex={-1}
                     >
                       {showPassword ? (
                         <EyeOff className="h-4 w-4 text-gray-400" />

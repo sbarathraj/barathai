@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { Copy, Check } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import ReactMarkdown from 'react-markdown';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { Copy, Check } from 'lucide-react';
 
 interface MarkdownRendererProps {
   content: string;
@@ -9,277 +10,98 @@ interface MarkdownRendererProps {
 }
 
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, className = "" }) => {
-  const [copiedBlocks, setCopiedBlocks] = useState<Set<number>>(new Set());
-  const { toast } = useToast();
-
-  const copyToClipboard = async (text: string, blockIndex: number) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedBlocks(prev => new Set(prev).add(blockIndex));
-      toast({
-        title: "Copied!",
-        description: "Code copied to clipboard",
-      });
-      setTimeout(() => {
-        setCopiedBlocks(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(blockIndex);
-          return newSet;
-        });
-      }, 2000);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to copy code",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const renderMarkdown = (text: string) => {
-    const lines = text.split('\n');
-    const rendered: JSX.Element[] = [];
-    let inCodeBlock = false;
-    let codeBlockContent: string[] = [];
-    let codeLanguage = '';
-    let inTable = false;
-    let tableRows: string[] = [];
-    let blockIndex = 0;
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-
-      // Handle code blocks
-      if (line.startsWith('```')) {
-        if (!inCodeBlock) {
-          inCodeBlock = true;
-          codeLanguage = line.slice(3).trim();
-          codeBlockContent = [];
-        } else {
-          inCodeBlock = false;
-          const codeContent = codeBlockContent.join('\n');
-          const currentBlockIndex = blockIndex++;
-          rendered.push(
-            <div key={i} className="my-4 rounded-lg bg-slate-800 dark:bg-slate-800 bg-gray-100 border border-slate-700 dark:border-slate-700 border-gray-300 overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-2 bg-slate-700 dark:bg-slate-700 bg-gray-200 text-xs text-slate-300 dark:text-slate-300 text-gray-600 border-b border-slate-600 dark:border-slate-600 border-gray-300">
-                <span>{codeLanguage || 'code'}</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => copyToClipboard(codeContent, currentBlockIndex)}
-                  className="h-6 w-6 text-slate-400 hover:text-blue-400 dark:text-slate-400 dark:hover:text-blue-400 text-gray-500 hover:text-blue-500"
-                >
-                  {copiedBlocks.has(currentBlockIndex) ? (
-                    <Check size={12} className="text-green-500" />
-                  ) : (
-                    <Copy size={12} />
-                  )}
-                </Button>
-              </div>
-              <pre className="p-4 overflow-x-auto">
-                <code className="text-sm text-slate-100 dark:text-slate-100 text-gray-800 font-mono">
-                  {codeContent}
-                </code>
-              </pre>
-            </div>
-          );
-          codeLanguage = '';
-        }
-        continue;
-      }
-
-      if (inCodeBlock) {
-        codeBlockContent.push(line);
-        continue;
-      }
-
-      // Handle tables
-      if (line.includes('|') && line.trim().length > 0) {
-        if (!inTable) {
-          inTable = true;
-          tableRows = [];
-        }
-        tableRows.push(line);
-        continue;
-      } else if (inTable) {
-        inTable = false;
-        rendered.push(renderTable(tableRows, i));
-        tableRows = [];
-      }
-
-      // Handle headings
-      if (line.startsWith('### ')) {
-        rendered.push(
-          <h3 key={i} className="text-lg font-semibold text-slate-900 dark:text-white mt-4 mb-2">
-            {renderInlineMarkdown(line.slice(4))}
-          </h3>
-        );
-      } else if (line.startsWith('## ')) {
-        rendered.push(
-          <h2 key={i} className="text-xl font-semibold text-slate-900 dark:text-white mt-4 mb-2">
-            {renderInlineMarkdown(line.slice(3))}
-          </h2>
-        );
-      } else if (line.startsWith('# ')) {
-        rendered.push(
-          <h1 key={i} className="text-2xl font-bold text-slate-900 dark:text-white mt-4 mb-2">
-            {renderInlineMarkdown(line.slice(2))}
-          </h1>
-        );
-      } else if (line.startsWith('- ') || line.startsWith('* ')) {
-        rendered.push(
-          <ul key={i} className="list-disc list-inside text-slate-900 dark:text-white my-1">
-            <li>{renderInlineMarkdown(line.slice(2))}</li>
-          </ul>
-        );
-      } else if (/^\d+\. /.test(line)) {
-        rendered.push(
-          <ol key={i} className="list-decimal list-inside text-slate-900 dark:text-white my-1">
-            <li>{renderInlineMarkdown(line.replace(/^\d+\. /, ''))}</li>
-          </ol>
-        );
-      } else if (line.trim() === '') {
-        rendered.push(<br key={i} />);
-      } else {
-        rendered.push(
-          <p key={i} className="text-slate-900 dark:text-white my-1 leading-relaxed">
-            {renderInlineMarkdown(line)}
-          </p>
-        );
-      }
-    }
-
-    if (inTable && tableRows.length > 0) {
-      rendered.push(renderTable(tableRows, lines.length));
-    }
-
-    return rendered;
-  };
-
-  const renderInlineMarkdown = (text: string) => {
-    // First, convert all custom tags to a standardized format
+  // Replace custom tags with markdown equivalents
+  const preprocessContent = (text: string) => {
     let processedText = text;
-    
-    // Convert custom tags to internal format - comprehensive coverage
-    // Primary tags
     processedText = processedText.replace(/<BOLDTAG>(.*?)<\/BOLDTAG>/gs, '**$1**');
     processedText = processedText.replace(/<ITALICTAG>(.*?)<\/ITALICTAG>/gs, '*$1*');
     processedText = processedText.replace(/<INLINECODETAG>(.*?)<\/INLINECODETAG>/gs, '`$1`');
     processedText = processedText.replace(/<CODETAG>(.*?)<\/CODETAG>/gs, '`$1`');
-    
-    // Alternative variations
     processedText = processedText.replace(/<BOLD>(.*?)<\/BOLD>/gs, '**$1**');
     processedText = processedText.replace(/<ITALIC>(.*?)<\/ITALIC>/gs, '*$1*');
     processedText = processedText.replace(/<INLINECODE>(.*?)<\/INLINECODE>/gs, '`$1`');
-    
-    // Case variations (in case AI sends different cases)
     processedText = processedText.replace(/<boldtag>(.*?)<\/boldtag>/gs, '**$1**');
     processedText = processedText.replace(/<italictag>(.*?)<\/italictag>/gs, '*$1*');
     processedText = processedText.replace(/<inlinecodetag>(.*?)<\/inlinecodetag>/gs, '`$1`');
     processedText = processedText.replace(/<codetag>(.*?)<\/codetag>/gs, '`$1`');
-    
-    // Mixed case variations
     processedText = processedText.replace(/<BoldTag>(.*?)<\/BoldTag>/gs, '**$1**');
     processedText = processedText.replace(/<ItalicTag>(.*?)<\/ItalicTag>/gs, '*$1*');
     processedText = processedText.replace(/<InlineCodeTag>(.*?)<\/InlineCodeTag>/gs, '`$1`');
     processedText = processedText.replace(/<CodeTag>(.*?)<\/CodeTag>/gs, '`$1`');
-    
-    // Handle any remaining custom tag variations
     processedText = processedText.replace(/<BOLD[^>]*>(.*?)<\/BOLD[^>]*>/gs, '**$1**');
     processedText = processedText.replace(/<ITALIC[^>]*>(.*?)<\/ITALIC[^>]*>/gs, '*$1*');
     processedText = processedText.replace(/<CODE[^>]*>(.*?)<\/CODE[^>]*>/gs, '`$1`');
-    
-    // Now process standard markdown
-    const parts: (string | JSX.Element)[] = [];
-    
-    // Handle bold text (** or __) - more robust regex
-    processedText = processedText.replace(/\*\*([^*]+)\*\*/g, (match, bold) => {
-      return `<BOLD_TAG>${bold}</BOLD_TAG>`;
-    });
-    processedText = processedText.replace(/__([^_]+)__/g, (match, bold) => {
-      return `<BOLD_TAG>${bold}</BOLD_TAG>`;
-    });
-
-    // Handle italic text (* or _) - more robust regex
-    processedText = processedText.replace(/\*([^*]+)\*/g, (match, italic) => {
-      return `<ITALIC_TAG>${italic}</ITALIC_TAG>`;
-    });
-    processedText = processedText.replace(/_([^_]+)_/g, (match, italic) => {
-      return `<ITALIC_TAG>${italic}</ITALIC_TAG>`;
-    });
-
-    // Handle inline code - more robust regex
-    processedText = processedText.replace(/`([^`]+)`/g, (match, code) => {
-      return `<INLINE_CODE_TAG>${code}</INLINE_CODE_TAG>`;
-    });
-
-    // Split by tags and process
-    const segments = processedText.split(/(<BOLD_TAG>.*?<\/BOLD_TAG>|<ITALIC_TAG>.*?<\/ITALIC_TAG>|<INLINE_CODE_TAG>.*?<\/INLINE_CODE_TAG>)/);
-
-    return segments.map((segment, index) => {
-      if (segment.startsWith('<BOLD_TAG>')) {
-        const content = segment.replace(/<\/?BOLD_TAG>/g, '');
-        return (
-          <strong key={index} className="font-semibold text-slate-900 dark:text-white">
-            {content}
-          </strong>
-        );
-      } else if (segment.startsWith('<ITALIC_TAG>')) {
-        const content = segment.replace(/<\/?ITALIC_TAG>/g, '');
-        return (
-          <em key={index} className="italic text-slate-700 dark:text-slate-300">
-            {content}
-          </em>
-        );
-      } else if (segment.startsWith('<INLINE_CODE_TAG>')) {
-        const content = segment.replace(/<\/?INLINE_CODE_TAG>/g, '');
-        return (
-          <code key={index} className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 text-blue-600 dark:text-blue-400 rounded text-sm font-mono">
-            {content}
-          </code>
-        );
-      } else {
-        return segment;
-      }
-    });
+    return processedText;
   };
 
-  const renderTable = (rows: string[], key: number) => {
-    if (rows.length < 2) return null;
+  // Copy to clipboard state for code blocks
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
-    const headerRow = rows[0].split('|').map(cell => cell.trim()).filter(cell => cell);
-    const separatorRow = rows[1];
-    const dataRows = rows.slice(2).map(row => 
-      row.split('|').map(cell => cell.trim()).filter(cell => cell)
-    );
+  // Custom renderer for code blocks with copy button
+  let codeBlockIdx = 0;
 
-    return (
-      <div key={key} className="my-4 overflow-x-auto">
-        <table className="min-w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg">
-          <thead>
-            <tr className="bg-slate-100 dark:bg-slate-700">
-              {headerRow.map((header, index) => (
-                <th key={index} className="px-4 py-2 text-left text-slate-900 dark:text-white font-semibold border-b border-slate-300 dark:border-slate-600">
-                  {renderInlineMarkdown(header)}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {dataRows.map((row, rowIndex) => (
-              <tr key={rowIndex} className="border-b border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750">
-                {row.map((cell, cellIndex) => (
-                  <td key={cellIndex} className="px-4 py-2 text-slate-800 dark:text-slate-200">
-                    {renderInlineMarkdown(cell)}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    );
-  };
-
-  return <div className={className}>{renderMarkdown(content)}</div>;
+  return (
+    <div className={`prose prose-slate dark:prose-invert max-w-none ${className}`}>
+      <ReactMarkdown
+        components={{
+          h1: ({node, ...props}) => <h1 className="text-3xl font-bold mt-6 mb-4 text-slate-900 dark:text-white" {...props} />,
+          h2: ({node, ...props}) => <h2 className="text-2xl font-semibold mt-5 mb-3 text-slate-900 dark:text-white" {...props} />,
+          h3: ({node, ...props}) => <h3 className="text-xl font-semibold mt-4 mb-2 text-slate-900 dark:text-white" {...props} />,
+          h4: ({node, ...props}) => <h4 className="text-lg font-semibold mt-3 mb-2 text-slate-900 dark:text-white" {...props} />,
+          strong: ({node, ...props}) => <strong className="font-semibold text-slate-900 dark:text-white" {...props} />,
+          em: ({node, ...props}) => <em className="italic text-slate-700 dark:text-slate-300" {...props} />,
+          code: ({node, inline, className, children, ...props}) => {
+            if (inline) {
+              return (
+                <code className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 text-blue-600 dark:text-blue-400 rounded text-sm font-mono" {...props}>{children}</code>
+              );
+            }
+            // For code blocks
+            const codeString = String(children).replace(/\n$/, '');
+            const language = /language-(\w+)/.exec(className || '')?.[1] || 'text';
+            const blockIdx = codeBlockIdx++;
+            return (
+              <div className="relative group my-4">
+                <button
+                  className="absolute top-2 right-2 z-10 p-1 rounded bg-slate-700 hover:bg-blue-600 text-white transition flex items-center gap-1 opacity-80 group-hover:opacity-100"
+                  onClick={() => {
+                    navigator.clipboard.writeText(codeString);
+                    setCopiedIndex(blockIdx);
+                    setTimeout(() => setCopiedIndex(null), 2000);
+                  }}
+                  title="Copy code"
+                  type="button"
+                >
+                  {copiedIndex === blockIdx ? <Check size={16} className="text-green-400" /> : <Copy size={16} />}
+                  <span className="text-xs">{copiedIndex === blockIdx ? 'Copied!' : 'Copy'}</span>
+                </button>
+                <SyntaxHighlighter
+                  style={atomDark}
+                  language={language}
+                  PreTag="div"
+                  className="rounded-lg text-base !pl-4 !pr-4 !pt-4 !pb-4"
+                  {...props}
+                >
+                  {codeString}
+                </SyntaxHighlighter>
+              </div>
+            );
+          },
+          ul: ({node, ...props}) => <ul className="list-disc list-inside my-2 pl-6" {...props} />,
+          ol: ({node, ...props}) => <ol className="list-decimal list-inside my-2 pl-6" {...props} />,
+          li: ({node, ...props}) => <li className="mb-1" {...props} />,
+          blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-blue-400 pl-4 italic text-slate-600 dark:text-slate-300 my-4" {...props} />,
+          p: ({node, ...props}) => <p className="my-2 leading-relaxed text-slate-900 dark:text-white" {...props} />,
+          a: ({node, ...props}) => <a className="text-blue-600 dark:text-blue-400 underline" target="_blank" rel="noopener noreferrer" {...props} />,
+          table: ({node, ...props}) => <table className="min-w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg my-4" {...props} />,
+          thead: ({node, ...props}) => <thead className="bg-slate-100 dark:bg-slate-700" {...props} />,
+          th: ({node, ...props}) => <th className="px-4 py-2 text-left text-slate-900 dark:text-white font-semibold border-b border-slate-300 dark:border-slate-600" {...props} />,
+          td: ({node, ...props}) => <td className="px-4 py-2 text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700" {...props} />,
+          tr: ({node, ...props}) => <tr className="hover:bg-slate-50 dark:hover:bg-slate-750" {...props} />,
+        }}
+      >
+        {preprocessContent(content)}
+      </ReactMarkdown>
+    </div>
+  );
 };

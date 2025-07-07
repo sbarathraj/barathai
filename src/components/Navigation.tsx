@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, Menu, X, MessageCircle, Settings, User } from "lucide-react";
+import { Moon, Sun, Menu, X, MessageCircle, Settings, User, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Logo } from "@/components/Logo";
 import { supabase } from "@/integrations/supabase/client";
@@ -86,16 +86,19 @@ export const Navigation = () => {
                   variant="ghost"
                   onClick={() => navigate('/settings')}
                   className="text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  size="icon"
+                  title="Settings"
                 >
-                  <Settings className="mr-2 h-4 w-4" />
-                  Settings
+                  <Settings className="h-5 w-5" />
                 </Button>
                 <Button
                   variant="ghost"
                   onClick={handleLogout}
                   className="text-slate-700 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                  size="icon"
+                  title="Logout"
                 >
-                  Logout
+                  <LogOut className="h-5 w-5" />
                 </Button>
               </>
             ) : (
@@ -171,9 +174,10 @@ export const Navigation = () => {
                       setMobileMenuOpen(false);
                     }}
                     className="justify-start text-slate-700 dark:text-slate-300"
+                    size="icon"
+                    title="Settings"
                   >
-                    <Settings className="mr-2 h-4 w-4" />
-                    Settings
+                    <Settings className="h-5 w-5" />
                   </Button>
                   <Button
                     variant="ghost"
@@ -182,8 +186,10 @@ export const Navigation = () => {
                       setMobileMenuOpen(false);
                     }}
                     className="justify-start text-slate-700 dark:text-slate-300"
+                    size="icon"
+                    title="Logout"
                   >
-                    Logout
+                    <LogOut className="h-5 w-5" />
                   </Button>
                 </>
               ) : (

@@ -78,7 +78,7 @@ To configure the API settings, create a `.env` file in the root directory with t
 
 ```env
 # OpenRouter API Configuration
-VITE_OPENROUTER_API_KEY=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
+VITE_OPENROUTER_API_KEY=your_openrouter_api_key_here
 VITE_OPENROUTER_MODEL=deepseek/deepseek-chat-v3-0324:free
 VITE_OPENROUTER_API_URL=https://openrouter.ai/api/v1/chat/completions
 ```
