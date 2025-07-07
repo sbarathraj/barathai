@@ -75,12 +75,12 @@ export const Chat = () => {
   const [wordCount, setWordCount] = useState(0);
   const [wordLimitError, setWordLimitError] = useState('');
 
-  // API Configuration - Exact curl implementation
+  // API Configuration - Enhanced with better error handling
   const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
   const OPENROUTER_API_KEY2 = import.meta.env.VITE_OPENROUTER_API_KEY2;
   const API_URL = "https://openrouter.ai/api/v1/chat/completions";
   const API_URL2 = import.meta.env.VITE_OPENROUTER_API_URL2 || API_URL;
-  const OPENROUTER_MODEL = "deepseek/deepseek-chat-v3-0324:free";
+  const OPENROUTER_MODEL = "deepseek/deepseek-chat";
 
   // Apply dark mode changes
   useEffect(() => {
@@ -396,40 +396,69 @@ export const Chat = () => {
       const requestBody = {
         "model": OPENROUTER_MODEL,
         "messages": apiMessages,
-        "max_tokens": 1000,
-        "temperature": 0.7
+        "max_tokens": 2000,
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "frequency_penalty": 0.1,
+        "presence_penalty": 0.1
       };
+
+      console.log('🚀 Sending API request:', {
+        url: API_URL,
+        model: OPENROUTER_MODEL,
+        messageCount: apiMessages.length,
+        hasApiKey: !!OPENROUTER_API_KEY
+      });
 
       let usedApiKey = OPENROUTER_API_KEY;
       let usedApiUrl = API_URL;
       let triedSecondary = false;
       let response, data;
+      
       while (true) {
         response = await fetch(usedApiUrl, {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${usedApiKey}`,
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "HTTP-Referer": window.location.origin,
+            "X-Title": "BarathAI Chat"
           },
           body: JSON.stringify(requestBody)
         });
+        
+        console.log('📡 API Response status:', response.status);
+        
         if (response.status !== 429) break;
+        
+        console.log('⚠️ Rate limited, trying secondary API...');
         if (triedSecondary || !OPENROUTER_API_KEY2) {
-          // Already tried secondary or no secondary key, break
           break;
         }
-        // Switch to secondary key and URL, and retry once
         usedApiKey = OPENROUTER_API_KEY2;
         usedApiUrl = API_URL2;
         triedSecondary = true;
       }
+      
       if (!response.ok) {
         const errorText = await response.text();
+        console.error('❌ API Error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText
+        });
         throw new Error(`API error (${response.status}): ${errorText}`);
       }
+      
       data = await response.json();
+      console.log('✅ API Response received:', {
+        hasChoices: !!data.choices,
+        choicesLength: data.choices?.length,
+        hasMessage: !!data.choices?.[0]?.message
+      });
 
       if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+        console.error('❌ Invalid API response format:', data);
         throw new Error('Invalid response format from API');
       }
 
@@ -450,9 +479,11 @@ export const Chat = () => {
       try {
       await saveMessage(currentSessionId, assistantMessage.content, 'assistant');
       } catch (dbError) {
+        console.error('Database save error:', dbError);
       }
 
     } catch (error) {
+      console.error('💥 Chat error:', error);
       setError(`Failed to get response: ${error.message}`);
       
       // Add error message to chat
@@ -871,32 +902,36 @@ export const Chat = () => {
             {messages.length === 0 && (
               <div className="text-center py-12">
                 <Logo size={64} className="mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">Welcome to BarathAI</h3>
-                <p className="text-slate-600 dark:text-slate-400 mb-6">Your intelligent AI assistant created by Barathraj</p>
+                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Welcome to BarathAI</h3>
+                <p className="text-lg text-slate-600 dark:text-slate-400 mb-6">Your intelligent AI assistant created by Barathraj</p>
                 
-                {/* Simplified single-line features */}
+                {/* Enhanced feature showcase */}
                 <div className="max-w-4xl mx-auto">
-                  <div className="flex flex-wrap justify-center gap-4 text-sm text-slate-600 dark:text-slate-400">
-                    <span className="flex items-center space-x-1">
-                      <span>💻</span>
-                      <span>Coding Help</span>
-                    </span>
-                    <span className="flex items-center space-x-1">
-                      <span>🔍</span>
-                      <span>Research</span>
-                    </span>
-                    <span className="flex items-center space-x-1">
-                      <span>✍️</span>
-                      <span>Writing</span>
-                    </span>
-                    <span className="flex items-center space-x-1">
-                      <span>🤔</span>
-                      <span>Problem Solving</span>
-                    </span>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                    <div className="p-4 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                      <div className="text-2xl mb-2">💻</div>
+                      <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Code Help</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-500">Java, Python, JS</div>
+                    </div>
+                    <div className="p-4 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                      <div className="text-2xl mb-2">🔍</div>
+                      <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Research</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-500">Deep Analysis</div>
+                    </div>
+                    <div className="p-4 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                      <div className="text-2xl mb-2">✍️</div>
+                      <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Writing</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-500">Creative & Technical</div>
+                    </div>
+                    <div className="p-4 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                      <div className="text-2xl mb-2">🤔</div>
+                      <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Problem Solving</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-500">Step-by-step</div>
+                    </div>
                   </div>
                   
-                  <div className="text-sm text-slate-500 dark:text-slate-400 mt-4">
-                    Start typing to begin your conversation with BarathAI
+                  <div className="text-base text-slate-600 dark:text-slate-400 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                    💡 <strong>Pro Tip:</strong> I can help with Java programming, markdown formatting, code examples, and much more!
                   </div>
                 </div>
               </div>
@@ -921,7 +956,10 @@ export const Chat = () => {
                     </div>
                   )}
                   {msg.role === 'assistant' ? (
-                    <MarkdownRenderer content={msg.content} />
+                    <MarkdownRenderer 
+                      content={msg.content} 
+                      className="prose-sm md:prose-base"
+                    />
                   ) : (
                     <p className="whitespace-pre-wrap">{msg.content}</p>
                   )}
