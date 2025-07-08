@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import atomOneDark from 'react-syntax-highlighter/dist/esm/styles/hljs/atom-one-dark';
+import atomOneLight from 'react-syntax-highlighter/dist/esm/styles/hljs/atom-one-light';
 import remarkGfm from 'remark-gfm';
-import remarkBreaks from 'remark-breaks';
 import { Copy, Check, Play, Terminal, Code, FileText, Lightbulb, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -144,7 +143,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
   return (
     <div className={`prose prose-slate dark:prose-invert max-w-none ${className}`}>
       <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkBreaks]}
+        remarkPlugins={[remarkGfm]}
         components={{
           // Enhanced heading rendering with better styling and icons
           h1: ({ node, ...props }) => (
@@ -210,59 +209,32 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
             const languageDisplayName = getLanguageDisplayName(language);
 
             return (
-              <div className="relative group my-8 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-lg bg-white dark:bg-slate-900">
-                {/* Professional code block header */}
-                <div className="flex items-center justify-between bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 px-4 py-3 border-b border-slate-200 dark:border-slate-600">
-                  <div className="flex items-center space-x-3">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-lg">{languageIcon}</span>
-                      <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                        {languageDisplayName}
-                      </span>
-                    </div>
-                    <div className="hidden sm:flex items-center space-x-1">
-                      <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                      <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 px-3 text-xs opacity-70 hover:opacity-100 transition-all duration-200 hover:bg-white/50 dark:hover:bg-slate-600/50"
-                      onClick={() => copyToClipboard(codeString, blockIndex)}
-                    >
-                      {copiedIndex === blockIndex ? (
-                        <>
-                          <Check size={14} className="mr-1 text-green-500" />
-                          <span className="text-green-500 font-medium">Copied!</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy size={14} className="mr-1" />
-                          <span>Copy</span>
-                        </>
-                      )}
-                    </Button>
-                  </div>
+              <div className="my-8">
+                <div className="flex items-center justify-between px-4 py-2 rounded-t-lg bg-slate-200 dark:bg-slate-700 border-b border-slate-300 dark:border-slate-600">
+                  <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-300 text-slate-800 dark:bg-slate-800 dark:text-slate-100">
+                    {language.toUpperCase()}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="ml-2"
+                    onClick={() => copyToClipboard(codeString, blockIndex)}
+                    aria-label="Copy code"
+                  >
+                    {copiedIndex === blockIndex ? (
+                      <Check size={18} />
+                    ) : (
+                      <Copy size={18} />
+                    )}
+                  </Button>
                 </div>
-
-                {/* Code content with professional styling */}
-                <div className="relative">
+                <div className="rounded-b-lg bg-slate-50 dark:bg-slate-900 shadow-md overflow-x-auto">
                   <SyntaxHighlighter
-                    style={isDarkMode ? oneDark : oneLight}
+                    style={isDarkMode ? atomOneDark : atomOneLight}
                     language={language}
                     PreTag="div"
                     className="!m-0 !bg-transparent text-sm"
-                    customStyle={{
-                      margin: 0,
-                      padding: '1.5rem',
-                      background: 'transparent',
-                      fontSize: '0.875rem',
-                      lineHeight: '1.6',
-                      fontFamily: '"Fira Code", "JetBrains Mono", "SF Mono", Consolas, monospace',
-                    }}
+                    customStyle={{ borderRadius: 0, fontSize: '0.95rem', padding: '1.5em 1em 1em 1em', background: 'inherit', margin: 0 }}
                     showLineNumbers={codeString.split('\n').length > 5}
                     lineNumberStyle={{
                       minWidth: '3em',
