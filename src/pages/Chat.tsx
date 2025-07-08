@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -54,6 +53,7 @@ export const Chat = () => {
   const recognitionRef = useRef<any>(null);
   const [wordCount, setWordCount] = useState(0);
   const [wordLimitError, setWordLimitError] = useState('');
+  const [sessionsLoading, setSessionsLoading] = useState(false);
 
   // API Configuration
   const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
@@ -61,6 +61,45 @@ export const Chat = () => {
   const API_URL = "https://openrouter.ai/api/v1/chat/completions";
   const API_URL2 = import.meta.env.VITE_OPENROUTER_API_URL2 || API_URL;
   const OPENROUTER_MODEL = "deepseek/deepseek-chat-v3-0324:free";
+
+  // Place autoDeleteUnusedNewChats as a top-level function inside the Chat component, after all useState/useRef hooks and before useEffect or other functions.
+  const autoDeleteUnusedNewChats = async (userId: string) => {
+    const { data: sessions, error: sessionError } = await supabase
+      .from('chat_sessions')
+      .select('id, title, created_at')
+      .eq('user_id', userId);
+    if (sessionError || !sessions) return;
+
+    // Find all unused 'New Chat' sessions (no messages)
+    const unusedNewChats: { id: string, created_at: string }[] = [];
+    for (const session of sessions) {
+      if (session.title === 'New Chat') {
+        const { data: messages, error: msgError } = await supabase
+          .from('messages')
+          .select('id')
+          .eq('session_id', session.id)
+          .limit(1);
+        if (msgError) continue;
+        if (!messages || messages.length === 0) {
+          unusedNewChats.push({ id: session.id, created_at: session.created_at });
+        }
+      }
+    }
+    // Sort by created_at (newest last)
+    unusedNewChats.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    // Always keep the newest, delete the rest
+    if (unusedNewChats.length > 1) {
+      const idsToDelete = unusedNewChats.slice(0, -1).map(s => s.id); // keep the last (newest), delete the rest
+      console.log('Deleting unused New Chat sessions:', idsToDelete);
+      await Promise.all(idsToDelete.map(id =>
+        supabase
+          .from('chat_sessions')
+          .delete()
+          .eq('id', id)
+      ));
+      await loadChatSessions(userId);
+    }
+  };
 
   // Apply dark mode changes
   useEffect(() => {
@@ -121,9 +160,11 @@ export const Chat = () => {
 
   useEffect(() => {
     const initAuth = async () => {
+      setSessionsLoading(true);
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         navigate('/auth');
+        setSessionsLoading(false);
         return;
       }
       setSession(session);
@@ -133,10 +174,22 @@ export const Chat = () => {
       const chatId = urlParams.get('chat');
       
       if (chatId) {
-        loadSpecificChat(chatId, session.user.id);
+        await loadSpecificChat(chatId, session.user.id);
+        setSessionsLoading(false);
       } else {
         await loadChatSessions(session.user.id);
-        createNewSession(session.user.id);
+        await autoDeleteUnusedNewChats(session.user.id);
+        // Re-fetch sessions after deletion
+        const { data: sessionsAfterDelete } = await supabase
+          .from('chat_sessions')
+          .select('id, title')
+          .eq('user_id', session.user.id);
+        const hasUnusedNewChat = sessionsAfterDelete && sessionsAfterDelete.some(s => s.title === 'New Chat');
+        if (!hasUnusedNewChat) {
+          await createNewSession(session.user.id);
+          await loadChatSessions(session.user.id);
+        }
+        setSessionsLoading(false);
       }
     };
 
@@ -551,8 +604,12 @@ export const Chat = () => {
     setMessage(value);
   };
 
+  if (sessionsLoading) {
+    return <LoadingSpinner message="Loading chats..." />;
+  }
+
   return (
-    <div className={`min-h-screen flex ${darkMode ? 'dark' : ''}`}>
+    <div className={`flex flex-col w-full min-h-screen ${darkMode ? 'dark' : ''}`}>
       <div className="flex w-full bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-blue-900/20 dark:to-purple-900/20 text-slate-900 dark:text-white transition-all duration-300">
         
         {!isOnline && (
@@ -562,193 +619,208 @@ export const Chat = () => {
           </div>
         )}
 
-        {/* Sidebar */}
-        <div className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 fixed z-50 w-80 lg:w-80 h-full bg-white/95 dark:bg-slate-800/95 backdrop-blur-lg border-r border-slate-200 dark:border-slate-700 transition-all duration-300 flex flex-col shadow-xl`}>
-          <div className="p-3 border-b border-slate-200 dark:border-slate-700 flex-shrink-0 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Logo size={28} />
-                <h2 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  BarathAI
-                </h2>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setSidebarOpen(false)}
-                className="lg:hidden text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white"
-              >
-                <X size={18} />
-              </Button>
-            </div>
-            <Button
-              onClick={() => createNewSession()}
-              className="w-full mt-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-emerald-500 text-white rounded-lg transition-all duration-200 text-sm py-2"
-            >
-              <Plus className="mr-2" size={14} />
-              New Chat
-            </Button>
-            
-            <div className="mt-3 relative">
-              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-slate-400" size={14} />
-              <input
-                type="text"
-                placeholder="Search chats..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-md text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 text-sm"
-              />
-            </div>
-          </div>
-
-          <div className="p-3 border-b border-slate-200 dark:border-slate-700 flex-shrink-0 bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-700/50 dark:to-blue-900/10">
-            <div className="flex items-center space-x-2 p-2 bg-white/80 dark:bg-slate-800/80 rounded-lg">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-                <User size={16} className="text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-slate-900 dark:text-white truncate">
-                  {user?.email || 'User'}
-                </p>
-                <div className="flex items-center space-x-1 mt-0.5">
-                  <Crown size={10} className="text-yellow-500" />
-                  <span className="text-xs text-slate-600 dark:text-slate-400">Premium</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-3 gap-1 mt-2">
-              <div className="text-center p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
-                <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
-                  {chatSessions.length}
-                </div>
-                <div className="text-xs text-slate-600 dark:text-slate-400">Chats</div>
-              </div>
-              <div className="text-center p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
-                <div className="text-sm font-bold text-purple-600 dark:text-purple-400">
-                  {messages.length}
-                </div>
-                <div className="text-xs text-slate-600 dark:text-slate-400">Messages</div>
-              </div>
-              <div className="text-center p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
-                <div className="text-sm font-bold text-green-600 dark:text-green-400">
-                  {Math.floor(Math.random() * 100) + 50}%
-                </div>
-                <div className="text-xs text-slate-600 dark:text-slate-400">Accuracy</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-3 space-y-1">
-            {filteredSessions.length === 0 ? (
-              <div className="text-center py-6">
-                <div className="w-10 h-10 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <Logo size={20} />
-                </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400">No chat history yet</p>
-                <p className="text-xs text-slate-400 dark:text-slate-500">Start a new conversation to see it here</p>
-              </div>
-            ) : (
-              filteredSessions.map((session) => (
-                <div
-                  key={session.id}
-                  className={`group relative p-2.5 rounded-lg transition-all duration-200 cursor-pointer ${
-                    session.id === currentSessionId
-                      ? 'bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-600'
-                      : 'hover:bg-slate-100 dark:hover:bg-slate-700/50'
-                  }`}
-                  onClick={() => switchToSession(session)}
-                >
-                  {editingSessionId === session.id ? (
-                    <input
-                      type="text"
-                      value={editingTitle}
-                      onChange={(e) => setEditingTitle(e.target.value)}
-                      onBlur={() => renameSession(session.id, editingTitle)}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
-                          renameSession(session.id, editingTitle);
-                        }
-                      }}
-                      className="w-full bg-transparent text-slate-900 dark:text-white text-sm font-medium focus:outline-none"
-                      autoFocus
-                    />
-                  ) : (
-                    <>
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-slate-900 dark:text-white truncate flex-1">
-                          {session.title}
-                        </p>
-                        <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-5 w-5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditingSessionId(session.id);
-                              setEditingTitle(session.title);
-                            }}
-                          >
-                            <Edit2 size={10} />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-5 w-5 text-slate-500 hover:text-red-500 dark:text-slate-400 dark:hover:text-red-400"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteSession(session.id);
-                            }}
-                          >
-                            <Trash2 size={10} />
-                          </Button>
-                        </div>
-                      </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        {new Date(session.created_at).toLocaleDateString()}
-                      </p>
-                    </>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-
-          <div className="p-3 border-t border-slate-200 dark:border-slate-700 space-y-2 bg-gradient-to-r from-slate-50 to-purple-50 dark:from-slate-700/50 dark:to-purple-900/10 backdrop-blur-lg flex-shrink-0">
-            <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-              Features
-            </div>
-            <div className="grid grid-cols-2 gap-1.5">
-              <div className="flex items-center space-x-1.5 p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
-                <Zap size={12} className="text-yellow-500" />
-                <span className="text-xs text-slate-700 dark:text-slate-300">Fast AI</span>
-              </div>
-              <div className="flex items-center space-x-1.5 p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
-                <Brain size={12} className="text-blue-500" />
-                <span className="text-xs text-slate-700 dark:text-slate-300">Smart</span>
-              </div>
-              <div className="flex items-center space-x-1.5 p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
-                <Sparkles size={12} className="text-purple-500" />
-                <span className="text-xs text-slate-700 dark:text-slate-300">Creative</span>
-              </div>
-              <div className="flex items-center space-x-1.5 p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
-                <Crown size={12} className="text-yellow-500" />
-                <span className="text-xs text-slate-700 dark:text-slate-300">Premium</span>
-              </div>
-            </div>
-          </div>
+        {/* Persistent Sidebar */}
+        <div className="hidden lg:block w-80 h-full fixed left-0 top-0 z-30">
+          {/* Sidebar content */}
         </div>
 
+        {/* Mobile Sidebar Overlay */}
+        {sidebarOpen && (
+          <>
+            <div
+              className="fixed inset-0 bg-black/30 z-40 transition-opacity duration-300"
+              onClick={() => setSidebarOpen(false)}
+              aria-label="Close sidebar overlay"
+              tabIndex={-1}
+            />
+            <div className="fixed top-0 left-0 h-full w-80 bg-white/95 dark:bg-slate-800/95 backdrop-blur-lg border-r border-slate-200 dark:border-slate-700 z-50 flex flex-col shadow-xl transition-transform duration-300">
+              <div className="p-3 border-b border-slate-200 dark:border-slate-700 flex-shrink-0 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Logo size={28} />
+                    <h2 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                      BarathAI
+                    </h2>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setSidebarOpen(false)}
+                    className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white"
+                    aria-label="Close sidebar"
+                  >
+                    <X size={18} />
+                  </Button>
+                </div>
+                <Button
+                  onClick={() => createNewSession()}
+                  className="w-full mt-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-emerald-500 text-white rounded-lg transition-all duration-200 text-sm py-2"
+                >
+                  <Plus className="mr-2" size={14} />
+                  New Chat
+                </Button>
+                <div className="mt-3 relative">
+                  <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-slate-400" size={14} />
+                  <input
+                    type="text"
+                    placeholder="Search chats..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-8 pr-3 py-2 bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-md text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="p-3 border-b border-slate-200 dark:border-slate-700 flex-shrink-0 bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-700/50 dark:to-blue-900/10">
+                <div className="flex items-center space-x-2 p-2 bg-white/80 dark:bg-slate-800/80 rounded-lg">
+                  <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
+                    <User size={16} className="text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-slate-900 dark:text-white truncate">
+                      {user?.email || 'User'}
+                    </p>
+                    <div className="flex items-center space-x-1 mt-0.5">
+                      <Crown size={10} className="text-yellow-500" />
+                      <span className="text-xs text-slate-600 dark:text-slate-400">Premium</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-3 gap-1 mt-2">
+                  <div className="text-center p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
+                    <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                      {chatSessions.length}
+                    </div>
+                    <div className="text-xs text-slate-600 dark:text-slate-400">Chats</div>
+                  </div>
+                  <div className="text-center p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
+                    <div className="text-sm font-bold text-purple-600 dark:text-purple-400">
+                      {messages.length}
+                    </div>
+                    <div className="text-xs text-slate-600 dark:text-slate-400">Messages</div>
+                  </div>
+                  <div className="text-center p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
+                    <div className="text-sm font-bold text-green-600 dark:text-green-400">
+                      {Math.floor(Math.random() * 100) + 50}%
+                    </div>
+                    <div className="text-xs text-slate-600 dark:text-slate-400">Accuracy</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-3 space-y-1">
+                {filteredSessions.length === 0 ? (
+                  <div className="text-center py-6">
+                    <div className="w-10 h-10 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-2">
+                      <Logo size={20} />
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">No chat history yet</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500">Start a new conversation to see it here</p>
+                  </div>
+                ) : (
+                  filteredSessions.map((session) => (
+                    <div
+                      key={session.id}
+                      className={`group relative p-2.5 rounded-lg transition-all duration-200 cursor-pointer ${
+                        session.id === currentSessionId
+                          ? 'bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-600'
+                          : 'hover:bg-slate-100 dark:hover:bg-slate-700/50'
+                      }`}
+                      onClick={() => switchToSession(session)}
+                    >
+                      {editingSessionId === session.id ? (
+                        <input
+                          type="text"
+                          value={editingTitle}
+                          onChange={(e) => setEditingTitle(e.target.value)}
+                          onBlur={() => renameSession(session.id, editingTitle)}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              renameSession(session.id, editingTitle);
+                            }
+                          }}
+                          className="w-full bg-transparent text-slate-900 dark:text-white text-sm font-medium focus:outline-none"
+                          autoFocus
+                        />
+                      ) : (
+                        <>
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-slate-900 dark:text-white truncate flex-1">
+                              {session.title}
+                            </p>
+                            <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-5 w-5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingSessionId(session.id);
+                                  setEditingTitle(session.title);
+                                }}
+                              >
+                                <Edit2 size={10} />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-5 w-5 text-slate-500 hover:text-red-500 dark:text-slate-400 dark:hover:text-red-400"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteSession(session.id);
+                                }}
+                              >
+                                <Trash2 size={10} />
+                              </Button>
+                            </div>
+                          </div>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                            {new Date(session.created_at).toLocaleDateString()}
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className="p-3 border-t border-slate-200 dark:border-slate-700 space-y-2 bg-gradient-to-r from-slate-50 to-purple-50 dark:from-slate-700/50 dark:to-purple-900/10 backdrop-blur-lg flex-shrink-0">
+                <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+                  Features
+                </div>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <div className="flex items-center space-x-1.5 p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
+                    <Zap size={12} className="text-yellow-500" />
+                    <span className="text-xs text-slate-700 dark:text-slate-300">Fast AI</span>
+                  </div>
+                  <div className="flex items-center space-x-1.5 p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
+                    <Brain size={12} className="text-blue-500" />
+                    <span className="text-xs text-slate-700 dark:text-slate-300">Smart</span>
+                  </div>
+                  <div className="flex items-center space-x-1.5 p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
+                    <Sparkles size={12} className="text-purple-500" />
+                    <span className="text-xs text-slate-700 dark:text-slate-300">Creative</span>
+                  </div>
+                  <div className="flex items-center space-x-1.5 p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
+                    <Crown size={12} className="text-yellow-500" />
+                    <span className="text-xs text-slate-700 dark:text-slate-300">Premium</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
         {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col h-screen lg:ml-80">
-          <header className="fixed top-0 right-0 left-0 lg:left-80 z-40 flex items-center justify-between p-4 bg-white/90 dark:bg-slate-800/90 backdrop-blur-lg border-b border-slate-200 dark:border-slate-700 transition-colors duration-300 shadow-sm">
+        <div className="flex-1 w-0 flex flex-col lg:ml-80">
+          <header className="fixed top-0 right-0 left-0 z-40 flex items-center justify-between p-4 bg-white/90 dark:bg-slate-800/90 backdrop-blur-lg border-b border-slate-200 dark:border-slate-700 transition-colors duration-300 shadow-sm">
             <div className="flex items-center space-x-4">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setSidebarOpen(true)}
-                className="lg:hidden text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white"
+                className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white"
               >
                 <Menu size={20} />
               </Button>
@@ -832,10 +904,6 @@ export const Chat = () => {
                       <div className="text-xs text-slate-500 dark:text-slate-500">Step-by-step</div>
                     </div>
                   </div>
-                  
-                  <div className="text-base text-slate-600 dark:text-slate-400 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-                    💡 <strong>Pro Tip:</strong> I can help with Java programming, markdown formatting, code examples, and much more!
-                  </div>
                 </div>
               </div>
             )}
@@ -895,67 +963,55 @@ export const Chat = () => {
           </div>
 
           {/* Input Area */}
-          <div className="fixed bottom-0 right-0 left-0 lg:left-80 z-40 p-4 bg-white/95 dark:bg-slate-800/95 backdrop-blur-lg border-t border-slate-200 dark:border-slate-700 transition-colors duration-300 shadow-lg">
-            <div className="flex items-end space-x-3 max-w-4xl mx-auto">
-              <div className="flex-1 relative">
+          <div className="fixed bottom-0 right-0 left-0 z-40 p-2 sm:p-3 bg-gradient-to-t from-white/95 via-white/98 to-white/90 dark:from-slate-800/95 dark:via-slate-900/98 dark:to-slate-900/90 backdrop-blur-lg border-t border-slate-200 dark:border-slate-700 transition-colors duration-300 shadow-2xl">
+            <div className="flex justify-center w-full max-w-4xl mx-auto">
+              <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl shadow-md px-2 py-1 w-full">
                 <Textarea
                   ref={inputRef}
                   value={message}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyPress}
                   placeholder="Type your message... (max 1000 words)"
-                  className="w-full resize-none rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 text-base text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-all min-h-[60px] max-h-40"
+                  className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none resize-none text-base text-slate-900 dark:text-white min-h-[40px] max-h-40"
                   rows={2}
                   maxLength={10000}
                   disabled={isLoading || !isOnline}
                 />
-                <div className="flex justify-between items-center mt-2 px-1">
-                  <span className={`text-xs ${wordCount > 1000 ? 'text-red-500' : 'text-slate-400 dark:text-slate-500'}`}>
-                    {wordCount}/1000 words
-                  </span>
-                  {wordLimitError && <span className="text-xs text-red-500">{wordLimitError}</span>}
+                <div className="flex items-center space-x-1 ml-2">
+                  <Button
+                    onClick={toggleVoiceInput}
+                    variant="outline"
+                    size="icon"
+                    className={`h-10 w-10 rounded-lg ${isListening ? 'bg-red-500 text-white' : ''}`}
+                    disabled={isLoading}
+                  >
+                    {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+                  </Button>
+                  <Button
+                    onClick={sendMessage}
+                    disabled={!message.trim() || isLoading || wordCount > 1000}
+                    className="h-10 w-10 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg hover:shadow-xl focus:ring-2 focus:ring-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    size="icon"
+                  >
+                    {isLoading ? (
+                      <div className="flex items-center justify-center">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    ) : (
+                      <Send size={20} />
+                    )}
+                  </Button>
                 </div>
               </div>
-              
-              <Button
-                onClick={toggleVoiceInput}
-                variant="outline"
-                size="icon"
-                className={`h-[60px] w-[60px] rounded-xl ${isListening ? 'bg-red-500 text-white' : ''}`}
-                disabled={isLoading}
-              >
-                {isListening ? <MicOff size={20} /> : <Mic size={20} />}
-              </Button>
-              
-              <Button
-                onClick={sendMessage}
-                disabled={!message.trim() || isLoading || wordCount > 1000}
-                className="h-[60px] px-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading ? (
-                  <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Sending...</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center space-x-2">
-                    <Send size={18} />
-                    <span>Send</span>
-                  </div>
-                )}
-              </Button>
+            </div>
+            <div className="flex justify-between items-center mt-2 px-1 max-w-4xl mx-auto">
+              <span className={`text-xs ${wordCount > 1000 ? 'text-red-500' : 'text-slate-400 dark:text-slate-500'}`}>{wordCount}/1000 words</span>
+              {wordLimitError && <span className="text-xs text-red-500">{wordLimitError}</span>}
             </div>
           </div>
         </div>
-
-        {/* Sidebar Overlay for Mobile */}
-        {sidebarOpen && (
-          <div
-            className="fixed inset-0 bg-black/30 lg:hidden z-40 transition-opacity duration-300"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
       </div>
     </div>
   );
 };
+

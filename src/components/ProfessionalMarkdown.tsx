@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import atomOneDark from 'react-syntax-highlighter/dist/esm/styles/hljs/atom-one-dark';
-import atomOneLight from 'react-syntax-highlighter/dist/esm/styles/hljs/atom-one-light';
+// import atomOneDark from 'react-syntax-highlighter/dist/styles/atom-one-dark.js';
+// import atomOneLight from 'react-syntax-highlighter/dist/styles/atom-one-light.js';
+import oneDark from 'react-syntax-highlighter/dist/esm/styles/prism/one-dark';
+import oneLight from 'react-syntax-highlighter/dist/esm/styles/prism/one-light';
 import remarkGfm from 'remark-gfm';
 import { Copy, Check, Code2, Terminal, FileText, Database, Globe, Cpu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -196,26 +198,24 @@ export const ProfessionalMarkdown: React.FC<ProfessionalMarkdownProps> = ({
           
           // Enhanced list styling
           ul: ({ children, ...props }) => (
-            <ul className="list-none mb-6 space-y-3 text-slate-700 dark:text-slate-300 pl-0" {...props}>
+            <ul className="list-none mb-2 space-y-1 text-slate-700 dark:text-slate-300 pl-0" {...props}>
               {children}
             </ul>
           ),
           ol: ({ children, ...props }) => (
-            <ol className="list-none mb-6 space-y-3 text-slate-700 dark:text-slate-300 pl-0 counter-reset-list" {...props}>
+            <ol className="list-none mb-2 space-y-1 text-slate-700 dark:text-slate-300 pl-0 counter-reset-list" {...props}>
               {children}
             </ol>
           ),
           li: ({ children, node, ...props }) => {
-            // Fix TypeScript error by properly checking parent
             const parentNode = node?.parent as any;
             const isOrdered = parentNode?.tagName === 'ol';
-            
             return (
-              <li className={`leading-8 flex items-start ${isOrdered ? 'counter-increment-list' : ''}`} {...props}>
+              <li className={`leading-6 flex items-start ${isOrdered ? 'counter-increment-list' : ''}`} {...props}>
                 {isOrdered ? (
-                  <span className="flex-shrink-0 w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-bold rounded-full flex items-center justify-center mr-3 mt-1 counter-content"></span>
+                  <span className="flex-shrink-0 w-5 h-5 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-bold rounded-full flex items-center justify-center mr-2 mt-0.5 counter-content"></span>
                 ) : (
-                  <span className="flex-shrink-0 w-2 h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full mr-3 mt-3"></span>
+                  <span className="flex-shrink-0 w-1.5 h-1.5 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full mr-2 mt-1"></span>
                 )}
                 <span className="flex-1">{children}</span>
               </li>
@@ -262,7 +262,7 @@ export const ProfessionalMarkdown: React.FC<ProfessionalMarkdownProps> = ({
                 </div>
                 <div className="rounded-b-lg bg-slate-50 dark:bg-slate-900 shadow-md overflow-x-auto">
                   <SyntaxHighlighter
-                    style={isDarkMode ? atomOneDark : atomOneLight}
+                    style={isDarkMode ? oneDark : oneLight}
                     language={match ? match[1] : ""}
                     PreTag="div"
                     customStyle={{ borderRadius: 0, fontSize: '1rem', padding: '1.5em 1em 1em 1em', background: 'inherit', margin: 0 }}
