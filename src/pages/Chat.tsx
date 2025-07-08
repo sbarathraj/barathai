@@ -1,11 +1,12 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Mic, MicOff, Menu, X, Plus, Settings, LogOut, Moon, Sun, User, Search, Edit2, Trash2, WifiOff, Crown, Zap, Brain, Sparkles, Square } from "lucide-react";
+import { Send, Mic, MicOff, Menu, X, Plus, Settings, LogOut, Moon, Sun, User, Search, Edit2, Trash2, WifiOff, Crown, Zap, Brain, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { MarkdownRenderer } from "@/components/MarkdownRenderer";
+import { ProfessionalMarkdown } from "@/components/ProfessionalMarkdown";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { ErrorBanner, LoadingSpinner } from "@/components/ErrorBoundary";
 import { Logo } from "@/components/Logo";
@@ -26,16 +27,6 @@ interface ChatSession {
   unique_url: string;
 }
 
-// Utility to chunk a string into max 1000-word chunks
-function chunkByWords(text: string, maxWords = 1000): string[] {
-  const words = text.split(/\s+/);
-  const chunks = [];
-  for (let i = 0; i < words.length; i += maxWords) {
-    chunks.push(words.slice(i, i + maxWords).join(' '));
-  }
-  return chunks;
-}
-
 export const Chat = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -50,7 +41,6 @@ export const Chat = () => {
   });
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string>('');
-  const [isTyping, setIsTyping] = useState(false);
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -62,20 +52,10 @@ export const Chat = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<any>(null);
-  const [settings, setSettings] = useState(() => {
-    const saved = localStorage.getItem('barathAI-settings');
-    return saved ? JSON.parse(saved) : {
-      voiceInputEnabled: true,
-      voiceOutputEnabled: true,
-      soundEffectsEnabled: true,
-      notificationsEnabled: true,
-      language: 'en',
-    };
-  });
   const [wordCount, setWordCount] = useState(0);
   const [wordLimitError, setWordLimitError] = useState('');
 
-  // API Configuration - Enhanced with better error handling
+  // API Configuration
   const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
   const OPENROUTER_API_KEY2 = import.meta.env.VITE_OPENROUTER_API_KEY2;
   const API_URL = "https://openrouter.ai/api/v1/chat/completions";
@@ -119,7 +99,6 @@ export const Chat = () => {
 
         recognitionRef.current.onresult = (event: any) => {
           const transcript = event.results[0][0].transcript;
-          // Fix: Append to existing message instead of replacing
           setMessage(prev => prev + (prev ? ' ' : '') + transcript);
           setIsListening(false);
         };
@@ -140,17 +119,6 @@ export const Chat = () => {
     }
   }, [toast]);
 
-  // Listen for settings changes in localStorage (for real-time updates)
-  useEffect(() => {
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === 'barathAI-settings') {
-        setSettings(e.newValue ? JSON.parse(e.newValue) : settings);
-      }
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, [settings]);
-
   useEffect(() => {
     const initAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -168,7 +136,6 @@ export const Chat = () => {
         loadSpecificChat(chatId, session.user.id);
       } else {
         await loadChatSessions(session.user.id);
-        // Always create a new session for fresh start
         createNewSession(session.user.id);
       }
     };
@@ -193,7 +160,7 @@ export const Chat = () => {
 
   const scrollToBottom = () => {
     setTimeout(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, 100);
   };
 
@@ -238,16 +205,15 @@ export const Chat = () => {
 
       if (error) throw error;
 
-      // Transform data to match ChatSession interface
       const sessions: ChatSession[] = (data || []).map(session => ({
-          id: session.id,
-          title: session.title,
-          created_at: session.created_at,
-          updated_at: session.updated_at,
-        unique_url: (session as any).unique_url || ''
-        }));
+        id: session.id,
+        title: session.title,
+        created_at: session.created_at,
+        updated_at: session.updated_at,
+        unique_url: session.unique_url || ''
+      }));
       
-        setChatSessions(sessions);
+      setChatSessions(sessions);
     } catch (error) {
       setError('Failed to load chat history');
     }
@@ -313,6 +279,7 @@ export const Chat = () => {
       if (error) throw error;
       await loadChatSessions(user?.id || '');
     } catch (error) {
+      console.error('Failed to update session title:', error);
     }
   };
 
@@ -329,11 +296,11 @@ export const Chat = () => {
 
       if (error) throw error;
     } catch (error) {
+      console.error('Failed to save message:', error);
     }
   };
 
   const sendMessage = async () => {
-    // Basic validation
     if (!message.trim() || isLoading || !currentSessionId || !user) {
       return;
     }
@@ -345,52 +312,42 @@ export const Chat = () => {
 
     if (wordCount > 1000) {
       setWordLimitError('Message cannot exceed 1000 words.');
-      setIsLoading(false);
-      setIsTyping(false);
-      setIsBarathAITyping(false);
       return;
     }
 
-    // Create user message
-    const userChunks = chunkByWords(message.trim(), 1000);
     const userMessage: Message = {
       id: Date.now().toString(),
-      content: userChunks[0], // Only send the first chunk for now
+      content: message.trim(),
       role: 'user',
       timestamp: new Date()
     };
 
-    // Update UI immediately
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
     setMessage('');
     setIsLoading(true);
-    setIsTyping(true);
     setIsBarathAITyping(true);
     setError('');
 
-    // Save user message to database (non-blocking)
     try {
       await saveMessage(currentSessionId, userMessage.content, 'user');
       if (messages.length === 0) {
         await updateSessionTitle(currentSessionId, userMessage.content);
       }
     } catch (dbError) {
+      console.error('Database save error:', dbError);
     }
 
-    // Make API call - BarathAI with chat history
     try {
-      // Prepare messages array with system message and chat history
       const apiMessages = [
-          {
-            "role": "system",
-            "content": "You are BarathAI, an intelligent AI assistant created by Barathraj. You are knowledgeable, friendly, and always strive to provide accurate and helpful information. You communicate in a natural, conversational manner. You can help with coding, problem-solving, research, creative writing, and general questions. Always be helpful, accurate, and engaging in your responses."
-          },
-        // Include previous messages for context (last 10 messages to avoid token limits)
+        {
+          "role": "system",
+          "content": "You are BarathAI, an intelligent AI assistant created by Barathraj. You are knowledgeable, friendly, and always strive to provide accurate and helpful information. You communicate in a natural, conversational manner. You can help with coding, problem-solving, research, creative writing, and general questions. Always be helpful, accurate, and engaging in your responses. Format your responses using proper Markdown syntax for better readability."
+        },
         ...newMessages.slice(-10).map(msg => ({
-            "role": msg.role,
-            "content": msg.content
-          }))
+          "role": msg.role,
+          "content": msg.content
+        }))
       ];
 
       const requestBody = {
@@ -403,17 +360,10 @@ export const Chat = () => {
         "presence_penalty": 0.1
       };
 
-      console.log('🚀 Sending API request:', {
-        url: API_URL,
-        model: OPENROUTER_MODEL,
-        messageCount: apiMessages.length,
-        hasApiKey: !!OPENROUTER_API_KEY
-      });
-
       let usedApiKey = OPENROUTER_API_KEY;
       let usedApiUrl = API_URL;
       let triedSecondary = false;
-      let response, data;
+      let response;
       
       while (true) {
         response = await fetch(usedApiUrl, {
@@ -427,11 +377,8 @@ export const Chat = () => {
           body: JSON.stringify(requestBody)
         });
         
-        console.log('📡 API Response status:', response.status);
-        
         if (response.status !== 429) break;
         
-        console.log('⚠️ Rate limited, trying secondary API...');
         if (triedSecondary || !OPENROUTER_API_KEY2) {
           break;
         }
@@ -442,63 +389,45 @@ export const Chat = () => {
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ API Error:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorText
-        });
         throw new Error(`API error (${response.status}): ${errorText}`);
       }
       
-      data = await response.json();
-      console.log('✅ API Response received:', {
-        hasChoices: !!data.choices,
-        choicesLength: data.choices?.length,
-        hasMessage: !!data.choices?.[0]?.message
-      });
+      const data = await response.json();
 
       if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-        console.error('❌ Invalid API response format:', data);
         throw new Error('Invalid response format from API');
       }
 
-      // Create assistant message
-      const assistantChunks = chunkByWords(data.choices[0].message.content, 1000);
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: assistantChunks[0], // Only save the first chunk for now
+        content: data.choices[0].message.content,
         role: 'assistant',
         timestamp: new Date()
       };
 
-      // Update messages
       const updatedMessages = [...newMessages, assistantMessage];
       setMessages(updatedMessages);
 
-      // Save assistant message to database (non-blocking)
       try {
-      await saveMessage(currentSessionId, assistantMessage.content, 'assistant');
+        await saveMessage(currentSessionId, assistantMessage.content, 'assistant');
       } catch (dbError) {
         console.error('Database save error:', dbError);
       }
 
     } catch (error) {
-      console.error('💥 Chat error:', error);
+      console.error('Chat error:', error);
       setError(`Failed to get response: ${error.message}`);
       
-      // Add error message to chat
-        const errorMessage: Message = {
-          id: (Date.now() + 1).toString(),
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
         content: "I'm sorry, I'm having trouble connecting right now. Please try again.",
-          role: 'assistant',
-          timestamp: new Date()
-        };
-        setMessages([...newMessages, errorMessage]);
+        role: 'assistant',
+        timestamp: new Date()
+      };
+      setMessages([...newMessages, errorMessage]);
     }
 
-    // Reset loading states
     setIsLoading(false);
-    setIsTyping(false);
     setIsBarathAITyping(false);
   };
 
@@ -507,8 +436,8 @@ export const Chat = () => {
     loadMessages(session.id);
     setSidebarOpen(false);
     
-    if ((session as any).unique_url) {
-      window.history.pushState({}, '', `/chat?chat=${(session as any).unique_url}`);
+    if (session.unique_url) {
+      window.history.pushState({}, '', `/chat?chat=${session.unique_url}`);
     }
   };
 
@@ -583,14 +512,6 @@ export const Chat = () => {
   };
 
   const toggleVoiceInput = () => {
-    if (!settings.voiceInputEnabled) {
-      toast({
-        title: "Voice input disabled",
-        description: "Enable voice input in Settings to use this feature.",
-        variant: "destructive",
-      });
-      return;
-    }
     if (!recognitionRef.current) {
       toast({
         title: "Voice input not supported",
@@ -618,14 +539,6 @@ export const Chat = () => {
     session.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Example: Set recognition language from settings
-  useEffect(() => {
-    if (recognitionRef.current && settings.language) {
-      recognitionRef.current.lang = settings.language;
-    }
-  }, [settings.language]);
-
-  // Update word count and error in the input handler
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
     const words = value.trim().split(/\s+/).filter(Boolean);
@@ -642,7 +555,6 @@ export const Chat = () => {
     <div className={`min-h-screen flex ${darkMode ? 'dark' : ''}`}>
       <div className="flex w-full bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-blue-900/20 dark:to-purple-900/20 text-slate-900 dark:text-white transition-all duration-300">
         
-        {/* Connection Status */}
         {!isOnline && (
           <div className="fixed top-0 left-0 right-0 z-50 bg-red-600 text-white text-center py-2 text-sm flex items-center justify-center">
             <WifiOff size={16} className="mr-2" />
@@ -650,9 +562,8 @@ export const Chat = () => {
           </div>
         )}
 
-        {/* Fixed Sidebar - Improved for better history visibility */}
+        {/* Sidebar */}
         <div className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 fixed z-50 w-80 lg:w-80 h-full bg-white/95 dark:bg-slate-800/95 backdrop-blur-lg border-r border-slate-200 dark:border-slate-700 transition-all duration-300 flex flex-col shadow-xl`}>
-          {/* Sidebar Header - Compact */}
           <div className="p-3 border-b border-slate-200 dark:border-slate-700 flex-shrink-0 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
@@ -678,7 +589,6 @@ export const Chat = () => {
               New Chat
             </Button>
             
-            {/* Search - Compact */}
             <div className="mt-3 relative">
               <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-slate-400" size={14} />
               <input
@@ -691,7 +601,6 @@ export const Chat = () => {
             </div>
           </div>
 
-          {/* Profile Section - Compact */}
           <div className="p-3 border-b border-slate-200 dark:border-slate-700 flex-shrink-0 bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-700/50 dark:to-blue-900/10">
             <div className="flex items-center space-x-2 p-2 bg-white/80 dark:bg-slate-800/80 rounded-lg">
               <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
@@ -708,7 +617,6 @@ export const Chat = () => {
               </div>
             </div>
             
-            {/* Quick Stats - Compact */}
             <div className="grid grid-cols-3 gap-1 mt-2">
               <div className="text-center p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
                 <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
@@ -731,7 +639,6 @@ export const Chat = () => {
             </div>
           </div>
 
-          {/* Chat Sessions - More space for history */}
           <div className="flex-1 overflow-y-auto p-3 space-y-1">
             {filteredSessions.length === 0 ? (
               <div className="text-center py-6">
@@ -743,72 +650,71 @@ export const Chat = () => {
               </div>
             ) : (
               filteredSessions.map((session) => (
-              <div
-                key={session.id}
+                <div
+                  key={session.id}
                   className={`group relative p-2.5 rounded-lg transition-all duration-200 cursor-pointer ${
-                  session.id === currentSessionId
-                    ? 'bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-600'
-                    : 'hover:bg-slate-100 dark:hover:bg-slate-700/50'
-                }`}
-                onClick={() => switchToSession(session)}
-              >
-                {editingSessionId === session.id ? (
-                  <input
-                    type="text"
-                    value={editingTitle}
-                    onChange={(e) => setEditingTitle(e.target.value)}
-                    onBlur={() => renameSession(session.id, editingTitle)}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        renameSession(session.id, editingTitle);
-                      }
-                    }}
-                    className="w-full bg-transparent text-slate-900 dark:text-white text-sm font-medium focus:outline-none"
-                    autoFocus
-                  />
-                ) : (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-slate-900 dark:text-white truncate flex-1">
-                        {session.title}
-                      </p>
-                      <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          variant="ghost"
-                          size="icon"
+                    session.id === currentSessionId
+                      ? 'bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-600'
+                      : 'hover:bg-slate-100 dark:hover:bg-slate-700/50'
+                  }`}
+                  onClick={() => switchToSession(session)}
+                >
+                  {editingSessionId === session.id ? (
+                    <input
+                      type="text"
+                      value={editingTitle}
+                      onChange={(e) => setEditingTitle(e.target.value)}
+                      onBlur={() => renameSession(session.id, editingTitle)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          renameSession(session.id, editingTitle);
+                        }
+                      }}
+                      className="w-full bg-transparent text-slate-900 dark:text-white text-sm font-medium focus:outline-none"
+                      autoFocus
+                    />
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-slate-900 dark:text-white truncate flex-1">
+                          {session.title}
+                        </p>
+                        <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             className="h-5 w-5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingSessionId(session.id);
-                            setEditingTitle(session.title);
-                          }}
-                        >
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingSessionId(session.id);
+                              setEditingTitle(session.title);
+                            }}
+                          >
                             <Edit2 size={10} />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             className="h-5 w-5 text-slate-500 hover:text-red-500 dark:text-slate-400 dark:hover:text-red-400"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteSession(session.id);
-                          }}
-                        >
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteSession(session.id);
+                            }}
+                          >
                             <Trash2 size={10} />
-                        </Button>
+                          </Button>
+                        </div>
                       </div>
-                    </div>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                      {new Date(session.created_at).toLocaleDateString()}
-                    </p>
-                  </>
-                )}
-              </div>
+                        {new Date(session.created_at).toLocaleDateString()}
+                      </p>
+                    </>
+                  )}
+                </div>
               ))
             )}
           </div>
 
-          {/* Sidebar Footer - Features Section - Compact */}
           <div className="p-3 border-t border-slate-200 dark:border-slate-700 space-y-2 bg-gradient-to-r from-slate-50 to-purple-50 dark:from-slate-700/50 dark:to-purple-900/10 backdrop-blur-lg flex-shrink-0">
             <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
               Features
@@ -836,7 +742,6 @@ export const Chat = () => {
 
         {/* Main Chat Area */}
         <div className="flex-1 flex flex-col h-screen lg:ml-80">
-          {/* Fixed Header with Settings and Logout */}
           <header className="fixed top-0 right-0 left-0 lg:left-80 z-40 flex items-center justify-between p-4 bg-white/90 dark:bg-slate-800/90 backdrop-blur-lg border-b border-slate-200 dark:border-slate-700 transition-colors duration-300 shadow-sm">
             <div className="flex items-center space-x-4">
               <Button
@@ -855,7 +760,6 @@ export const Chat = () => {
               </div>
             </div>
 
-            {/* Fixed Settings and Logout buttons */}
             <div className="flex items-center space-x-2">
               <Button
                 variant="ghost"
@@ -884,8 +788,8 @@ export const Chat = () => {
             </div>
           </header>
 
-          {/* Messages Area - Scrollable with fixed positioning */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 pt-20 pb-32">
+          {/* Messages Area */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-6 pt-20 pb-32">
             {error && (
               <ErrorBanner
                 message={error}
@@ -905,7 +809,6 @@ export const Chat = () => {
                 <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Welcome to BarathAI</h3>
                 <p className="text-lg text-slate-600 dark:text-slate-400 mb-6">Your intelligent AI assistant created by Barathraj</p>
                 
-                {/* Enhanced feature showcase */}
                 <div className="max-w-4xl mx-auto">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                     <div className="p-4 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
@@ -943,27 +846,26 @@ export const Chat = () => {
                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-[80%] p-4 rounded-2xl transition-all duration-200 ${
+                  className={`max-w-[85%] rounded-2xl transition-all duration-200 ${
                     msg.role === 'user'
-                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
-                      : 'bg-white/90 dark:bg-slate-800/90 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 shadow-sm backdrop-blur-sm'
+                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg p-4'
+                      : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm'
                   }`}
                 >
                   {msg.role === 'assistant' && (
-                    <div className="flex items-center mb-2">
+                    <div className="flex items-center mb-3 px-4 pt-4">
                       <Logo size={24} className="mr-2" />
-                      <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">BarathAI</span>
+                      <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">BarathAI</span>
                     </div>
                   )}
                   {msg.role === 'assistant' ? (
-                    <MarkdownRenderer 
-                      content={msg.content} 
-                      className="prose-sm md:prose-base"
-                    />
+                    <div className="px-4 pb-4">
+                      <ProfessionalMarkdown content={msg.content} />
+                    </div>
                   ) : (
-                    <p className="whitespace-pre-wrap">{msg.content}</p>
+                    <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
                   )}
-                  <div className="flex items-center justify-between mt-2">
+                  <div className="flex items-center justify-between mt-3 px-4 pb-2">
                     <div className="text-xs opacity-70">
                       {msg.timestamp.toLocaleTimeString()}
                     </div>
@@ -977,12 +879,14 @@ export const Chat = () => {
 
             {isBarathAITyping && (
               <div className="flex justify-start">
-                <div className="bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 p-4 rounded-2xl shadow-sm backdrop-blur-sm">
-                  <div className="flex items-center mb-2">
+                <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm">
+                  <div className="flex items-center mb-2 px-4 pt-4">
                     <Logo size={24} className="mr-2" />
-                    <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">BarathAI</span>
+                    <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">BarathAI</span>
                   </div>
-                  <LoadingSpinner message="Thinking..." />
+                  <div className="px-4 pb-4">
+                    <LoadingSpinner message="Thinking..." />
+                  </div>
                 </div>
               </div>
             )}
@@ -990,9 +894,9 @@ export const Chat = () => {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Fixed Input Area at Bottom */}
+          {/* Input Area */}
           <div className="fixed bottom-0 right-0 left-0 lg:left-80 z-40 p-4 bg-white/95 dark:bg-slate-800/95 backdrop-blur-lg border-t border-slate-200 dark:border-slate-700 transition-colors duration-300 shadow-lg">
-            <div className="flex items-end space-x-2 max-w-4xl mx-auto">
+            <div className="flex items-end space-x-3 max-w-4xl mx-auto">
               <div className="flex-1 relative">
                 <Textarea
                   ref={inputRef}
@@ -1000,21 +904,33 @@ export const Chat = () => {
                   onChange={handleInputChange}
                   onKeyDown={handleKeyPress}
                   placeholder="Type your message... (max 1000 words)"
-                  className="w-full resize-none rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-base text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-all min-h-[56px] max-h-40"
+                  className="w-full resize-none rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 text-base text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-all min-h-[60px] max-h-40"
                   rows={2}
                   maxLength={10000}
                   disabled={isLoading || !isOnline}
                 />
-                <div className="flex justify-between items-center mt-1">
-                  <span className={`text-xs ${wordCount > 1000 ? 'text-red-500' : 'text-slate-400 dark:text-slate-500'}`}>{wordCount}/1000 words</span>
-                  {wordLimitError && <span className="text-xs text-red-500 ml-2">{wordLimitError}</span>}
+                <div className="flex justify-between items-center mt-2 px-1">
+                  <span className={`text-xs ${wordCount > 1000 ? 'text-red-500' : 'text-slate-400 dark:text-slate-500'}`}>
+                    {wordCount}/1000 words
+                  </span>
+                  {wordLimitError && <span className="text-xs text-red-500">{wordLimitError}</span>}
                 </div>
               </div>
               
               <Button
+                onClick={toggleVoiceInput}
+                variant="outline"
+                size="icon"
+                className={`h-[60px] w-[60px] rounded-xl ${isListening ? 'bg-red-500 text-white' : ''}`}
+                disabled={isLoading}
+              >
+                {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+              </Button>
+              
+              <Button
                 onClick={sendMessage}
-                disabled={!message.trim() || isLoading}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-2 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!message.trim() || isLoading || wordCount > 1000}
+                className="h-[60px] px-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
                   <div className="flex items-center space-x-2">
@@ -1023,7 +939,7 @@ export const Chat = () => {
                   </div>
                 ) : (
                   <div className="flex items-center space-x-2">
-                    <Send size={16} />
+                    <Send size={18} />
                     <span>Send</span>
                   </div>
                 )}
