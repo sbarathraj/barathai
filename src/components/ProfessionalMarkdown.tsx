@@ -140,7 +140,6 @@ export const ProfessionalMarkdown: React.FC<ProfessionalMarkdownProps> = ({
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
-          // Professional heading components
           h1: ({ children, ...props }) => (
             <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-8 mt-8 pb-4 border-b-4 border-gradient-to-r from-blue-500 via-purple-500 to-pink-500 leading-tight" {...props}>
               {children}
@@ -208,7 +207,7 @@ export const ProfessionalMarkdown: React.FC<ProfessionalMarkdownProps> = ({
             </ol>
           ),
           li: ({ children, node, ...props }) => {
-            const parentNode = node?.parent as any;
+            const parentNode = (node as any)?.parent;
             const isOrdered = parentNode?.tagName === 'ol';
             return (
               <li className={`leading-6 flex items-start ${isOrdered ? 'counter-increment-list' : ''}`} {...props}>
@@ -240,8 +239,9 @@ export const ProfessionalMarkdown: React.FC<ProfessionalMarkdownProps> = ({
           ),
           
           // Professional code rendering
-          code: ({ node, inline, className, children, ...props }) => {
+          code: ({ node, className, children, ...props }: any) => {
             const match = /language-(\w+)/.exec(className || "");
+            const inline = !match;
             codeBlockIndex++;
             return !inline ? (
               <div className="my-6">
