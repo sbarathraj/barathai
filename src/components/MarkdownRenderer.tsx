@@ -4,7 +4,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
-import { Copy, Check, Play, Terminal } from 'lucide-react';
+import { Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface MarkdownRendererProps {
@@ -76,12 +76,6 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
       '### 📋 $1\n'
     );
 
-    // Add visual separators between major sections
-    processedText = processedText.replace(
-      /^(#{1,3}\s+.*?)$/gm,
-      '\n---\n\n$1'
-    );
-
     return processedText;
   };
 
@@ -124,19 +118,19 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
         components={{
           // Enhanced heading rendering with better styling
           h1: ({ node, ...props }) => (
-            <h1 className="text-3xl font-bold mt-8 mb-6 text-slate-900 dark:text-white border-b-2 border-blue-500 pb-2" {...props} />
+            <h1 className="text-2xl font-bold mt-6 mb-4 text-slate-900 dark:text-white border-b-2 border-blue-500 pb-2" {...props} />
           ),
           h2: ({ node, ...props }) => (
-            <h2 className="text-2xl font-semibold mt-6 mb-4 text-slate-900 dark:text-white border-b border-slate-300 dark:border-slate-600 pb-1" {...props} />
+            <h2 className="text-xl font-semibold mt-5 mb-3 text-slate-900 dark:text-white border-b border-slate-300 dark:border-slate-600 pb-1" {...props} />
           ),
           h3: ({ node, ...props }) => (
-            <h3 className="text-xl font-semibold mt-5 mb-3 text-slate-900 dark:text-white flex items-center" {...props} />
+            <h3 className="text-lg font-semibold mt-4 mb-2 text-slate-900 dark:text-white flex items-center" {...props} />
           ),
           h4: ({ node, ...props }) => (
-            <h4 className="text-lg font-semibold mt-4 mb-2 text-slate-900 dark:text-white" {...props} />
+            <h4 className="text-base font-semibold mt-3 mb-2 text-slate-900 dark:text-white" {...props} />
           ),
           h5: ({ node, ...props }) => (
-            <h5 className="text-base font-semibold mt-3 mb-2 text-slate-900 dark:text-white" {...props} />
+            <h5 className="text-sm font-semibold mt-2 mb-1 text-slate-900 dark:text-white" {...props} />
           ),
           h6: ({ node, ...props }) => (
             <h6 className="text-sm font-semibold mt-2 mb-1 text-slate-900 dark:text-white" {...props} />
@@ -144,7 +138,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
 
           // Enhanced text formatting
           strong: ({ node, ...props }) => (
-            <strong className="font-bold text-slate-900 dark:text-white bg-yellow-100 dark:bg-yellow-900/30 px-1 rounded" {...props} />
+            <strong className="font-bold text-slate-900 dark:text-white" {...props} />
           ),
           em: ({ node, ...props }) => (
             <em className="italic text-slate-700 dark:text-slate-300" {...props} />
@@ -155,7 +149,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
             if (inline) {
               return (
                 <code 
-                  className="px-2 py-1 bg-slate-100 dark:bg-slate-800 text-blue-600 dark:text-blue-400 rounded-md text-sm font-mono border border-slate-200 dark:border-slate-700" 
+                  className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-blue-600 dark:text-blue-400 rounded text-sm font-mono border border-slate-200 dark:border-slate-700" 
                   {...props}
                 >
                   {children}
@@ -170,7 +164,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
             const languageIcon = getLanguageIcon(language);
 
             return (
-              <div className="relative group my-6 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 shadow-lg">
+              <div className="relative group my-4 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm">
                 {/* Code block header */}
                 <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 px-4 py-2 border-b border-slate-200 dark:border-slate-700">
                   <div className="flex items-center space-x-2">
@@ -179,26 +173,24 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
                       {language}
                     </span>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-xs opacity-70 hover:opacity-100 transition-opacity"
-                      onClick={() => copyToClipboard(codeString, blockIndex)}
-                    >
-                      {copiedIndex === blockIndex ? (
-                        <>
-                          <Check size={12} className="mr-1 text-green-500" />
-                          <span className="text-green-500">Copied!</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy size={12} className="mr-1" />
-                          <span>Copy</span>
-                        </>
-                      )}
-                    </Button>
-                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs opacity-70 hover:opacity-100 transition-opacity"
+                    onClick={() => copyToClipboard(codeString, blockIndex)}
+                  >
+                    {copiedIndex === blockIndex ? (
+                      <>
+                        <Check size={12} className="mr-1 text-green-500" />
+                        <span className="text-green-500">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={12} className="mr-1" />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </Button>
                 </div>
 
                 {/* Code content */}
@@ -224,23 +216,23 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
 
           // Enhanced list rendering
           ul: ({ node, ...props }) => (
-            <ul className="list-disc list-inside my-4 pl-6 space-y-1" {...props} />
+            <ul className="list-disc list-inside my-3 pl-4 space-y-1" {...props} />
           ),
           ol: ({ node, ...props }) => (
-            <ol className="list-decimal list-inside my-4 pl-6 space-y-1" {...props} />
+            <ol className="list-decimal list-inside my-3 pl-4 space-y-1" {...props} />
           ),
           li: ({ node, ...props }) => (
-            <li className="mb-2 text-slate-800 dark:text-slate-200" {...props} />
+            <li className="mb-1 text-slate-800 dark:text-slate-200" {...props} />
           ),
 
           // Enhanced blockquote
           blockquote: ({ node, ...props }) => (
-            <blockquote className="border-l-4 border-blue-400 dark:border-blue-500 pl-6 py-2 italic text-slate-600 dark:text-slate-300 my-6 bg-blue-50 dark:bg-blue-900/20 rounded-r-lg" {...props} />
+            <blockquote className="border-l-4 border-blue-400 dark:border-blue-500 pl-4 py-2 italic text-slate-600 dark:text-slate-300 my-4 bg-blue-50 dark:bg-blue-900/20 rounded-r" {...props} />
           ),
 
           // Enhanced paragraph
           p: ({ node, ...props }) => (
-            <p className="my-3 leading-relaxed text-slate-900 dark:text-slate-100" {...props} />
+            <p className="my-2 leading-relaxed text-slate-900 dark:text-slate-100" {...props} />
           ),
 
           // Enhanced links
@@ -255,7 +247,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
 
           // Enhanced table rendering
           table: ({ node, ...props }) => (
-            <div className="overflow-x-auto my-6">
+            <div className="overflow-x-auto my-4">
               <table className="min-w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg shadow-sm" {...props} />
             </div>
           ),
@@ -263,10 +255,10 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
             <thead className="bg-slate-100 dark:bg-slate-700" {...props} />
           ),
           th: ({ node, ...props }) => (
-            <th className="px-6 py-3 text-left text-slate-900 dark:text-white font-semibold border-b border-slate-300 dark:border-slate-600" {...props} />
+            <th className="px-4 py-2 text-left text-slate-900 dark:text-white font-semibold border-b border-slate-300 dark:border-slate-600" {...props} />
           ),
           td: ({ node, ...props }) => (
-            <td className="px-6 py-4 text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700" {...props} />
+            <td className="px-4 py-2 text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700" {...props} />
           ),
           tr: ({ node, ...props }) => (
             <tr className="hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors" {...props} />
@@ -274,7 +266,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
 
           // Enhanced horizontal rule
           hr: ({ node, ...props }) => (
-            <hr className="my-8 border-0 h-px bg-gradient-to-r from-transparent via-slate-300 dark:via-slate-600 to-transparent" {...props} />
+            <hr className="my-6 border-0 h-px bg-gradient-to-r from-transparent via-slate-300 dark:via-slate-600 to-transparent" {...props} />
           ),
         }}
       >
