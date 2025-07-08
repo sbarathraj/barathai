@@ -9,6 +9,7 @@ import { ProfessionalMarkdown } from "@/components/ProfessionalMarkdown";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { ErrorBanner, LoadingSpinner } from "@/components/ErrorBoundary";
 import { Logo } from "@/components/Logo";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
 
 interface Message {
@@ -29,6 +30,7 @@ interface ChatSession {
 export const Chat = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -625,7 +627,7 @@ export const Chat = () => {
 
   return (
     <div className={`flex flex-col w-full min-h-screen ${darkMode ? 'dark' : ''}`}>
-      <div className="flex w-full bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-blue-900/20 dark:to-purple-900/20 text-slate-900 dark:text-white transition-all duration-300">
+      <div className="flex w-full bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-blue-900/20 dark:to-purple-900/20 text-slate-900 dark:text-white transition-all duration-300 min-h-screen">
         
         {!isOnline && (
           <div className="fixed top-0 left-0 right-0 z-50 bg-red-600 text-white text-center py-2 text-sm flex items-center justify-center">
@@ -635,7 +637,7 @@ export const Chat = () => {
         )}
 
         {/* Desktop Sidebar - Always visible on large screens */}
-        <div className="hidden lg:block w-80 h-screen fixed left-0 top-0 z-30 bg-white/95 dark:bg-slate-800/95 backdrop-blur-lg border-r border-slate-200 dark:border-slate-700 shadow-xl">
+        <div className={`hidden lg:block w-80 h-screen fixed left-0 top-0 z-30 bg-white/95 dark:bg-slate-800/95 backdrop-blur-lg border-r border-slate-200 dark:border-slate-700 shadow-xl`}>
           <div className="flex flex-col h-full">
             <div className="p-3 border-b border-slate-200 dark:border-slate-700 flex-shrink-0 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20">
               <div className="flex items-center justify-between">
@@ -806,15 +808,15 @@ export const Chat = () => {
         </div>
 
         {/* Mobile Sidebar Overlay */}
-        {sidebarOpen && (
+        {sidebarOpen && isMobile && (
           <>
             <div
-              className="fixed inset-0 bg-black/30 z-40 transition-opacity duration-300 lg:hidden"
+              className="fixed inset-0 bg-black/30 z-40 transition-opacity duration-300"
               onClick={() => setSidebarOpen(false)}
               aria-label="Close sidebar overlay"
               tabIndex={-1}
             />
-            <div className="fixed top-0 left-0 h-full w-80 bg-white/95 dark:bg-slate-800/95 backdrop-blur-lg border-r border-slate-200 dark:border-slate-700 z-50 flex flex-col shadow-xl transition-transform duration-300 lg:hidden">
+            <div className="fixed top-0 left-0 h-full w-80 bg-white/95 dark:bg-slate-800/95 backdrop-blur-lg border-r border-slate-200 dark:border-slate-700 z-50 flex flex-col shadow-xl transition-transform duration-300">
               <div className="p-3 border-b border-slate-200 dark:border-slate-700 flex-shrink-0 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
@@ -834,7 +836,10 @@ export const Chat = () => {
                   </Button>
                 </div>
                 <Button
-                  onClick={() => createNewSession()}
+                  onClick={() => {
+                    createNewSession();
+                    setSidebarOpen(false);
+                  }}
                   className="w-full mt-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-emerald-500 text-white rounded-lg transition-all duration-200 text-sm py-2"
                 >
                   <Plus className="mr-2" size={14} />
@@ -994,14 +999,14 @@ export const Chat = () => {
         )}
 
         {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col lg:ml-80">
-          <header className="fixed top-0 right-0 left-0 z-40 flex items-center justify-between p-4 bg-white/90 dark:bg-slate-800/90 backdrop-blur-lg border-b border-slate-200 dark:border-slate-700 transition-colors duration-300 shadow-sm lg:left-80">
+        <div className={`flex-1 flex flex-col ${!isMobile ? 'lg:ml-80' : ''}`}>
+          <header className={`fixed top-0 right-0 z-40 flex items-center justify-between p-4 bg-white/90 dark:bg-slate-800/90 backdrop-blur-lg border-b border-slate-200 dark:border-slate-700 transition-colors duration-300 shadow-sm ${!isMobile ? 'left-80' : 'left-0'}`}>
             <div className="flex items-center space-x-4">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setSidebarOpen(true)}
-                className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white lg:hidden"
+                className={`text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white ${!isMobile ? 'hidden' : ''}`}
               >
                 <Menu size={20} />
               </Button>
@@ -1144,7 +1149,7 @@ export const Chat = () => {
           </div>
 
           {/* Input Area */}
-          <div className="fixed bottom-0 right-0 left-0 z-40 p-2 sm:p-3 bg-gradient-to-t from-white/95 via-white/98 to-white/90 dark:from-slate-800/95 dark:via-slate-900/98 dark:to-slate-900/90 backdrop-blur-lg border-t border-slate-200 dark:border-slate-700 transition-colors duration-300 shadow-2xl lg:left-80">
+          <div className={`fixed bottom-0 right-0 z-40 p-2 sm:p-3 bg-gradient-to-t from-white/95 via-white/98 to-white/90 dark:from-slate-800/95 dark:via-slate-900/98 dark:to-slate-900/90 backdrop-blur-lg border-t border-slate-200 dark:border-slate-700 transition-colors duration-300 shadow-2xl ${!isMobile ? 'left-80' : 'left-0'}`}>
             <div className="flex justify-center w-full max-w-4xl mx-auto">
               <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl shadow-md px-2 py-1 w-full">
                 <Textarea
