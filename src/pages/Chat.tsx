@@ -11,7 +11,6 @@ import { ErrorBanner, LoadingSpinner } from "@/components/ErrorBoundary";
 import { Logo } from "@/components/Logo";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
-import './App.css';
 
 interface Message {
   id: string;
@@ -237,7 +236,7 @@ export const Chat = () => {
   useEffect(() => {
     // Wait for layout to settle, then scroll
     const timeout = setTimeout(() => {
-      scrollToBottom();
+    scrollToBottom();
     }, 60);
     return () => clearTimeout(timeout);
   }, [messages, isBarathAITyping, inputHeight, headerHeight]);
@@ -1219,11 +1218,9 @@ export const Chat = () => {
                     </div>
                     <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">BarathAI</span>
                   </div>
-                  <div className="flex items-center pb-2 animate-fade-in">
-                    <div className="flex items-center px-3 py-1 rounded-full shadow-md bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
-                      <TypingIndicator />
-                      <span className="ml-3 text-sm font-semibold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent tracking-wide uppercase select-none">Thinking</span>
-                    </div>
+                  <div className="flex items-center space-x-3 pb-2">
+                    <TypingIndicator />
+                    <span className="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500 font-semibold">Thinking</span>
                   </div>
                 </div>
               </div>
