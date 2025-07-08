@@ -5,7 +5,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
-import { Copy, Check, Code2, Terminal, FileText } from 'lucide-react';
+import { Copy, Check, Code2, Terminal, FileText, Database, Globe, Cpu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface ProfessionalMarkdownProps {
@@ -49,92 +49,82 @@ export const ProfessionalMarkdown: React.FC<ProfessionalMarkdownProps> = ({
 
   const getLanguageInfo = (language: string) => {
     const langMap: { [key: string]: { name: string; icon: React.ReactNode; color: string } } = {
-      java: { name: 'Java', icon: <Code2 size={14} />, color: 'text-orange-600' },
-      javascript: { name: 'JavaScript', icon: <Code2 size={14} />, color: 'text-yellow-600' },
-      typescript: { name: 'TypeScript', icon: <Code2 size={14} />, color: 'text-blue-600' },
-      python: { name: 'Python', icon: <Code2 size={14} />, color: 'text-green-600' },
-      cpp: { name: 'C++', icon: <Code2 size={14} />, color: 'text-blue-700' },
-      c: { name: 'C', icon: <Code2 size={14} />, color: 'text-gray-600' },
-      html: { name: 'HTML', icon: <FileText size={14} />, color: 'text-orange-500' },
-      css: { name: 'CSS', icon: <FileText size={14} />, color: 'text-blue-500' },
-      sql: { name: 'SQL', icon: <Terminal size={14} />, color: 'text-purple-600' },
-      bash: { name: 'Bash', icon: <Terminal size={14} />, color: 'text-gray-700' },
-      shell: { name: 'Shell', icon: <Terminal size={14} />, color: 'text-gray-700' },
-      json: { name: 'JSON', icon: <FileText size={14} />, color: 'text-green-500' },
-      xml: { name: 'XML', icon: <FileText size={14} />, color: 'text-red-500' },
-      yaml: { name: 'YAML', icon: <FileText size={14} />, color: 'text-purple-500' },
-      jsx: { name: 'JSX', icon: <Code2 size={14} />, color: 'text-cyan-600' },
-      tsx: { name: 'TSX', icon: <Code2 size={14} />, color: 'text-blue-600' },
-      php: { name: 'PHP', icon: <Code2 size={14} />, color: 'text-purple-700' },
-      ruby: { name: 'Ruby', icon: <Code2 size={14} />, color: 'text-red-600' },
-      go: { name: 'Go', icon: <Code2 size={14} />, color: 'text-cyan-700' },
-      rust: { name: 'Rust', icon: <Code2 size={14} />, color: 'text-orange-700' },
-      swift: { name: 'Swift', icon: <Code2 size={14} />, color: 'text-orange-500' },
-      kotlin: { name: 'Kotlin', icon: <Code2 size={14} />, color: 'text-purple-600' },
-      dart: { name: 'Dart', icon: <Code2 size={14} />, color: 'text-blue-500' },
-      scala: { name: 'Scala', icon: <Code2 size={14} />, color: 'text-red-500' },
-      r: { name: 'R', icon: <Code2 size={14} />, color: 'text-blue-700' },
-      matlab: { name: 'MATLAB', icon: <Code2 size={14} />, color: 'text-orange-600' },
+      java: { name: 'Java', icon: <Code2 size={16} />, color: 'text-orange-600 dark:text-orange-400' },
+      javascript: { name: 'JavaScript', icon: <Code2 size={16} />, color: 'text-yellow-600 dark:text-yellow-400' },
+      typescript: { name: 'TypeScript', icon: <Code2 size={16} />, color: 'text-blue-600 dark:text-blue-400' },
+      python: { name: 'Python', icon: <Code2 size={16} />, color: 'text-green-600 dark:text-green-400' },
+      cpp: { name: 'C++', icon: <Cpu size={16} />, color: 'text-blue-700 dark:text-blue-300' },
+      c: { name: 'C', icon: <Cpu size={16} />, color: 'text-gray-600 dark:text-gray-400' },
+      html: { name: 'HTML', icon: <Globe size={16} />, color: 'text-orange-500 dark:text-orange-300' },
+      css: { name: 'CSS', icon: <FileText size={16} />, color: 'text-blue-500 dark:text-blue-300' },
+      sql: { name: 'SQL', icon: <Database size={16} />, color: 'text-purple-600 dark:text-purple-400' },
+      bash: { name: 'Bash', icon: <Terminal size={16} />, color: 'text-gray-700 dark:text-gray-300' },
+      shell: { name: 'Shell', icon: <Terminal size={16} />, color: 'text-gray-700 dark:text-gray-300' },
+      json: { name: 'JSON', icon: <FileText size={16} />, color: 'text-green-500 dark:text-green-300' },
+      xml: { name: 'XML', icon: <FileText size={16} />, color: 'text-red-500 dark:text-red-300' },
+      yaml: { name: 'YAML', icon: <FileText size={16} />, color: 'text-purple-500 dark:text-purple-300' },
+      jsx: { name: 'JSX', icon: <Code2 size={16} />, color: 'text-cyan-600 dark:text-cyan-400' },
+      tsx: { name: 'TSX', icon: <Code2 size={16} />, color: 'text-blue-600 dark:text-blue-400' },
+      php: { name: 'PHP', icon: <Code2 size={16} />, color: 'text-purple-700 dark:text-purple-300' },
+      ruby: { name: 'Ruby', icon: <Code2 size={16} />, color: 'text-red-600 dark:text-red-400' },
+      go: { name: 'Go', icon: <Code2 size={16} />, color: 'text-cyan-700 dark:text-cyan-300' },
+      rust: { name: 'Rust', icon: <Code2 size={16} />, color: 'text-orange-700 dark:text-orange-300' },
+      swift: { name: 'Swift', icon: <Code2 size={16} />, color: 'text-orange-500 dark:text-orange-300' },
+      kotlin: { name: 'Kotlin', icon: <Code2 size={16} />, color: 'text-purple-600 dark:text-purple-400' },
+      dart: { name: 'Dart', icon: <Code2 size={16} />, color: 'text-blue-500 dark:text-blue-300' },
+      scala: { name: 'Scala', icon: <Code2 size={16} />, color: 'text-red-500 dark:text-red-300' },
+      r: { name: 'R', icon: <Code2 size={16} />, color: 'text-blue-700 dark:text-blue-300' },
+      matlab: { name: 'MATLAB', icon: <Code2 size={16} />, color: 'text-orange-600 dark:text-orange-400' },
     };
 
     const info = langMap[language.toLowerCase()];
     return info || { 
-      name: language.toUpperCase(), 
-      icon: <Code2 size={14} />, 
-      color: 'text-gray-600' 
+      name: language.charAt(0).toUpperCase() + language.slice(1), 
+      icon: <Code2 size={16} />, 
+      color: 'text-gray-600 dark:text-gray-400' 
     };
   };
 
-  // Enhanced content preprocessing for all programming languages
-  const preprocessContent = (rawContent: string): string => {
-    // Common programming language patterns
-    const codePatterns = [
-      // Java patterns
-      { patterns: [/public\s+class\s+\w+/, /public\s+static\s+void\s+main/, /import\s+java\./, /System\.out\.print/], lang: 'java' },
-      // JavaScript patterns
-      { patterns: [/function\s+\w+\s*\(/, /const\s+\w+\s*=/, /let\s+\w+\s*=/, /var\s+\w+\s*=/, /console\.log/], lang: 'javascript' },
-      // Python patterns
-      { patterns: [/def\s+\w+\s*\(/, /import\s+\w+/, /from\s+\w+\s+import/, /print\s*\(/, /if\s+__name__\s*==\s*['""]__main__['""]:/], lang: 'python' },
-      // C++ patterns
-      { patterns: [/#include\s*</, /using\s+namespace\s+std/, /int\s+main\s*\(/, /std::cout/, /std::cin/], lang: 'cpp' },
-      // HTML patterns
-      { patterns: [/<html/, /<head/, /<body/, /<div/, /<p>/, /<script/, /<style/], lang: 'html' },
-      // CSS patterns
-      { patterns: [/\.\w+\s*{/, /#\w+\s*{/, /\w+\s*:\s*\w+;/, /@media/, /border:/, /background:/], lang: 'css' },
-      // SQL patterns
-      { patterns: [/SELECT\s+/, /FROM\s+/, /WHERE\s+/, /INSERT\s+INTO/, /UPDATE\s+/, /DELETE\s+FROM/], lang: 'sql' },
+  const detectLanguage = (code: string): string => {
+    const patterns = [
+      { regex: /public\s+class\s+\w+|import\s+java\.|System\.out\.print/, lang: 'java' },
+      { regex: /function\s+\w+\s*\(|const\s+\w+\s*=|let\s+\w+\s*=|console\.log/, lang: 'javascript' },
+      { regex: /def\s+\w+\s*\(|import\s+\w+|from\s+\w+\s+import|print\s*\(/, lang: 'python' },
+      { regex: /#include\s*<|using\s+namespace\s+std|int\s+main\s*\(|std::/, lang: 'cpp' },
+      { regex: /<html|<head|<body|<div|<script|<style/, lang: 'html' },
+      { regex: /\.\w+\s*{|#\w+\s*{|\w+\s*:\s*\w+;|@media|border:|background:/, lang: 'css' },
+      { regex: /SELECT\s+|FROM\s+|WHERE\s+|INSERT\s+INTO|UPDATE\s+|DELETE\s+FROM/i, lang: 'sql' },
     ];
 
-    // Check if content looks like code but isn't wrapped in code blocks
-    const detectedLang = codePatterns.find(({ patterns }) => 
-      patterns.some(pattern => pattern.test(rawContent))
-    );
-
-    if (detectedLang && !rawContent.includes('```')) {
-      return `\`\`\`${detectedLang.lang}\n${rawContent.trim()}\n\`\`\``;
+    for (const { regex, lang } of patterns) {
+      if (regex.test(code)) {
+        return lang;
+      }
     }
 
-    // Handle cases where code blocks exist but language isn't specified
+    return 'text';
+  };
+
+  const preprocessContent = (rawContent: string): string => {
+    // Handle Java code specifically
+    if (rawContent.includes('public class') || rawContent.includes('import java.')) {
+      if (!rawContent.includes('```')) {
+        return `\`\`\`java\n${rawContent.trim()}\n\`\`\``;
+      }
+    }
+
+    // Auto-detect and wrap code blocks
     let processedContent = rawContent.replace(/```\s*\n([^`]+)```/g, (match, code) => {
       const trimmedCode = code.trim();
-      const detectedLang = codePatterns.find(({ patterns }) => 
-        patterns.some(pattern => pattern.test(trimmedCode))
-      );
-      
-      if (detectedLang) {
-        return `\`\`\`${detectedLang.lang}\n${trimmedCode}\n\`\`\``;
-      }
-      return match;
+      const detectedLang = detectLanguage(trimmedCode);
+      return `\`\`\`${detectedLang}\n${trimmedCode}\n\`\`\``;
     });
 
     // Handle inline code that should be code blocks
     processedContent = processedContent.replace(/`([^`\n]+)`/g, (match, code) => {
-      const detectedLang = codePatterns.find(({ patterns }) => 
-        patterns.some(pattern => pattern.test(code))
-      );
-      
-      if (detectedLang && code.length > 20) {
-        return `\`\`\`${detectedLang.lang}\n${code}\n\`\`\``;
+      const detectedLang = detectLanguage(code);
+      if (detectedLang !== 'text' && code.length > 20) {
+        return `\`\`\`${detectedLang}\n${code}\n\`\`\``;
       }
       return match;
     });
@@ -149,9 +139,9 @@ export const ProfessionalMarkdown: React.FC<ProfessionalMarkdownProps> = ({
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkBreaks]}
         components={{
-          // Enhanced heading components with professional styling
+          // Professional heading components
           h1: ({ children, ...props }) => (
-            <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-8 mt-8 pb-4 border-b-4 border-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent leading-tight" {...props}>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-8 mt-8 pb-4 border-b-4 border-gradient-to-r from-blue-500 via-purple-500 to-pink-500 leading-tight" {...props}>
               {children}
             </h1>
           ),
@@ -195,7 +185,7 @@ export const ProfessionalMarkdown: React.FC<ProfessionalMarkdownProps> = ({
           
           // Professional text formatting
           strong: ({ children, ...props }) => (
-            <strong className="font-bold text-slate-900 dark:text-white bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent" {...props}>
+            <strong className="font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent" {...props}>
               {children}
             </strong>
           ),
@@ -216,8 +206,11 @@ export const ProfessionalMarkdown: React.FC<ProfessionalMarkdownProps> = ({
               {children}
             </ol>
           ),
-          li: ({ children, ...props }) => {
-            const isOrdered = props.node?.parent?.tagName === 'ol';
+          li: ({ children, node, ...props }) => {
+            // Fix TypeScript error by properly checking parent
+            const parentNode = node?.parent as any;
+            const isOrdered = parentNode?.tagName === 'ol';
+            
             return (
               <li className={`leading-8 flex items-start ${isOrdered ? 'counter-increment-list' : ''}`} {...props}>
                 {isOrdered ? (
@@ -248,11 +241,11 @@ export const ProfessionalMarkdown: React.FC<ProfessionalMarkdownProps> = ({
           ),
           
           // Professional code rendering
-          code: ({ children, className, ...props }: any) => {
+          code: ({ children, className, node, ...props }: any) => {
             const match = /language-(\w+)/.exec(className || '');
-            const language = match ? match[1] : 'text';
+            const language = match ? match[1] : detectLanguage(String(children));
             const codeString = String(children).replace(/\n$/, '');
-            const isInlineCode = !match && !codeString.includes('\n');
+            const isInlineCode = !match && !codeString.includes('\n') && codeString.length < 100;
 
             if (isInlineCode) {
               return (
@@ -323,8 +316,8 @@ export const ProfessionalMarkdown: React.FC<ProfessionalMarkdownProps> = ({
                       paddingRight: '1.5em',
                       color: isDarkMode ? '#6b7280' : '#9ca3af',
                       fontSize: '12px',
-                      textAlign: 'right',
-                      userSelect: 'none',
+                      textAlign: 'right' as const,
+                      userSelect: 'none' as const,
                     }}
                     wrapLines={true}
                     wrapLongLines={true}
