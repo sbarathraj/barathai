@@ -147,31 +147,31 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
         components={{
           // Enhanced heading rendering with better styling and icons
           h1: ({ node, ...props }) => (
-            <div className="mb-8 mt-8">
-              <h1 className="text-3xl font-bold text-slate-900 dark:text-white border-b-2 border-gradient-to-r from-blue-500 to-purple-500 pb-3 mb-4 flex items-center" {...props}>
+            <div className="mb-2 mt-2">
+              <h1 className="text-3xl font-bold text-slate-900 dark:text-white border-b-2 border-gradient-to-r from-blue-500 to-purple-500 pb-1 mb-2 flex items-center" {...props}>
                 <span className="mr-3 text-blue-500">🚀</span>
                 {props.children}
               </h1>
             </div>
           ),
           h2: ({ node, ...props }) => (
-            <div className="mb-6 mt-8">
-              <h2 className="text-2xl font-semibold text-slate-900 dark:text-white border-b border-slate-300 dark:border-slate-600 pb-2 mb-4 flex items-center" {...props}>
+            <div className="mb-2 mt-2">
+              <h2 className="text-2xl font-semibold text-slate-900 dark:text-white border-b border-slate-300 dark:border-slate-600 pb-1 mb-2 flex items-center" {...props}>
                 <span className="mr-2 text-purple-500">📋</span>
                 {props.children}
               </h2>
             </div>
           ),
           h3: ({ node, ...props }) => (
-            <div className="mb-4 mt-6">
-              <h3 className="text-xl font-semibold text-slate-900 dark:text-white flex items-center mb-3" {...props}>
+            <div className="mb-2 mt-2">
+              <h3 className="text-xl font-semibold text-slate-900 dark:text-white flex items-center mb-1" {...props}>
                 <span className="mr-2 text-green-500">✨</span>
                 {props.children}
               </h3>
             </div>
           ),
           h4: ({ node, ...props }) => (
-            <h4 className="text-lg font-semibold text-slate-900 dark:text-white mt-4 mb-2 flex items-center" {...props}>
+            <h4 className="text-lg font-semibold text-slate-900 dark:text-white mt-1 mb-1 flex items-center" {...props}>
               <span className="mr-2 text-orange-500">🔸</span>
               {props.children}
             </h4>
@@ -253,10 +253,10 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
 
           // Enhanced list rendering
           ul: ({ node, ...props }) => (
-            <ul className="list-none my-6 pl-0 space-y-2" {...props} />
+            <ul className="list-none my-1 pl-0 space-y-0" {...props} />
           ),
           ol: ({ node, ...props }) => (
-            <ol className="list-none my-6 pl-0 space-y-2" {...props} />
+            <ol className="list-none my-1 pl-0 space-y-0" {...props} />
           ),
           li: ({ node, ...props }: any) => {
             const isOrderedList = node?.tagName === 'ol';
@@ -276,7 +276,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
 
           // Enhanced blockquote with professional styling
           blockquote: ({ node, ...props }) => (
-            <div className="my-6 p-4 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 dark:border-blue-500 rounded-r-lg">
+            <div className="my-2 p-2 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 dark:border-blue-500 rounded-r-lg">
               <div className="flex items-start space-x-3">
                 <Lightbulb className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
                 <blockquote className="text-slate-700 dark:text-slate-300 italic m-0" {...props} />
@@ -286,7 +286,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
 
           // Enhanced paragraph with better spacing
           p: ({ node, ...props }) => (
-            <p className="my-4 leading-relaxed text-slate-900 dark:text-slate-100 text-base" {...props} />
+            <p className="my-0 leading-normal text-slate-900 dark:text-slate-100 text-base" {...props} />
           ),
 
           // Enhanced links with better styling

@@ -141,36 +141,36 @@ export const ProfessionalMarkdown: React.FC<ProfessionalMarkdownProps> = ({
         remarkPlugins={[remarkGfm]}
         components={{
           h1: ({ children, ...props }) => (
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-8 mt-8 pb-4 border-b-4 border-gradient-to-r from-blue-500 via-purple-500 to-pink-500 leading-tight" {...props}>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2 mt-2 pb-1 border-b-4 border-gradient-to-r from-blue-500 via-purple-500 to-pink-500 leading-tight" {...props}>
               {children}
             </h1>
           ),
           h2: ({ children, ...props }) => (
-            <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-6 mt-8 pb-3 border-b-2 border-slate-300 dark:border-slate-600 flex items-center" {...props}>
+            <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2 mt-2 pb-1 border-b-2 border-slate-300 dark:border-slate-600 flex items-center" {...props}>
               <span className="w-2 h-8 bg-gradient-to-b from-blue-500 to-purple-500 rounded-full mr-3"></span>
               {children}
             </h2>
           ),
           h3: ({ children, ...props }) => (
-            <h3 className="text-2xl font-semibold text-slate-900 dark:text-white mb-4 mt-6 flex items-center" {...props}>
+            <h3 className="text-2xl font-semibold text-slate-900 dark:text-white mb-2 mt-2 flex items-center" {...props}>
               <span className="w-1.5 h-6 bg-gradient-to-b from-purple-500 to-pink-500 rounded-full mr-3"></span>
               {children}
             </h3>
           ),
           h4: ({ children, ...props }) => (
-            <h4 className="text-xl font-medium text-slate-900 dark:text-white mb-3 mt-5 flex items-center" {...props}>
+            <h4 className="text-xl font-medium text-slate-900 dark:text-white mb-1 mt-1 flex items-center" {...props}>
               <span className="w-1 h-5 bg-gradient-to-b from-pink-500 to-red-500 rounded-full mr-3"></span>
               {children}
             </h4>
           ),
           h5: ({ children, ...props }) => (
-            <h5 className="text-lg font-medium text-slate-900 dark:text-white mb-2 mt-4 flex items-center" {...props}>
+            <h5 className="text-lg font-medium text-slate-900 dark:text-white mb-1 mt-1 flex items-center" {...props}>
               <span className="w-0.5 h-4 bg-gradient-to-b from-red-500 to-yellow-500 rounded-full mr-2"></span>
               {children}
             </h5>
           ),
           h6: ({ children, ...props }) => (
-            <h6 className="text-base font-medium text-slate-900 dark:text-white mb-2 mt-3 flex items-center" {...props}>
+            <h6 className="text-base font-medium text-slate-900 dark:text-white mb-1 mt-1 flex items-center" {...props}>
               <span className="w-0.5 h-3 bg-gradient-to-b from-yellow-500 to-green-500 rounded-full mr-2"></span>
               {children}
             </h6>
@@ -178,7 +178,7 @@ export const ProfessionalMarkdown: React.FC<ProfessionalMarkdownProps> = ({
           
           // Enhanced paragraph styling
           p: ({ children, ...props }) => (
-            <p className="mb-6 leading-8 text-slate-700 dark:text-slate-300 text-base tracking-wide" {...props}>
+            <p className="mb-0 leading-normal text-slate-700 dark:text-slate-300 text-base tracking-wide" {...props}>
               {children}
             </p>
           ),
@@ -197,12 +197,12 @@ export const ProfessionalMarkdown: React.FC<ProfessionalMarkdownProps> = ({
           
           // Enhanced list styling
           ul: ({ children, ...props }) => (
-            <ul className="list-none mb-2 space-y-1 text-slate-700 dark:text-slate-300 pl-0" {...props}>
+            <ul className="list-none m-0 p-0 space-y-0" {...props}>
               {children}
             </ul>
           ),
           ol: ({ children, ...props }) => (
-            <ol className="list-none mb-2 space-y-1 text-slate-700 dark:text-slate-300 pl-0 counter-reset-list" {...props}>
+            <ol className="list-none m-0 p-0 space-y-0 counter-reset-list" {...props}>
               {children}
             </ol>
           ),
@@ -210,11 +210,11 @@ export const ProfessionalMarkdown: React.FC<ProfessionalMarkdownProps> = ({
             const parentNode = (node as any)?.parent;
             const isOrdered = parentNode?.tagName === 'ol';
             return (
-              <li className={`leading-6 flex items-start ${isOrdered ? 'counter-increment-list' : ''}`} {...props}>
+              <li className={`flex items-baseline m-0 p-0 leading-none ${isOrdered ? 'counter-increment-list' : ''}`} {...props}>
                 {isOrdered ? (
-                  <span className="flex-shrink-0 w-5 h-5 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-bold rounded-full flex items-center justify-center mr-2 mt-0.5 counter-content"></span>
+                  <span className="flex-shrink-0 w-4 h-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-bold rounded-full flex items-center justify-center mr-2"></span>
                 ) : (
-                  <span className="flex-shrink-0 w-1.5 h-1.5 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full mr-2 mt-1"></span>
+                  <span className="flex-shrink-0 w-2 h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full mr-2"></span>
                 )}
                 <span className="flex-1">{children}</span>
               </li>
@@ -223,7 +223,7 @@ export const ProfessionalMarkdown: React.FC<ProfessionalMarkdownProps> = ({
           
           // Enhanced blockquote
           blockquote: ({ children, ...props }) => (
-            <blockquote className="border-l-4 border-gradient-to-b from-blue-500 to-purple-500 pl-6 my-8 italic text-slate-600 dark:text-slate-400 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 py-6 rounded-r-xl shadow-lg" {...props}>
+            <blockquote className="border-l-4 border-gradient-to-b from-blue-500 to-purple-500 pl-6 my-2 italic text-slate-600 dark:text-slate-400 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 py-2 rounded-r-xl shadow-lg" {...props}>
               <div className="flex items-start">
                 <span className="text-6xl text-blue-500 dark:text-blue-400 opacity-50 mr-4 leading-none">"</span>
                 <div className="flex-1">{children}</div>

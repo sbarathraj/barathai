@@ -78,25 +78,23 @@ export const Chat = () => {
     // Find all unused 'New Chat' sessions (no messages)
     const unusedNewChats: { id: string, created_at: string }[] = [];
     for (const session of sessions) {
-      const { data: messages, error: msgError } = await supabase
-        .from('messages')
-        .select('id')
-        .eq('session_id', session.id)
-        .limit(1);
-      if (msgError) continue;
-      if (!messages || messages.length === 0) {
-        unusedNewChats.push({ id: session.id, created_at: session.created_at });
+        const { data: messages, error: msgError } = await supabase
+          .from('messages')
+          .select('id')
+          .eq('session_id', session.id)
+          .limit(1);
+        if (msgError) continue;
+        if (!messages || messages.length === 0) {
+          unusedNewChats.push({ id: session.id, created_at: session.created_at });
+        }
       }
-    }
 
     // If we have multiple empty "New Chat" sessions, keep only the newest one
     if (unusedNewChats.length > 1) {
-      // Sort by created_at (newest last)
-      unusedNewChats.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    // Sort by created_at (newest last)
+    unusedNewChats.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
       // Delete all except the newest (last in sorted array)
       const idsToDelete = unusedNewChats.slice(0, -1).map(s => s.id);
-      console.log('Cleaning up empty New Chat sessions:', idsToDelete);
-      
       await Promise.all(idsToDelete.map(id =>
         supabase
           .from('chat_sessions')
@@ -820,8 +818,14 @@ export const Chat = () => {
               <div className="p-3 border-b border-slate-200 dark:border-slate-700 flex-shrink-0 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <Logo size={28} />
-                    <h2 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                    {isMobile ? (
+                      <div className="w-10 h-10 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
+                        <Logo size={32} />
+                      </div>
+                    ) : (
+                      <Logo size={32} />
+                    )}
+                    <h2 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-0 mt-0">
                       BarathAI
                     </h2>
                   </div>
@@ -840,12 +844,12 @@ export const Chat = () => {
                     createNewSession();
                     setSidebarOpen(false);
                   }}
-                  className="w-full mt-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-emerald-500 text-white rounded-lg transition-all duration-200 text-sm py-2"
+                  className="w-full mt-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-emerald-500 text-white rounded-lg transition-all duration-200 text-sm py-2"
                 >
                   <Plus className="mr-2" size={14} />
                   New Chat
                 </Button>
-                <div className="mt-3 relative">
+                <div className="mt-2 relative">
                   <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-slate-400" size={14} />
                   <input
                     type="text"
@@ -895,20 +899,22 @@ export const Chat = () => {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-3 space-y-1">
+              <div className="flex-1 overflow-y-auto p-2 space-y-0">
                 {filteredSessions.length === 0 ? (
-                  <div className="text-center py-6">
-                    <div className="w-10 h-10 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-2">
-                      <Logo size={20} />
+                  <div className="text-center py-4">
+                    <div className="w-10 h-10 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-1">
+                      <div className="w-8 h-8 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
+                        <Logo size={20} />
+                      </div>
                     </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">No chat history yet</p>
-                    <p className="text-xs text-slate-400 dark:text-slate-500">Start a new conversation to see it here</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-0">No chat history yet</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mb-0">Start a new conversation to see it here</p>
                   </div>
                 ) : (
                   filteredSessions.map((session) => (
                     <div
                       key={session.id}
-                      className={`group relative p-2.5 rounded-lg transition-all duration-200 cursor-pointer ${
+                      className={`group relative p-2 rounded-lg transition-all duration-200 cursor-pointer mb-0 ${
                         session.id === currentSessionId
                           ? 'bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-600'
                           : 'hover:bg-slate-100 dark:hover:bg-slate-700/50'
@@ -932,7 +938,7 @@ export const Chat = () => {
                       ) : (
                         <>
                           <div className="flex items-center justify-between">
-                            <p className="text-sm font-medium text-slate-900 dark:text-white truncate flex-1">
+                            <p className="text-sm font-medium text-slate-900 dark:text-white truncate flex-1 mb-0">
                               {session.title}
                             </p>
                             <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -961,7 +967,7 @@ export const Chat = () => {
                               </Button>
                             </div>
                           </div>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0 mb-0">
                             {new Date(session.created_at).toLocaleDateString()}
                           </p>
                         </>
@@ -999,7 +1005,7 @@ export const Chat = () => {
         )}
 
         {/* Main Chat Area */}
-        <div className={`flex-1 flex flex-col ${!isMobile ? 'lg:ml-80' : ''}`}>
+        <div className={`flex-1 flex flex-col w-full ${!isMobile ? 'lg:ml-80' : ''}`}>
           <header className={`fixed top-0 right-0 z-40 flex items-center justify-between p-4 bg-white/90 dark:bg-slate-800/90 backdrop-blur-lg border-b border-slate-200 dark:border-slate-700 transition-colors duration-300 shadow-sm ${!isMobile ? 'left-80' : 'left-0'}`}>
             <div className="flex items-center space-x-4">
               <Button
@@ -1011,7 +1017,13 @@ export const Chat = () => {
                 <Menu size={20} />
               </Button>
               <div className="flex items-center space-x-2">
-                <Logo size={24} />
+                {isMobile ? (
+                  <div className="w-10 h-10 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
+                    <Logo size={32} />
+                  </div>
+                ) : (
+                  <Logo size={24} />
+                )}
                 <span className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                   BarathAI
                 </span>
@@ -1047,7 +1059,7 @@ export const Chat = () => {
           </header>
 
           {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6 pt-20 pb-32">
+          <div className="flex-1 overflow-y-auto p-0.5 sm:p-2 space-y-0 pt-6 sm:pt-8 pb-8 sm:pb-12">
             {error && (
               <ErrorBanner
                 message={error}
@@ -1063,7 +1075,13 @@ export const Chat = () => {
 
             {messages.length === 0 && (
               <div className="text-center py-12">
-                <Logo size={64} className="mx-auto mb-4" />
+                {isMobile ? (
+                  <div className="mx-auto mb-4 w-20 h-20 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
+                    <Logo size={40} />
+                  </div>
+                ) : (
+                  <Logo size={64} className="mx-auto mb-4" />
+                )}
                 <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Welcome to BarathAI</h3>
                 <p className="text-lg text-slate-600 dark:text-slate-400 mb-6">Your intelligent AI assistant created by Barathraj</p>
                 
@@ -1100,15 +1118,19 @@ export const Chat = () => {
                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-[85%] rounded-2xl transition-all duration-200 ${
-                    msg.role === 'user'
-                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg p-4'
-                      : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm'
-                  }`}
+                  className={`
+                    max-w-[90vw] sm:max-w-[85%]
+                    rounded-lg transition-all duration-200
+                    break-words whitespace-pre-wrap
+                    ${msg.role === 'user'
+                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white p-0.5 sm:p-1'
+                      : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700'}
+                    text-sm sm:text-base
+                  `}
                 >
                   {msg.role === 'assistant' && (
                     <div className="flex items-center mb-3 px-4 pt-4">
-                      <Logo size={24} className="mr-2" />
+                      <Logo size={isMobile ? 28 : 24} className="mr-2" />
                       <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">BarathAI</span>
                     </div>
                   )}
@@ -1135,7 +1157,7 @@ export const Chat = () => {
               <div className="flex justify-start">
                 <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm">
                   <div className="flex items-center mb-2 px-4 pt-4">
-                    <Logo size={24} className="mr-2" />
+                    <Logo size={isMobile ? 28 : 24} className="mr-2" />
                     <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">BarathAI</span>
                   </div>
                   <div className="px-4 pb-4">
