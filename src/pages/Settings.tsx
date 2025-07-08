@@ -133,8 +133,8 @@ export const Settings = () => {
                 variant="ghost"
                 size="icon"
                 onClick={() => navigate('/chat')}
-                className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
-                title="Back to Chat"
+                className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none transition-colors"
+                aria-label="Back to Chat"
               >
                 <ArrowLeft size={20} />
               </Button>
@@ -150,8 +150,8 @@ export const Settings = () => {
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
-                title="Settings"
+                className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none transition-colors"
+                aria-label="Settings"
                 onClick={() => navigate('/settings')}
               >
                 <SettingsIcon className="h-5 w-5" />
@@ -160,8 +160,8 @@ export const Settings = () => {
                 onClick={handleLogout}
                 variant="ghost"
                 size="icon"
-                className="text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
-                title="Logout"
+                className="text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none transition-colors"
+                aria-label="Logout"
               >
                 <LogOut className="h-5 w-5" />
               </Button>
@@ -407,6 +407,7 @@ export const Settings = () => {
           </div>
         </main>
 
+        {/* Footer */}
         <Footer />
       </div>
     </div>

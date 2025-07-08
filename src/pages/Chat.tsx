@@ -1,7 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Mic, MicOff, Menu, X, Plus, Settings, LogOut, Moon, Sun, User, Search, Edit2, Trash2, WifiOff, Crown, Zap, Brain, Sparkles } from "lucide-react";
+import { Send, Mic, MicOff, Menu, X, Plus, Settings, LogOut, Moon, Sun, User, Search, Edit2, Trash2, WifiOff, Crown, Zap, Brain, Sparkles, Copy, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -11,6 +11,7 @@ import { ErrorBanner, LoadingSpinner } from "@/components/ErrorBoundary";
 import { Logo } from "@/components/Logo";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import './App.css';
 
 interface Message {
   id: string;
@@ -26,6 +27,14 @@ interface ChatSession {
   updated_at: string;
   unique_url: string;
 }
+
+const TypingIndicator = () => (
+  <div className="flex items-center space-x-1 h-6">
+    <span className="block w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+    <span className="block w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+    <span className="block w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+  </div>
+);
 
 export const Chat = () => {
   const navigate = useNavigate();
@@ -51,11 +60,17 @@ export const Chat = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isBarathAITyping, setIsBarathAITyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatScrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<any>(null);
   const [wordCount, setWordCount] = useState(0);
   const [wordLimitError, setWordLimitError] = useState('');
   const [sessionsLoading, setSessionsLoading] = useState(false);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const [headerHeight, setHeaderHeight] = useState<number>(0);
+  const inputRefContainer = useRef<HTMLDivElement>(null);
+  const [inputHeight, setInputHeight] = useState<number>(0);
+  const [copiedMsgId, setCopiedMsgId] = useState<string | null>(null);
 
   // API Configuration
   const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
@@ -220,13 +235,18 @@ export const Chat = () => {
   }, [navigate]);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, isBarathAITyping]);
+    // Wait for layout to settle, then scroll
+    const timeout = setTimeout(() => {
+      scrollToBottom();
+    }, 60);
+    return () => clearTimeout(timeout);
+  }, [messages, isBarathAITyping, inputHeight, headerHeight]);
 
   const scrollToBottom = () => {
-    setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, 100);
+    if (messagesEndRef.current && chatScrollAreaRef.current) {
+      messagesEndRef.current.style.scrollMarginBottom = (inputHeight + (isMobile ? 24 : 40)) + 'px';
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+    }
   };
 
   const generateUniqueUrl = (): string => {
@@ -347,7 +367,7 @@ export const Chat = () => {
       if (error) throw error;
       await loadChatSessions(user?.id || '');
     } catch (error) {
-      console.error('Failed to update session title:', error);
+      setError('Failed to update session title');
     }
   };
 
@@ -364,7 +384,7 @@ export const Chat = () => {
 
       if (error) throw error;
     } catch (error) {
-      console.error('Failed to save message:', error);
+      setError('Failed to save message');
     }
   };
 
@@ -402,8 +422,8 @@ export const Chat = () => {
       if (messages.length === 0) {
         await updateSessionTitle(currentSessionId, userMessage.content);
       }
-    } catch (dbError) {
-      console.error('Database save error:', dbError);
+    } catch (error) {
+      setError('Failed to save message');
     }
 
     try {
@@ -478,12 +498,11 @@ export const Chat = () => {
 
       try {
         await saveMessage(currentSessionId, assistantMessage.content, 'assistant');
-      } catch (dbError) {
-        console.error('Database save error:', dbError);
+      } catch (error) {
+        setError('Failed to save assistant message');
       }
 
     } catch (error) {
-      console.error('Chat error:', error);
       setError(`Failed to get response: ${error.message}`);
       
       const errorMessage: Message = {
@@ -619,12 +638,31 @@ export const Chat = () => {
     setMessage(value);
   };
 
+  useLayoutEffect(() => {
+    if (headerRef.current) {
+      setHeaderHeight(headerRef.current.offsetHeight);
+    }
+    if (inputRefContainer.current) {
+      setInputHeight(inputRefContainer.current.offsetHeight);
+    }
+    const handleResize = () => {
+      if (headerRef.current) {
+        setHeaderHeight(headerRef.current.offsetHeight);
+      }
+      if (inputRefContainer.current) {
+        setInputHeight(inputRefContainer.current.offsetHeight);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isMobile]);
+
   if (sessionsLoading) {
     return <LoadingSpinner message="Loading chats..." />;
   }
 
   return (
-    <div className={`flex flex-col w-full min-h-screen ${darkMode ? 'dark' : ''}`}>
+    <div className={`flex flex-col h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 transition-colors duration-300 text-slate-900 dark:text-white`}>
       <div className="flex w-full bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-blue-900/20 dark:to-purple-900/20 text-slate-900 dark:text-white transition-all duration-300 min-h-screen">
         
         {!isOnline && (
@@ -819,7 +857,7 @@ export const Chat = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     {isMobile ? (
-                      <div className="w-10 h-10 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
+                      <div className="w-10 h-10 min-w-[40px] min-h-[40px] flex-shrink-0 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
                         <Logo size={32} />
                       </div>
                     ) : (
@@ -904,8 +942,8 @@ export const Chat = () => {
                   <div className="text-center py-4">
                     <div className="w-10 h-10 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-1">
                       <div className="w-8 h-8 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
-                        <Logo size={20} />
-                      </div>
+                      <Logo size={20} />
+                    </div>
                     </div>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mb-0">No chat history yet</p>
                     <p className="text-xs text-slate-400 dark:text-slate-500 mb-0">Start a new conversation to see it here</p>
@@ -1005,8 +1043,8 @@ export const Chat = () => {
         )}
 
         {/* Main Chat Area */}
-        <div className={`flex-1 flex flex-col w-full ${!isMobile ? 'lg:ml-80' : ''}`}>
-          <header className={`fixed top-0 right-0 z-40 flex items-center justify-between p-4 bg-white/90 dark:bg-slate-800/90 backdrop-blur-lg border-b border-slate-200 dark:border-slate-700 transition-colors duration-300 shadow-sm ${!isMobile ? 'left-80' : 'left-0'}`}>
+        <div className={`flex flex-col h-full w-full ${!isMobile ? 'lg:ml-80' : ''}`}>
+          <header ref={headerRef} className={`fixed top-0 right-0 z-40 flex items-center justify-between p-4 bg-white/90 dark:bg-slate-800/90 backdrop-blur-lg border-b border-slate-200 dark:border-slate-700 transition-colors duration-300 shadow-sm ${!isMobile ? 'left-80' : 'left-0'}`}>
             <div className="flex items-center space-x-4">
               <Button
                 variant="ghost"
@@ -1018,11 +1056,11 @@ export const Chat = () => {
               </Button>
               <div className="flex items-center space-x-2">
                 {isMobile ? (
-                  <div className="w-10 h-10 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
+                  <div className="w-10 h-10 min-w-[40px] min-h-[40px] flex-shrink-0 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
                     <Logo size={32} />
                   </div>
                 ) : (
-                  <Logo size={24} />
+                <Logo size={24} />
                 )}
                 <span className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                   BarathAI
@@ -1059,7 +1097,11 @@ export const Chat = () => {
           </header>
 
           {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto p-0.5 sm:p-2 space-y-0 pt-6 sm:pt-8 pb-8 sm:pb-12">
+          <div
+            ref={chatScrollAreaRef}
+            className={`flex-1 overflow-y-auto flex flex-col ${isMobile ? 'p-2 space-y-4 bg-gradient-to-b from-slate-50 to-slate-200 dark:from-slate-900 dark:to-slate-800 pt-4 pb-4' : 'p-6 space-y-4 bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pt-8 pb-8'}`}
+            style={{ paddingTop: headerHeight + (isMobile ? 16 : 32), paddingBottom: inputHeight + (isMobile ? 16 : 32) }}
+          >
             {error && (
               <ErrorBanner
                 message={error}
@@ -1076,11 +1118,11 @@ export const Chat = () => {
             {messages.length === 0 && (
               <div className="text-center py-12">
                 {isMobile ? (
-                  <div className="mx-auto mb-4 w-20 h-20 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
-                    <Logo size={40} />
+                  <div className="mx-auto mb-4 w-12 h-12 min-w-[48px] min-h-[48px] flex-shrink-0 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
+                    <Logo size={48} />
                   </div>
                 ) : (
-                  <Logo size={64} className="mx-auto mb-4" />
+                <Logo size={64} className="mx-auto mb-4" />
                 )}
                 <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Welcome to BarathAI</h3>
                 <p className="text-lg text-slate-600 dark:text-slate-400 mb-6">Your intelligent AI assistant created by Barathraj</p>
@@ -1112,25 +1154,28 @@ export const Chat = () => {
               </div>
             )}
 
-            {messages.map((msg) => (
+            {messages.map((msg, idx) => (
               <div
                 key={msg.id}
                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
                   className={`
-                    max-w-[90vw] sm:max-w-[85%]
-                    rounded-lg transition-all duration-200
+                    ${isMobile ? 'max-w-[90vw]' : 'max-w-[60%]'}
+                    rounded-xl transition-all duration-200
                     break-words whitespace-pre-wrap
                     ${msg.role === 'user'
-                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white p-0.5 sm:p-1'
-                      : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700'}
-                    text-sm sm:text-base
+                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 shadow-lg'
+                      : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 shadow-lg'}
+                    text-base sm:text-base
+                    relative
                   `}
                 >
                   {msg.role === 'assistant' && (
-                    <div className="flex items-center mb-3 px-4 pt-4">
-                      <Logo size={isMobile ? 28 : 24} className="mr-2" />
+                    <div className="flex items-center mb-2">
+                      <div className="w-8 h-8 min-w-[32px] min-h-[32px] flex-shrink-0 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600 mr-2">
+                        <Logo size={20} />
+                      </div>
                       <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">BarathAI</span>
                     </div>
                   )}
@@ -1149,29 +1194,46 @@ export const Chat = () => {
                       <TextToSpeech text={msg.content} className="ml-2" />
                     )}
                   </div>
+                  {msg.role === 'assistant' && (
+                    <button
+                      className={`absolute top-2 right-2 z-10 p-1 rounded-md bg-white/80 dark:bg-slate-700/80 border border-slate-200 dark:border-slate-600 shadow hover:bg-slate-100 dark:hover:bg-slate-800 transition-opacity duration-200`}
+                      onClick={() => {
+                        navigator.clipboard.writeText(msg.content);
+                        setCopiedMsgId(msg.id);
+                        setTimeout(() => setCopiedMsgId(null), 1500);
+                      }}
+                      title="Copy"
+                    >
+                      {copiedMsgId === msg.id ? <Check size={18} className="text-green-500" /> : <Copy size={18} />}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
-
             {isBarathAITyping && (
               <div className="flex justify-start">
-                <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm">
-                  <div className="flex items-center mb-2 px-4 pt-4">
-                    <Logo size={isMobile ? 28 : 24} className="mr-2" />
+                <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg p-4">
+                  <div className="flex items-center mb-2">
+                    <div className="w-8 h-8 min-w-[32px] min-h-[32px] flex-shrink-0 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600 mr-2">
+                      <Logo size={20} />
+                    </div>
                     <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">BarathAI</span>
                   </div>
-                  <div className="px-4 pb-4">
-                    <LoadingSpinner message="Thinking..." />
+                  <div className="flex items-center pb-2 animate-fade-in">
+                    <div className="flex items-center px-3 py-1 rounded-full shadow-md bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
+                      <TypingIndicator />
+                      <span className="ml-3 text-sm font-semibold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent tracking-wide uppercase select-none">Thinking</span>
+                    </div>
                   </div>
                 </div>
               </div>
             )}
-
             <div ref={messagesEndRef} />
           </div>
 
           {/* Input Area */}
-          <div className={`fixed bottom-0 right-0 z-40 p-2 sm:p-3 bg-gradient-to-t from-white/95 via-white/98 to-white/90 dark:from-slate-800/95 dark:via-slate-900/98 dark:to-slate-900/90 backdrop-blur-lg border-t border-slate-200 dark:border-slate-700 transition-colors duration-300 shadow-2xl ${!isMobile ? 'left-80' : 'left-0'}`}>
+          <div ref={inputRefContainer} className={`fixed bottom-0 right-0 z-40 p-2 sm:p-3 bg-gradient-to-t from-white/95 via-white/98 to-white/90 dark:from-slate-800/95 dark:via-slate-900/98 dark:to-slate-900/90 backdrop-blur-lg border-t border-slate-200 dark:border-slate-700 transition-colors duration-300 shadow-2xl ${!isMobile ? 'left-80' : 'left-0'}`}
+            style={{maxWidth: '100vw'}}>
             <div className="flex justify-center w-full max-w-4xl mx-auto">
               <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl shadow-md px-2 py-1 w-full">
                 <Textarea

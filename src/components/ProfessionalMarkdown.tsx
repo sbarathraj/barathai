@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 // import atomOneDark from 'react-syntax-highlighter/dist/styles/atom-one-dark.js';
@@ -8,11 +8,19 @@ import oneLight from 'react-syntax-highlighter/dist/esm/styles/prism/one-light';
 import remarkGfm from 'remark-gfm';
 import { Copy, Check, Code2, Terminal, FileText, Database, Globe, Cpu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { clsx } from "clsx";
 
 interface ProfessionalMarkdownProps {
   content: string;
   className?: string;
 }
+
+// Type for code renderer props
+type CodeRendererProps = {
+  inline?: boolean;
+  className?: string;
+  children: ReactNode;
+};
 
 export const ProfessionalMarkdown: React.FC<ProfessionalMarkdownProps> = ({ 
   content, 
@@ -196,38 +204,14 @@ export const ProfessionalMarkdown: React.FC<ProfessionalMarkdownProps> = ({
           ),
           
           // Enhanced list styling
-          ul: ({ children, ...props }) => (
-            <ul className="list-none m-0 p-0 space-y-0" {...props}>
-              {children}
-            </ul>
-          ),
-          ol: ({ children, ...props }) => (
-            <ol className="list-none m-0 p-0 space-y-0 counter-reset-list" {...props}>
-              {children}
-            </ol>
-          ),
-          li: ({ children, node, ...props }) => {
-            const parentNode = (node as any)?.parent;
-            const isOrdered = parentNode?.tagName === 'ol';
-            return (
-              <li className={`flex items-baseline m-0 p-0 leading-none ${isOrdered ? 'counter-increment-list' : ''}`} {...props}>
-                {isOrdered ? (
-                  <span className="flex-shrink-0 w-4 h-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-bold rounded-full flex items-center justify-center mr-2"></span>
-                ) : (
-                  <span className="flex-shrink-0 w-2 h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full mr-2"></span>
-                )}
-                <span className="flex-1">{children}</span>
-              </li>
-            );
-          },
+          ul: ({ children }) => <ul className="list-disc pl-5 space-y-0.5 mb-1 text-[15px] marker:text-xs marker:leading-none">{children}</ul>,
+          ol: ({ children }) => <ol className="list-decimal pl-5 space-y-0.5 mb-1 text-[15px] marker:text-xs marker:leading-none">{children}</ol>,
+          li: ({ children }) => <li className="mb-0.5 leading-tight text-[15px]">{children}</li>,
           
           // Enhanced blockquote
-          blockquote: ({ children, ...props }) => (
-            <blockquote className="border-l-4 border-gradient-to-b from-blue-500 to-purple-500 pl-6 my-2 italic text-slate-600 dark:text-slate-400 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 py-2 rounded-r-xl shadow-lg" {...props}>
-              <div className="flex items-start">
-                <span className="text-6xl text-blue-500 dark:text-blue-400 opacity-50 mr-4 leading-none">"</span>
-                <div className="flex-1">{children}</div>
-              </div>
+          blockquote: ({ children }) => (
+            <blockquote className="border-l-4 border-blue-400 bg-blue-50 dark:bg-slate-800/60 pl-3 pr-2 py-0.5 my-1 text-slate-700 dark:text-slate-300 text-[15px] italic">
+              {children}
             </blockquote>
           ),
           
@@ -239,52 +223,40 @@ export const ProfessionalMarkdown: React.FC<ProfessionalMarkdownProps> = ({
           ),
           
           // Professional code rendering
-          code: ({ node, className, children, ...props }: any) => {
+          code: ({ inline, className, children }: CodeRendererProps) => {
             const match = /language-(\w+)/.exec(className || "");
-            const inline = !match;
+            const codeString = String(children).replace(/\n$/, "");
             codeBlockIndex++;
-            return !inline ? (
-              <div className="my-6">
-                <div className="flex items-center justify-between px-4 py-2 rounded-t-lg bg-slate-200 dark:bg-slate-700 border-b border-slate-300 dark:border-slate-600">
-                  <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-300 text-slate-800 dark:bg-slate-800 dark:text-slate-100">
-                    {(match ? match[1] : 'text').toUpperCase()}
-                  </span>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="ml-2"
-                    onClick={() => copyToClipboard(String(children), codeBlockIndex)}
-                    tabIndex={-1}
-                    aria-label="Copy code"
+            if (!inline) {
+              return (
+                <div className="relative group">
+                  <pre className={clsx(className, "rounded-lg bg-slate-100 dark:bg-slate-900 p-4 overflow-x-auto text-sm")}
                   >
-                    {copiedIndex === codeBlockIndex ? <Check size={18} /> : <Copy size={18} />}
-                  </Button>
-                </div>
-                <div className="rounded-b-lg bg-slate-50 dark:bg-slate-900 shadow-md overflow-x-auto">
-                  <SyntaxHighlighter
-                    style={isDarkMode ? oneDark : oneLight}
-                    language={match ? match[1] : ""}
-                    PreTag="div"
-                    customStyle={{ borderRadius: 0, fontSize: '1rem', padding: '1.5em 1em 1em 1em', background: 'inherit', margin: 0 }}
-                    {...props}
+                    <code>{children}</code>
+                  </pre>
+                  <button
+                    className={`absolute top-2 right-2 z-10 p-1 rounded-md bg-white/80 dark:bg-slate-700/80 border border-slate-200 dark:border-slate-600 shadow hover:bg-slate-100 dark:hover:bg-slate-800 transition-opacity duration-200 ${typeof window !== 'undefined' && window.innerWidth < 768 ? '' : 'opacity-0 group-hover:opacity-100'}`}
+                    onClick={() => copyToClipboard(codeString, codeBlockIndex)}
+                    title="Copy code"
+                    aria-label="Copy code block"
                   >
-                    {String(children).replace(/\n$/, "")}
-                  </SyntaxHighlighter>
+                    {copiedIndex === codeBlockIndex ? <Check size={18} className="text-green-500" /> : <Copy size={18} />}
+                  </button>
                 </div>
-              </div>
-            ) : (
-              <code className={className} {...props}>
+              );
+            }
+            return (
+              <code className={clsx(className, "bg-slate-200 dark:bg-slate-800 rounded px-1.5 py-0.5 text-sm")}
+              >
                 {children}
               </code>
             );
           },
           
           // Enhanced table styling
-          table: ({ children, ...props }) => (
-            <div className="overflow-x-auto my-8 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg">
-              <table className="min-w-full bg-white dark:bg-slate-800" {...props}>
-                {children}
-              </table>
+          table: ({ children }) => (
+            <div className="overflow-x-auto my-1">
+              <table className="min-w-full border-collapse text-[15px]">{children}</table>
             </div>
           ),
           thead: ({ children, ...props }) => (
