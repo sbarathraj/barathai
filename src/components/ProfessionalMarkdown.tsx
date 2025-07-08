@@ -108,8 +108,13 @@ export const ProfessionalMarkdown: React.FC<ProfessionalMarkdownProps> = ({
           a: ({ node, ...props }) => (
             <a className="text-blue-600 dark:text-blue-400 underline hover:text-blue-800 dark:hover:text-blue-300 transition-colors" target="_blank" rel="noopener noreferrer" {...props} />
           ),
-          code: ({ node, inline, className, children, ...props }) => {
-            if (inline) {
+          code: ({ node, className, children, ...props }: any) => {
+            const match = /language-(\w+)/.exec(className || '');
+            const language = match ? match[1] : 'text';
+            const codeString = String(children).replace(/\n$/, '');
+            const isInline = !match;
+
+            if (isInline) {
               return (
                 <code 
                   className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-red-600 dark:text-red-400 rounded text-sm font-mono" 
@@ -120,9 +125,6 @@ export const ProfessionalMarkdown: React.FC<ProfessionalMarkdownProps> = ({
               );
             }
 
-            const codeString = String(children).replace(/\n$/, '');
-            const match = /language-(\w+)/.exec(className || '');
-            const language = match ? match[1] : 'text';
             const blockIndex = codeBlockIndex++;
             const languageDisplayName = getLanguageDisplayName(language);
 

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -185,9 +186,14 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
             <em className="italic text-blue-600 dark:text-blue-400 font-medium" {...props} />
           ),
 
-          // Enhanced inline code
-          code: ({ node, inline, className, children, ...props }) => {
-            if (inline) {
+          // Enhanced inline code and code blocks
+          code: ({ node, className, children, ...props }: any) => {
+            const match = /language-(\w+)/.exec(className || '');
+            const language = match ? match[1] : 'text';
+            const codeString = String(children).replace(/\n$/, '');
+            const isInline = !match;
+
+            if (isInline) {
               return (
                 <code 
                   className="px-2 py-1 bg-slate-100 dark:bg-slate-800 text-blue-600 dark:text-blue-400 rounded-md text-sm font-mono border border-slate-200 dark:border-slate-700 shadow-sm" 
@@ -199,8 +205,6 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
             }
 
             // Enhanced code block rendering
-            const codeString = String(children).replace(/\n$/, '');
-            const language = /language-(\w+)/.exec(className || '')?.[1] || 'text';
             const blockIndex = codeBlockIndex++;
             const languageIcon = getLanguageIcon(language);
             const languageDisplayName = getLanguageDisplayName(language);
@@ -280,20 +284,23 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
             <ul className="list-none my-6 pl-0 space-y-2" {...props} />
           ),
           ol: ({ node, ...props }) => (
-            <ol className="list-none my-6 pl-0 space-y-2 counter-reset-item" {...props} />
+            <ol className="list-none my-6 pl-0 space-y-2" {...props} />
           ),
-          li: ({ node, ordered, ...props }) => (
-            <li className={`flex items-start space-x-3 text-slate-800 dark:text-slate-200 ${ordered ? 'counter-increment-item' : ''}`} {...props}>
-              {ordered ? (
-                <span className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white text-xs font-bold rounded-full flex items-center justify-center mt-0.5 counter-item">
-                  {/* Counter will be handled by CSS */}
-                </span>
-              ) : (
-                <span className="flex-shrink-0 w-2 h-2 bg-blue-500 rounded-full mt-2"></span>
-              )}
-              <span className="flex-1">{props.children}</span>
-            </li>
-          ),
+          li: ({ node, ...props }: any) => {
+            const isOrderedList = node?.tagName === 'ol';
+            return (
+              <li className="flex items-start space-x-3 text-slate-800 dark:text-slate-200" {...props}>
+                {isOrderedList ? (
+                  <span className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white text-xs font-bold rounded-full flex items-center justify-center mt-0.5">
+                    •
+                  </span>
+                ) : (
+                  <span className="flex-shrink-0 w-2 h-2 bg-blue-500 rounded-full mt-2"></span>
+                )}
+                <span className="flex-1">{props.children}</span>
+              </li>
+            );
+          },
 
           // Enhanced blockquote with professional styling
           blockquote: ({ node, ...props }) => (
@@ -353,18 +360,6 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
       >
         {preprocessContent(content)}
       </ReactMarkdown>
-      
-      <style jsx>{`
-        .counter-reset-item {
-          counter-reset: item;
-        }
-        .counter-increment-item {
-          counter-increment: item;
-        }
-        .counter-item::before {
-          content: counter(item);
-        }
-      `}</style>
     </div>
   );
 };
