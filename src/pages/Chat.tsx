@@ -11,7 +11,6 @@ import { ErrorBanner, LoadingSpinner } from "@/components/ErrorBoundary";
 import { Logo } from "@/components/Logo";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
-import { sendRateLimitAlert } from '@/lib/server-utils';
 
 interface Message {
   id: string;
@@ -485,7 +484,6 @@ export const Chat = () => {
           const today = new Date().toISOString().slice(0, 10);
           const lastSent = localStorage.getItem('barathai_429_alert_date');
           if (lastSent !== today) {
-            sendRateLimitAlert(`Status: 429\nResponse: ${await response.text()}`);
             localStorage.setItem('barathai_429_alert_date', today);
           }
         }
