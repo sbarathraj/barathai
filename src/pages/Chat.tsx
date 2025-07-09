@@ -470,10 +470,15 @@ export const Chat = () => {
       let response;
       
       while (true) {
-        response = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message }),
+        response = await fetch(usedApiUrl, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${usedApiKey}`,
+            "Content-Type": "application/json",
+            "HTTP-Referer": window.location.origin,
+            "X-Title": "BarathAI Chat"
+          },
+          body: JSON.stringify(requestBody)
         });
         if (response.status === 429) {
           const today = new Date().toISOString().slice(0, 10);
@@ -1053,7 +1058,6 @@ export const Chat = () => {
                 )}
               </div>
 
-              {/* Features section for mobile sidebar */}
               <div className="p-2 border-t border-slate-200 dark:border-slate-700 space-y-1 bg-gradient-to-r from-slate-50 to-purple-50 dark:from-slate-700/50 dark:to-purple-900/10 backdrop-blur-lg flex-shrink-0">
                 <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
                   Features
