@@ -43,12 +43,20 @@ interface ChatSession {
   unique_url: string;
 }
 
+// Extend the Window interface to include speech recognition
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
+
 export const Chat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
+  const [recognition, setRecognition] = useState<any>(null);
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [currentSession, setCurrentSession] = useState<ChatSession | null>(null);
@@ -69,20 +77,18 @@ export const Chat = () => {
       recognitionInstance.continuous = false;
       recognitionInstance.lang = 'en-US';
       recognitionInstance.interimResults = false;
-      recognitionInstance.maxAlternatives = 1;
 
-      recognitionInstance.onresult = (event: SpeechRecognitionEvent) => {
+      recognitionInstance.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
         setInputMessage(transcript);
         setIsListening(false);
       };
 
-      recognitionInstance.onspeechend = () => {
-        recognitionInstance.stop();
+      recognitionInstance.onend = () => {
         setIsListening(false);
       };
 
-      recognitionInstance.onerror = (event: SpeechRecognitionErrorEvent) => {
+      recognitionInstance.onerror = (event: any) => {
         console.error('Speech recognition error:', event.error);
         toast({
           title: "Error",
@@ -98,7 +104,7 @@ export const Chat = () => {
       toast({
         title: "Warning",
         description: "Speech recognition is not supported in this browser.",
-        variant: "warning",
+        variant: "destructive",
       });
     }
   }, [toast]);
@@ -240,7 +246,7 @@ export const Chat = () => {
         {
           session_id: currentSession.id,
           user_id: user.id,
-          role: 'user',
+          role: 'user' as 'user' | 'assistant',
           content: userMessage.content
         }
       ]);
@@ -263,7 +269,7 @@ export const Chat = () => {
         {
           session_id: currentSession.id,
           user_id: user.id,
-          role: 'assistant',
+          role: 'assistant' as 'user' | 'assistant',
           content: assistantMessage.content
         }
       ]);
