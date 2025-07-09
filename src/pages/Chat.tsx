@@ -1053,6 +1053,7 @@ export const Chat = () => {
                 )}
               </div>
 
+              {/* Features section for mobile sidebar */}
               <div className="p-2 border-t border-slate-200 dark:border-slate-700 space-y-1 bg-gradient-to-r from-slate-50 to-purple-50 dark:from-slate-700/50 dark:to-purple-900/10 backdrop-blur-lg flex-shrink-0">
                 <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
                   Features
@@ -1069,6 +1070,10 @@ export const Chat = () => {
                   <div className="flex items-center space-x-1.5 p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
                     <Sparkles size={12} className="text-purple-500" />
                     <span className="text-xs text-slate-700 dark:text-slate-300">Creative</span>
+                  </div>
+                  <div className="flex items-center space-x-1.5 p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
+                    <Lock size={12} className="text-green-600" />
+                    <span className="text-xs text-slate-700 dark:text-slate-300">Secure</span>
                   </div>
                 </div>
               </div>
