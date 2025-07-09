@@ -14,6 +14,138 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          alert_type: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          message: string
+          severity: string
+          title: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          message: string
+          severity?: string
+          title: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          message?: string
+          severity?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      admin_messages: {
+        Row: {
+          created_at: string | null
+          from_user_email: string
+          from_user_id: string | null
+          id: string
+          is_read: boolean | null
+          message: string
+          read_at: string | null
+          read_by: string | null
+          subject: string
+        }
+        Insert: {
+          created_at?: string | null
+          from_user_email: string
+          from_user_id?: string | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          read_at?: string | null
+          read_by?: string | null
+          subject: string
+        }
+        Update: {
+          created_at?: string | null
+          from_user_email?: string
+          from_user_id?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          read_at?: string | null
+          read_by?: string | null
+          subject?: string
+        }
+        Relationships: []
+      }
+      admin_settings: {
+        Row: {
+          id: string
+          setting_key: string
+          setting_value: Json
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          setting_key: string
+          setting_value: Json
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      api_usage_logs: {
+        Row: {
+          created_at: string | null
+          endpoint: string
+          id: string
+          metadata: Json | null
+          request_type: string
+          response_time: number | null
+          status_code: number | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          endpoint: string
+          id?: string
+          metadata?: Json | null
+          request_type: string
+          response_time?: number | null
+          status_code?: number | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          endpoint?: string
+          id?: string
+          metadata?: Json | null
+          request_type?: string
+          response_time?: number | null
+          status_code?: number | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       chat_sessions: {
         Row: {
           created_at: string
@@ -103,6 +235,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_limits: {
+        Row: {
+          current_usage: number | null
+          id: string
+          is_blocked: boolean | null
+          updated_at: string | null
+          updated_by: string | null
+          usage_limit: number | null
+          user_id: string | null
+        }
+        Insert: {
+          current_usage?: number | null
+          id?: string
+          is_blocked?: boolean | null
+          updated_at?: string | null
+          updated_by?: string | null
+          usage_limit?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          current_usage?: number | null
+          id?: string
+          is_blocked?: boolean | null
+          updated_at?: string | null
+          updated_by?: string | null
+          usage_limit?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -111,6 +273,14 @@ export type Database = {
       generate_unique_url: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_api_usage_count: {
+        Args: { request_type_filter?: string }
+        Returns: number
+      }
+      get_user_count: {
+        Args: Record<PropertyKey, never>
+        Returns: number
       }
     }
     Enums: {

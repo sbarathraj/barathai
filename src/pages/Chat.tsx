@@ -1,21 +1,37 @@
-import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Send, Mic, MicOff, Menu, X, Plus, Settings, LogOut, Moon, Sun, User, Search, Edit2, Trash2, WifiOff, Crown, Zap, Brain, Sparkles, Copy, Check, Lock } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { ProfessionalMarkdown } from "@/components/ProfessionalMarkdown";
 import { TextToSpeech } from "@/components/TextToSpeech";
-import { ErrorBanner, LoadingSpinner } from "@/components/ErrorBoundary";
-import { Logo } from "@/components/Logo";
-import { useIsMobile } from "@/hooks/use-mobile";
-import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import { ChatLoading } from "@/components/ChatLoading";
+import { 
+  Send, 
+  Mic, 
+  MicOff, 
+  Plus, 
+  MessageSquare, 
+  Settings, 
+  LogOut, 
+  Copy,
+  Check,
+  History,
+  Zap,
+  Sparkles,
+  Shield,
+  Menu,
+  X
+} from 'lucide-react';
 
 interface Message {
   id: string;
-  content: string;
   role: 'user' | 'assistant';
+  content: string;
   timestamp: Date;
 }
 
@@ -27,296 +43,151 @@ interface ChatSession {
   unique_url: string;
 }
 
-const TypingIndicator = () => (
-  <div className="flex items-center space-x-1 h-6">
-    <span className="block w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-    <span className="block w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-    <span className="block w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
-  </div>
-);
-
 export const Chat = () => {
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const isMobile = useIsMobile();
-  const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
+  const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(() => {
-    const saved = localStorage.getItem('barathAI-darkMode');
-    return saved ? JSON.parse(saved) : true;
-  });
+  const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
+  const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
+  const [currentSession, setCurrentSession] = useState<ChatSession | null>(null);
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
-  const [currentSessionId, setCurrentSessionId] = useState<string>('');
-  const [user, setUser] = useState<SupabaseUser | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [editingSessionId, setEditingSessionId] = useState<string>('');
-  const [editingTitle, setEditingTitle] = useState('');
-  const [error, setError] = useState<string>('');
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [isBarathAITyping, setIsBarathAITyping] = useState(false);
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+  const [showSidebar, setShowSidebar] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const chatScrollAreaRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
-  const recognitionRef = useRef<any>(null);
-  const [wordCount, setWordCount] = useState(0);
-  const [wordLimitError, setWordLimitError] = useState('');
-  const [sessionsLoading, setSessionsLoading] = useState(false);
-  const headerRef = useRef<HTMLDivElement>(null);
-  const [headerHeight, setHeaderHeight] = useState<number>(0);
-  const inputRefContainer = useRef<HTMLDivElement>(null);
-  const [inputHeight, setInputHeight] = useState<number>(0);
-  const [copiedMsgId, setCopiedMsgId] = useState<string | null>(null);
-  const [profile, setProfile] = useState<{ full_name: string | null } | null>(null);
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
-  // API Configuration
-  const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
-  const OPENROUTER_API_KEY2 = import.meta.env.VITE_OPENROUTER_API_KEY2;
-  const API_URL = "https://openrouter.ai/api/v1/chat/completions";
-  const API_URL2 = import.meta.env.VITE_OPENROUTER_API_URL2 || API_URL;
-  const OPENROUTER_MODEL = "deepseek/deepseek-chat-v3-0324:free";
-
-  // Clean up empty "New Chat" sessions (keep only the most recent one)
-  const cleanupEmptyNewChats = async (userId: string) => {
-    const { data: sessions, error: sessionError } = await supabase
-      .from('chat_sessions')
-      .select('id, title, created_at')
-      .eq('user_id', userId)
-      .eq('title', 'New Chat')
-      .order('created_at', { ascending: true });
-
-    if (sessionError || !sessions) return;
-
-    // Find all unused 'New Chat' sessions (no messages)
-    const unusedNewChats: { id: string, created_at: string }[] = [];
-    for (const session of sessions) {
-        const { data: messages, error: msgError } = await supabase
-          .from('messages')
-          .select('id')
-          .eq('session_id', session.id)
-          .limit(1);
-        if (msgError) continue;
-        if (!messages || messages.length === 0) {
-          unusedNewChats.push({ id: session.id, created_at: session.created_at });
-        }
-      }
-
-    // If we have multiple empty "New Chat" sessions, keep only the newest one
-    if (unusedNewChats.length > 1) {
-    // Sort by created_at (newest last)
-    unusedNewChats.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-      // Delete all except the newest (last in sorted array)
-      const idsToDelete = unusedNewChats.slice(0, -1).map(s => s.id);
-      await Promise.all(idsToDelete.map(id =>
-        supabase
-          .from('chat_sessions')
-          .delete()
-          .eq('id', id)
-      ));
-    }
-  };
-
-  // Apply dark mode changes
   useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
+    // Check for SpeechRecognition API support
+    if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognitionInstance = new SpeechRecognition();
+      recognitionInstance.continuous = false;
+      recognitionInstance.lang = 'en-US';
+      recognitionInstance.interimResults = false;
+      recognitionInstance.maxAlternatives = 1;
+
+      recognitionInstance.onresult = (event: SpeechRecognitionEvent) => {
+        const transcript = event.results[0][0].transcript;
+        setInputMessage(transcript);
+        setIsListening(false);
+      };
+
+      recognitionInstance.onspeechend = () => {
+        recognitionInstance.stop();
+        setIsListening(false);
+      };
+
+      recognitionInstance.onerror = (event: SpeechRecognitionErrorEvent) => {
+        console.error('Speech recognition error:', event.error);
+        toast({
+          title: "Error",
+          description: `Speech recognition error: ${event.error}`,
+          variant: "destructive",
+        });
+        setIsListening(false);
+      };
+
+      setRecognition(recognitionInstance);
     } else {
-      document.documentElement.classList.remove('dark');
-    }
-    localStorage.setItem('barathAI-darkMode', JSON.stringify(darkMode));
-  }, [darkMode]);
-
-  // Network status monitoring
-  useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-
-  // Initialize speech recognition
-  useEffect(() => {
-    if (typeof window !== 'undefined' && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-      const SpeechRecognitionConstructor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      recognitionRef.current = new SpeechRecognitionConstructor();
-      
-      if (recognitionRef.current) {
-        recognitionRef.current.continuous = false;
-        recognitionRef.current.interimResults = false;
-        recognitionRef.current.lang = 'en-US';
-
-        recognitionRef.current.onresult = (event: any) => {
-          const transcript = event.results[0][0].transcript;
-          setMessage(prev => prev + (prev ? ' ' : '') + transcript);
-          setIsListening(false);
-        };
-
-        recognitionRef.current.onerror = (event: any) => {
-          setIsListening(false);
-          toast({
-            title: "Voice input error",
-            description: "Please try again or check microphone permissions",
-            variant: "destructive",
-          });
-        };
-
-        recognitionRef.current.onend = () => {
-          setIsListening(false);
-        };
-      }
+      console.warn('SpeechRecognition API is not supported in this browser.');
+      toast({
+        title: "Warning",
+        description: "Speech recognition is not supported in this browser.",
+        variant: "warning",
+      });
     }
   }, [toast]);
 
   useEffect(() => {
-    const initAuth = async () => {
-      setSessionsLoading(true);
+    const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
+      
       if (!session) {
         navigate('/auth');
-        setSessionsLoading(false);
         return;
       }
-      setSession(session);
+
       setUser(session.user);
-      // Fetch user profile (full_name)
+      setIsAdmin(session.user.email === 'jcibarathraj@gmail.com');
+      
+      // Get user profile
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('full_name')
+        .select('*')
         .eq('id', session.user.id)
         .single();
+        
       setProfile(profileData);
       
-      const urlParams = new URLSearchParams(window.location.search);
-      const chatId = urlParams.get('chat');
+      // Load chat sessions
+      await loadChatSessions();
       
-      if (chatId) {
-        await loadSpecificChat(chatId, session.user.id);
-        setSessionsLoading(false);
-      } else {
-        await loadChatSessions(session.user.id);
-        await cleanupEmptyNewChats(session.user.id);
-        // Re-fetch sessions after cleanup
-        await loadChatSessions(session.user.id);
-        
-        // Check if we need to create a "New Chat" session
-        const { data: existingSessions } = await supabase
-          .from('chat_sessions')
-          .select('id, title')
-          .eq('user_id', session.user.id)
-          .eq('title', 'New Chat');
-        
-        const hasEmptyNewChat = existingSessions && existingSessions.length > 0;
-        if (!hasEmptyNewChat) {
-          await createNewSession(session.user.id);
-          await loadChatSessions(session.user.id);
-        } else {
-          // Set the existing "New Chat" as current
-          setCurrentSessionId(existingSessions[0].id);
-          loadMessages(existingSessions[0].id);
-        }
-        setSessionsLoading(false);
-      }
+      // Create or load current session
+      await createNewSession();
     };
 
-    initAuth();
+    checkAuth();
 
+    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!session) {
+      if (event === 'SIGNED_OUT') {
         navigate('/auth');
-        return;
       }
-      setSession(session);
-      setUser(session.user);
-      // Fetch user profile (full_name)
-      (async () => {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('full_name')
-          .eq('id', session.user.id)
-          .single();
-        setProfile(profileData);
-      })();
     });
 
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  useEffect(() => {
-    // Wait for layout to settle, then scroll
-    const timeout = setTimeout(() => {
-    scrollToBottom();
-    }, 60);
-    return () => clearTimeout(timeout);
-  }, [messages, isBarathAITyping, inputHeight, headerHeight]);
-
-  const scrollToBottom = () => {
-    if (messagesEndRef.current && chatScrollAreaRef.current) {
-      messagesEndRef.current.style.scrollMarginBottom = (inputHeight + (isMobile ? 24 : 40)) + 'px';
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
-    }
-  };
-
-  const generateUniqueUrl = (): string => {
-    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-  };
-
-  const loadSpecificChat = async (chatId: string, userId: string) => {
+  const loadChatSessions = async () => {
+    if (!user) return;
+    
     try {
       const { data, error } = await supabase
         .from('chat_sessions')
         .select('*')
-        .eq('unique_url', chatId)
-        .eq('user_id', userId)
-        .single();
-
-      if (error || !data) {
-        toast({
-          title: "Chat not found",
-          description: "The requested chat session could not be found.",
-          variant: "destructive",
-        });
-        createNewSession(userId);
-        return;
-      }
-
-      setCurrentSessionId(data.id);
-      loadMessages(data.id);
-      loadChatSessions(userId);
-    } catch (error) {
-      createNewSession(userId);
-    }
-  };
-
-  const loadChatSessions = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('chat_sessions')
-        .select('*')
-        .eq('user_id', userId)
-        .order('updated_at', { ascending: false });
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false })
+        .limit(10);
 
       if (error) throw error;
-
-      const sessions: ChatSession[] = (data || []).map(session => ({
-        id: session.id,
-        title: session.title,
-        created_at: session.created_at,
-        updated_at: session.updated_at,
-        unique_url: session.unique_url || ''
-      }));
-      
-      setChatSessions(sessions);
+      setChatSessions(data || []);
     } catch (error) {
-      setError('Failed to load chat history');
+      console.error('Error loading chat sessions:', error);
+    }
+  };
+
+  const createNewSession = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('chat_sessions')
+        .insert([
+          {
+            user_id: user.id,
+            title: `Chat ${new Date().toLocaleString()}`,
+          }
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      setCurrentSession(data);
+      setMessages([]);
+      await loadChatSessions();
+    } catch (error) {
+      console.error('Error creating new session:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create new chat session",
+        variant: "destructive",
+      });
     }
   };
 
@@ -329,311 +200,112 @@ export const Chat = () => {
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-
+      
       const formattedMessages: Message[] = (data || []).map(msg => ({
         id: msg.id,
-        content: msg.content,
         role: msg.role as 'user' | 'assistant',
+        content: msg.content,
         timestamp: new Date(msg.created_at)
       }));
-
+      
       setMessages(formattedMessages);
     } catch (error) {
-      setError('Failed to load messages');
+      console.error('Error loading messages:', error);
     }
   };
 
-  const createNewSession = async (userId?: string) => {
-    try {
-      const sessionUserId = userId || user?.id;
-      if (!sessionUserId) return;
-
-      // First, cleanup any existing empty "New Chat" sessions
-      await cleanupEmptyNewChats(sessionUserId);
-
-      const uniqueUrl = generateUniqueUrl();
-      const { data, error } = await supabase
-        .from('chat_sessions')
-        .insert({
-          title: 'New Chat',
-          user_id: sessionUserId,
-          unique_url: uniqueUrl
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setCurrentSessionId(data.id);
-      setMessages([]);
-      await loadChatSessions(sessionUserId);
-    } catch (error) {
-      setError('Failed to create new chat session');
-    }
-  };
-
-  const updateSessionTitle = async (sessionId: string, firstMessage: string) => {
-    try {
-      const title = firstMessage.length > 50 ? firstMessage.substring(0, 50) + '...' : firstMessage;
-      const { error } = await supabase
-        .from('chat_sessions')
-        .update({ title, updated_at: new Date().toISOString() })
-        .eq('id', sessionId);
-
-      if (error) throw error;
-      await loadChatSessions(user?.id || '');
-    } catch (error) {
-      setError('Failed to update session title');
-    }
-  };
-
-  const saveMessage = async (sessionId: string, content: string, role: 'user' | 'assistant') => {
-    try {
-      const { error } = await supabase
-        .from('messages')
-        .insert({
-          session_id: sessionId,
-          content,
-          role,
-          user_id: user?.id || ''
-        });
-
-      if (error) throw error;
-    } catch (error) {
-      setError('Failed to save message');
-    }
+  const selectSession = async (session: ChatSession) => {
+    setCurrentSession(session);
+    await loadMessages(session.id);
+    setShowSidebar(false);
   };
 
   const sendMessage = async () => {
-    if (!message.trim() || isLoading || !currentSessionId || !user) {
-      return;
-    }
-
-    if (!isOnline) {
-      setError('No internet connection. Please check your network and try again.');
-      return;
-    }
-
-    if (wordCount > 1000) {
-      setWordLimitError('Message cannot exceed 1000 words.');
-      return;
-    }
+    if (!inputMessage.trim() || isLoading || !currentSession) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      content: message.trim(),
       role: 'user',
+      content: inputMessage,
       timestamp: new Date()
     };
 
-    const newMessages = [...messages, userMessage];
-    setMessages(newMessages);
-    setMessage('');
+    setMessages(prev => [...prev, userMessage]);
+    setInputMessage('');
     setIsLoading(true);
-    setIsBarathAITyping(true);
-    setError('');
 
     try {
-      await saveMessage(currentSessionId, userMessage.content, 'user');
-      if (messages.length === 0) {
-        await updateSessionTitle(currentSessionId, userMessage.content);
-      }
-    } catch (error) {
-      setError('Failed to save message');
-    }
-
-    try {
-      const apiMessages = [
+      // Save user message to database
+      await supabase.from('messages').insert([
         {
-          "role": "system",
-          "content": "You are BarathAI, an intelligent AI assistant created by Barathraj. You are knowledgeable, friendly, and always strive to provide accurate and helpful information. You communicate in a natural, conversational manner. You can help with coding, problem-solving, research, creative writing, and general questions. Always be helpful, accurate, and engaging in your responses. Format your responses using proper Markdown syntax for better readability."
-        },
-        ...newMessages.slice(-10).map(msg => ({
-          "role": msg.role,
-          "content": msg.content
-        }))
-      ];
-
-      const requestBody = {
-        "model": OPENROUTER_MODEL,
-        "messages": apiMessages,
-        "max_tokens": 2000,
-        "temperature": 0.7,
-        "top_p": 0.9,
-        "frequency_penalty": 0.1,
-        "presence_penalty": 0.1
-      };
-
-      let usedApiKey = OPENROUTER_API_KEY;
-      let usedApiUrl = API_URL;
-      let triedSecondary = false;
-      let response;
-      
-      while (true) {
-        response = await fetch(usedApiUrl, {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${usedApiKey}`,
-            "Content-Type": "application/json",
-            "HTTP-Referer": window.location.origin,
-            "X-Title": "BarathAI Chat"
-          },
-          body: JSON.stringify(requestBody)
-        });
-        if (response.status === 429) {
-          const today = new Date().toISOString().slice(0, 10);
-          const lastSent = localStorage.getItem('barathai_429_alert_date');
-          if (lastSent !== today) {
-            localStorage.setItem('barathai_429_alert_date', today);
-          }
+          session_id: currentSession.id,
+          user_id: user.id,
+          role: 'user',
+          content: userMessage.content
         }
-        if (response.status !== 429) break;
-        
-        if (triedSecondary || !OPENROUTER_API_KEY2) {
-          break;
-        }
-        usedApiKey = OPENROUTER_API_KEY2;
-        usedApiUrl = API_URL2;
-        triedSecondary = true;
-      }
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`API error (${response.status}): ${errorText}`);
-      }
-      
-      const data = await response.json();
+      ]);
 
-      if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-        throw new Error('Invalid response format from API');
-      }
-
+      // Here you would typically call your AI service
+      // For now, we'll simulate a response
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: data.choices[0].message.content,
         role: 'assistant',
+        content: "I'm a placeholder response. In a real implementation, this would connect to your AI service.",
         timestamp: new Date()
       };
 
-      const updatedMessages = [...newMessages, assistantMessage];
-      setMessages(updatedMessages);
+      setMessages(prev => [...prev, assistantMessage]);
 
-      try {
-        await saveMessage(currentSessionId, assistantMessage.content, 'assistant');
-      } catch (error) {
-        setError('Failed to save assistant message');
-      }
-
-    } catch (error) {
-      setError(`Failed to get response: ${error.message}`);
-      
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        content: "I'm sorry, I'm having trouble connecting right now. Please try again.",
-        role: 'assistant',
-        timestamp: new Date()
-      };
-      setMessages([...newMessages, errorMessage]);
-    }
-
-    setIsLoading(false);
-    setIsBarathAITyping(false);
-  };
-
-  const switchToSession = (session: ChatSession) => {
-    setCurrentSessionId(session.id);
-    loadMessages(session.id);
-    setSidebarOpen(false);
-    
-    if (session.unique_url) {
-      window.history.pushState({}, '', `/chat?chat=${session.unique_url}`);
-    }
-  };
-
-  const deleteSession = async (sessionId: string) => {
-    try {
-      const { error } = await supabase
-        .from('chat_sessions')
-        .delete()
-        .eq('id', sessionId);
-
-      if (error) throw error;
-
-      setChatSessions(prev => prev.filter(session => session.id !== sessionId));
-      
-      if (sessionId === currentSessionId) {
-        const remainingSessions = chatSessions.filter(session => session.id !== sessionId);
-        if (remainingSessions.length > 0) {
-          switchToSession(remainingSessions[0]);
-        } else {
-          createNewSession();
+      // Save assistant message to database
+      await supabase.from('messages').insert([
+        {
+          session_id: currentSession.id,
+          user_id: user.id,
+          role: 'assistant',
+          content: assistantMessage.content
         }
-      }
+      ]);
 
-      toast({
-        title: "Success",
-        description: "Chat session deleted successfully",
-      });
+      // Update session updated_at
+      await supabase
+        .from('chat_sessions')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', currentSession.id);
+
     } catch (error) {
-      setError('Failed to delete chat session');
+      console.error('Error sending message:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send message",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const renameSession = async (sessionId: string, newTitle: string) => {
-    try {
-      const { error } = await supabase
-        .from('chat_sessions')
-        .update({ title: newTitle, updated_at: new Date().toISOString() })
-        .eq('id', sessionId);
-
-      if (error) throw error;
-
-      setChatSessions(prev => prev.map(session => 
-        session.id === sessionId ? { ...session, title: newTitle } : session
-      ));
-      
-      setEditingSessionId('');
-      setEditingTitle('');
-      
-      toast({
-        title: "Success",
-        description: "Chat session renamed successfully",
-      });
-    } catch (error) {
-      setError('Failed to rename chat session');
-    }
+  const copyMessage = (messageId: string, content: string) => {
+    navigator.clipboard.writeText(content);
+    setCopiedMessageId(messageId);
+    setTimeout(() => setCopiedMessageId(null), 2000);
   };
 
   const handleLogout = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
-      toast({
-        title: "Success",
-        description: "Logged out successfully",
-      });
-      
-      navigate('/auth');
-    } catch (error) {
-      setError('Failed to log out');
-    }
+    await supabase.auth.signOut();
+    navigate('/');
   };
 
-  const toggleVoiceInput = () => {
-    if (!recognitionRef.current) {
-      toast({
-        title: "Voice input not supported",
-        description: "Your browser doesn't support speech recognition",
-        variant: "destructive",
-      });
-      return;
-    }
+  const toggleVoiceRecognition = () => {
     if (isListening) {
-      recognitionRef.current.stop();
+      recognition?.stop();
+      setIsListening(false);
     } else {
-      recognitionRef.current.start();
-      setIsListening(true);
+      if (recognition) {
+        recognition.start();
+        setIsListening(true);
+      }
     }
   };
 
@@ -644,717 +316,259 @@ export const Chat = () => {
     }
   };
 
-  const filteredSessions = chatSessions.filter(session =>
-    session.title.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const value = e.target.value;
-    const words = value.trim().split(/\s+/).filter(Boolean);
-    setWordCount(words.length);
-    if (words.length > 1000) {
-      setWordLimitError('Message cannot exceed 1000 words.');
-    } else {
-      setWordLimitError('');
-    }
-    setMessage(value);
-  };
-
-  useLayoutEffect(() => {
-    if (headerRef.current) {
-      setHeaderHeight(headerRef.current.offsetHeight);
-    }
-    if (inputRefContainer.current) {
-      setInputHeight(inputRefContainer.current.offsetHeight);
-    }
-    const handleResize = () => {
-      if (headerRef.current) {
-        setHeaderHeight(headerRef.current.offsetHeight);
-      }
-      if (inputRefContainer.current) {
-        setInputHeight(inputRefContainer.current.offsetHeight);
-      }
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [isMobile]);
-
-  if (sessionsLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] w-full">
-        <div className="backdrop-blur-xl bg-white/40 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl px-10 py-12 flex flex-col items-center">
-          <div className="rounded-full bg-gradient-to-r from-blue-600 to-purple-600 shadow-2xl p-6 animate-pulse">
-            <Logo size={80} className="drop-shadow-2xl" />
-          </div>
-          <span className="mt-4 text-3xl font-extrabold tracking-tight bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent font-sans" style={{letterSpacing: '0.04em'}}>BarathAI</span>
-          <span className="mt-2 text-2xl font-extrabold tracking-tight bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent animate-pulse font-sans" style={{letterSpacing: '0.04em'}}>Loading chats…</span>
-          <div className="w-64 h-3 mt-8 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 rounded-full overflow-hidden relative shadow-lg">
-            <div className="absolute left-0 top-0 h-3 w-1/3 bg-white/60 rounded-full animate-loading-bar" />
-          </div>
-        </div>
-        <style>{`
-          @keyframes loading-bar {
-            0% { left: 0; width: 20%; opacity: 0.7; }
-            50% { left: 60%; width: 40%; opacity: 1; }
-            100% { left: 100%; width: 20%; opacity: 0.7; }
-          }
-          .animate-loading-bar {
-            animation: loading-bar 1.4s cubic-bezier(0.4,0,0.2,1) infinite;
-          }
-        `}</style>
-      </div>
-    );
+  if (!user || !profile) {
+    return <ChatLoading />;
   }
 
   return (
-    <div className={`flex flex-col h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 transition-colors duration-300 text-slate-900 dark:text-white`}>
-      <div className="flex w-full bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-blue-900/20 dark:to-purple-900/20 text-slate-900 dark:text-white transition-all duration-300 min-h-screen">
-        
-        {!isOnline && (
-          <div className="fixed top-0 left-0 right-0 z-50 bg-red-600 text-white text-center py-2 text-sm flex items-center justify-center">
-            <WifiOff size={16} className="mr-2" />
-            No internet connection
-          </div>
-        )}
-
-        {/* Desktop Sidebar - Always visible on large screens */}
-        <div className={`hidden lg:block w-80 h-screen fixed left-0 top-0 z-30 bg-white/95 dark:bg-slate-800/95 backdrop-blur-lg border-r border-slate-200 dark:border-slate-700 shadow-xl`}>
-          <div className="flex flex-col h-full">
-            <div className="p-3 border-b border-slate-200 dark:border-slate-700 flex-shrink-0 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Logo size={28} />
-                  <h2 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                    BarathAI
-                  </h2>
-                </div>
-              </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex">
+      {/* Sidebar */}
+      <div className={`fixed inset-y-0 left-0 z-30 w-80 bg-slate-900/95 backdrop-blur-lg border-r border-slate-700 transform transition-transform duration-300 ease-in-out ${showSidebar ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static lg:inset-0`}>
+        <div className="flex flex-col h-full">
+          {/* Header */}
+          <div className="p-4 border-b border-slate-700">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-white">BarathAI</h2>
               <Button
-                onClick={() => createNewSession()}
-                className="w-full mt-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-emerald-500 text-white rounded-lg transition-all duration-200 text-sm py-2"
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowSidebar(false)}
+                className="lg:hidden text-slate-400 hover:text-white"
               >
-                <Plus className="mr-2" size={14} />
-                New Chat
+                <X className="h-5 w-5" />
               </Button>
-              <div className="mt-3 relative">
-                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-slate-400" size={14} />
-                <input
-                  type="text"
-                  placeholder="Search chats..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-8 pr-3 py-2 bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-md text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 text-sm"
-                />
-              </div>
             </div>
+            <p className="text-sm text-slate-400 mt-1">
+              Welcome, {profile?.full_name || profile?.email}
+            </p>
+          </div>
 
-            <div className="p-3 border-b border-slate-200 dark:border-slate-700 flex-shrink-0 bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-700/50 dark:to-blue-900/10">
-              <div className="flex items-center space-x-2 p-2 bg-white/80 dark:bg-slate-800/80 rounded-lg">
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-                  <User size={16} className="text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-slate-900 dark:text-white truncate">
-                    {profile?.full_name || user?.email || 'User'}
-                  </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                    {user?.email}
-                  </p>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-3 gap-1 mt-2">
-                <div className="text-center p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
-                  <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
-                    {chatSessions.length}
-                  </div>
-                  <div className="text-xs text-slate-600 dark:text-slate-400">Chats</div>
-                </div>
-                <div className="text-center p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
-                  <div className="text-sm font-bold text-purple-600 dark:text-purple-400">
-                    {messages.length}
-                  </div>
-                  <div className="text-xs text-slate-600 dark:text-slate-400">Messages</div>
-                </div>
-                <div className="text-center p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
-                  <div className="text-sm font-bold text-green-600 dark:text-green-400">
-                    {Math.floor(Math.random() * 100) + 50}%
-                  </div>
-                  <div className="text-xs text-slate-600 dark:text-slate-400">Accuracy</div>
-                </div>
-              </div>
-            </div>
+          {/* New Chat Button */}
+          <div className="p-4">
+            <Button
+              onClick={createNewSession}
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              New Chat
+            </Button>
+          </div>
 
-            <div className="flex-1 overflow-y-auto p-3 space-y-1">
-              {filteredSessions.length === 0 ? (
-                <div className="text-center py-6">
-                  <div className="w-10 h-10 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-2">
-                    <Logo size={20} />
-                  </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">No chat history yet</p>
-                  <p className="text-xs text-slate-400 dark:text-slate-500">Start a new conversation to see it here</p>
-                </div>
-              ) : (
-                filteredSessions.map((session) => (
-                  <div
-                    key={session.id}
-                    className={`group relative p-2.5 rounded-lg transition-all duration-200 cursor-pointer ${
-                      session.id === currentSessionId
-                        ? 'bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-600'
-                        : 'hover:bg-slate-100 dark:hover:bg-slate-700/50'
-                    }`}
-                    onClick={() => switchToSession(session)}
-                  >
-                    {editingSessionId === session.id ? (
-                      <input
-                        type="text"
-                        value={editingTitle}
-                        onChange={(e) => setEditingTitle(e.target.value)}
-                        onBlur={() => renameSession(session.id, editingTitle)}
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            renameSession(session.id, editingTitle);
-                          }
-                        }}
-                        className="w-full bg-transparent text-slate-900 dark:text-white text-sm font-medium focus:outline-none"
-                        autoFocus
-                      />
-                    ) : (
-                      <>
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm font-medium text-slate-900 dark:text-white truncate flex-1">
-                            {session.title}
-                          </p>
-                          <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-5 w-5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditingSessionId(session.id);
-                                setEditingTitle(session.title);
-                              }}
-                            >
-                              <Edit2 size={10} />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-5 w-5 text-slate-500 hover:text-red-500 dark:text-slate-400 dark:hover:text-red-400"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                deleteSession(session.id);
-                              }}
-                            >
-                              <Trash2 size={10} />
-                            </Button>
-                          </div>
-                        </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                          {new Date(session.created_at).toLocaleDateString()}
+          {/* Chat Sessions */}
+          <div className="flex-1 overflow-y-auto px-4">
+            <div className="space-y-2">
+              {chatSessions.map((session) => (
+                <Card
+                  key={session.id}
+                  className={`cursor-pointer transition-all duration-200 ${
+                    currentSession?.id === session.id
+                      ? 'bg-purple-600/20 border-purple-500'
+                      : 'bg-slate-800/50 border-slate-700 hover:bg-slate-700/50'
+                  }`}
+                  onClick={() => selectSession(session)}
+                >
+                  <CardContent className="p-3">
+                    <div className="flex items-center">
+                      <MessageSquare className="h-4 w-4 text-slate-400 mr-2 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-white truncate">
+                          {session.title}
                         </p>
-                      </>
-                    )}
-                  </div>
-                ))
-              )}
+                        <p className="text-xs text-slate-400">
+                          {new Date(session.updated_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
+          </div>
 
-            <div className="p-2 border-t border-slate-200 dark:border-slate-700 space-y-1 bg-gradient-to-r from-slate-50 to-purple-50 dark:from-slate-700/50 dark:to-purple-900/10 backdrop-blur-lg flex-shrink-0">
-              <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-                Features
-              </div>
-              <div className="grid grid-cols-2 gap-1">
-                <div className="flex items-center space-x-1.5 p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
-                  <Zap size={12} className="text-yellow-500" />
-                  <span className="text-xs text-slate-700 dark:text-slate-300">Fast AI</span>
-                </div>
-                <div className="flex items-center space-x-1.5 p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
-                  <Brain size={12} className="text-blue-500" />
-                  <span className="text-xs text-slate-700 dark:text-slate-300">Smart</span>
-                </div>
-                <div className="flex items-center space-x-1.5 p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
-                  <Sparkles size={12} className="text-purple-500" />
-                  <span className="text-xs text-slate-700 dark:text-slate-300">Creative</span>
-                </div>
-                <div className="flex items-center space-x-1.5 p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
-                  <Lock size={12} className="text-green-600" />
-                  <span className="text-xs text-slate-700 dark:text-slate-300">Secure</span>
-                </div>
-              </div>
+          {/* Navigation */}
+          <div className="p-4 border-t border-slate-700 space-y-2">
+            {isAdmin && (
+              <Button
+                variant="ghost"
+                onClick={() => navigate('/admin')}
+                className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-700"
+              >
+                <Shield className="mr-2 h-4 w-4" />
+                Admin Control
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              onClick={() => navigate('/settings')}
+              className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-700"
+            >
+              <Settings className="mr-2 h-4 w-4" />
+              Settings
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={handleLogout}
+              className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-700"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </Button>
+          </div>
+
+          {/* Footer */}
+          <div className="p-2 border-t border-slate-200 dark:border-slate-700 space-y-1 bg-gradient-to-r from-slate-50 to-purple-50 dark:from-slate-700/50 dark:to-purple-900/10 backdrop-blur-lg flex-shrink-0">
+            <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+              Features
+            </div>
+            <div className="flex flex-wrap gap-1">
+              <Badge variant="secondary" className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
+                <Zap className="w-3 h-3 mr-1" />
+                AI Chat
+              </Badge>
+              <Badge variant="secondary" className="text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300">
+                <Sparkles className="w-3 h-3 mr-1" />
+                Smart
+              </Badge>
+              <Badge variant="secondary" className="text-xs bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
+                <History className="w-3 h-3 mr-1" />
+                History
+              </Badge>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Chat Area */}
+      <div className="flex-1 flex flex-col lg:ml-0">
+        {/* Header */}
+        <div className="bg-slate-800/50 backdrop-blur-lg border-b border-slate-700 p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowSidebar(true)}
+                className="lg:hidden text-slate-400 hover:text-white mr-3"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+              <h1 className="text-xl font-semibold text-white">
+                {currentSession?.title || 'New Chat'}
+              </h1>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Badge variant="secondary" className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
+                Online
+              </Badge>
             </div>
           </div>
         </div>
 
-        {/* Mobile Sidebar Overlay */}
-        {sidebarOpen && isMobile && (
-          <>
-            <div
-              className="fixed inset-0 bg-black/30 z-40 transition-opacity duration-300"
-              onClick={() => setSidebarOpen(false)}
-              aria-label="Close sidebar overlay"
-              tabIndex={-1}
-            />
-            <div className="fixed top-0 left-0 h-full w-80 bg-white/95 dark:bg-slate-800/95 backdrop-blur-lg border-r border-slate-200 dark:border-slate-700 z-50 flex flex-col shadow-xl transition-transform duration-300">
-              <div className="p-3 border-b border-slate-200 dark:border-slate-700 flex-shrink-0 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    {isMobile ? (
-                      <div className="w-10 h-10 min-w-[40px] min-h-[40px] flex-shrink-0 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
-                        <Logo size={32} />
-                      </div>
-                    ) : (
-                      <Logo size={32} />
-                    )}
-                    <h2 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-0 mt-0">
-                      BarathAI
-                    </h2>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setSidebarOpen(false)}
-                    className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white"
-                    aria-label="Close sidebar"
-                  >
-                    <X size={18} />
-                  </Button>
-                </div>
-                <Button
-                  onClick={() => {
-                    createNewSession();
-                    setSidebarOpen(false);
-                  }}
-                  className="w-full mt-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-emerald-500 text-white rounded-lg transition-all duration-200 text-sm py-2"
-                >
-                  <Plus className="mr-2" size={14} />
-                  New Chat
-                </Button>
-                <div className="mt-2 relative">
-                  <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-slate-400" size={14} />
-                  <input
-                    type="text"
-                    placeholder="Search chats..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-8 pr-3 py-2 bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-md text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 text-sm"
-                  />
-                </div>
-              </div>
-
-              <div className="p-3 border-b border-slate-200 dark:border-slate-700 flex-shrink-0 bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-700/50 dark:to-blue-900/10">
-                <div className="flex items-center space-x-2 p-2 bg-white/80 dark:bg-slate-800/80 rounded-lg">
-                  <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-                    <User size={16} className="text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-slate-900 dark:text-white truncate">
-                      {profile?.full_name || user?.email || 'User'}
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                      {user?.email}
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-3 gap-1 mt-2">
-                  <div className="text-center p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
-                    <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
-                      {chatSessions.length}
-                    </div>
-                    <div className="text-xs text-slate-600 dark:text-slate-400">Chats</div>
-                  </div>
-                  <div className="text-center p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
-                    <div className="text-sm font-bold text-purple-600 dark:text-purple-400">
-                      {messages.length}
-                    </div>
-                    <div className="text-xs text-slate-600 dark:text-slate-400">Messages</div>
-                  </div>
-                  <div className="text-center p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
-                    <div className="text-sm font-bold text-green-600 dark:text-green-400">
-                      {Math.floor(Math.random() * 100) + 50}%
-                    </div>
-                    <div className="text-xs text-slate-600 dark:text-slate-400">Accuracy</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-2 space-y-0">
-                {filteredSessions.length === 0 ? (
-                  <div className="text-center py-4">
-                    <div className="w-10 h-10 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-1">
-                      <div className="w-8 h-8 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
-                      <Logo size={20} />
-                    </div>
-                    </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-0">No chat history yet</p>
-                    <p className="text-xs text-slate-400 dark:text-slate-500 mb-0">Start a new conversation to see it here</p>
-                  </div>
-                ) : (
-                  filteredSessions.map((session) => (
-                    <div
-                      key={session.id}
-                      className={`group relative p-2 rounded-lg transition-all duration-200 cursor-pointer mb-0 ${
-                        session.id === currentSessionId
-                          ? 'bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-600'
-                          : 'hover:bg-slate-100 dark:hover:bg-slate-700/50'
-                      }`}
-                      onClick={() => switchToSession(session)}
-                    >
-                      {editingSessionId === session.id ? (
-                        <input
-                          type="text"
-                          value={editingTitle}
-                          onChange={(e) => setEditingTitle(e.target.value)}
-                          onBlur={() => renameSession(session.id, editingTitle)}
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter') {
-                              renameSession(session.id, editingTitle);
-                            }
-                          }}
-                          className="w-full bg-transparent text-slate-900 dark:text-white text-sm font-medium focus:outline-none"
-                          autoFocus
-                        />
-                      ) : (
-                        <>
-                          <div className="flex items-center justify-between">
-                            <p className="text-sm font-medium text-slate-900 dark:text-white truncate flex-1 mb-0">
-                              {session.title}
-                            </p>
-                            <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-5 w-5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditingSessionId(session.id);
-                                  setEditingTitle(session.title);
-                                }}
-                              >
-                                <Edit2 size={10} />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-5 w-5 text-slate-500 hover:text-red-500 dark:text-slate-400 dark:hover:text-red-400"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  deleteSession(session.id);
-                                }}
-                              >
-                                <Trash2 size={10} />
-                              </Button>
-                            </div>
-                          </div>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0 mb-0">
-                            {new Date(session.created_at).toLocaleDateString()}
-                          </p>
-                        </>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-
-              <div className="p-2 border-t border-slate-200 dark:border-slate-700 space-y-1 bg-gradient-to-r from-slate-50 to-purple-50 dark:from-slate-700/50 dark:to-purple-900/10 backdrop-blur-lg flex-shrink-0">
-                <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-                  Features
-                </div>
-                <div className="grid grid-cols-2 gap-1">
-                  <div className="flex items-center space-x-1.5 p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
-                    <Zap size={12} className="text-yellow-500" />
-                    <span className="text-xs text-slate-700 dark:text-slate-300">Fast AI</span>
-                  </div>
-                  <div className="flex items-center space-x-1.5 p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
-                    <Brain size={12} className="text-blue-500" />
-                    <span className="text-xs text-slate-700 dark:text-slate-300">Smart</span>
-                  </div>
-                  <div className="flex items-center space-x-1.5 p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
-                    <Sparkles size={12} className="text-purple-500" />
-                    <span className="text-xs text-slate-700 dark:text-slate-300">Creative</span>
-                  </div>
-                  <div className="flex items-center space-x-1.5 p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
-                    <Lock size={12} className="text-green-600" />
-                    <span className="text-xs text-slate-700 dark:text-slate-300">Secure</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Main Chat Area */}
-        <div className={`flex flex-col h-full w-full ${!isMobile ? 'lg:ml-80' : ''}`}>
-          <header ref={headerRef} className={`fixed top-0 right-0 z-40 flex items-center justify-between p-4 bg-white/90 dark:bg-slate-800/90 backdrop-blur-lg border-b border-slate-200 dark:border-slate-700 transition-colors duration-300 shadow-sm ${!isMobile ? 'left-80' : 'left-0'}`}>
-            <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setSidebarOpen(true)}
-                className={`text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white ${!isMobile ? 'hidden' : ''}`}
-              >
-                <Menu size={20} />
-              </Button>
-              <div className="flex items-center space-x-2">
-                {isMobile ? (
-                  <div className="w-10 h-10 min-w-[40px] min-h-[40px] flex-shrink-0 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
-                    <Logo size={32} />
-                  </div>
-                ) : (
-                <Logo size={24} />
-                )}
-                <span className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  BarathAI
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setDarkMode(!darkMode)}
-                className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white transition-colors duration-200"
-              >
-                {darkMode ? <Sun size={20} /> : <Moon size={20} />}
-              </Button>
-              <Button
-                onClick={() => navigate('/settings')}
-                variant="ghost"
-                size="icon"
-                className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
-              >
-                <Settings size={20} />
-              </Button>
-              <Button
-                onClick={handleLogout}
-                variant="ghost"
-                size="icon"
-                className="text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
-              >
-                <LogOut size={20} />
-              </Button>
-            </div>
-          </header>
-
-          {/* Messages Area */}
-          <div
-            ref={chatScrollAreaRef}
-            className={`flex-1 overflow-y-auto flex flex-col ${isMobile ? 'p-2 space-y-4 bg-gradient-to-b from-slate-50 to-slate-200 dark:from-slate-900 dark:to-slate-800 pt-4 pb-4' : 'p-6 space-y-4 bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pt-8 pb-8'}`}
-            style={{ paddingTop: headerHeight + (isMobile ? 16 : 32), paddingBottom: inputHeight + (isMobile ? 16 : 32) }}
-          >
-            {error && (
-              <ErrorBanner
-                message={error}
-                onRetry={() => {
-                  setError('');
-                  if (message.trim()) {
-                    sendMessage();
-                  }
-                }}
-                onDismiss={() => setError('')}
-              />
-            )}
-
-            {sessionsLoading ? (
-              <div className="flex flex-col items-center justify-center min-h-[60vh] w-full">
-                <div className="flex flex-col items-center">
-                  <div className="rounded-full bg-gradient-to-r from-blue-600 to-purple-600 shadow-xl p-4 animate-pulse">
-                    <Logo size={56} className="drop-shadow-lg" />
-                  </div>
-                  <span className="mt-4 text-xl font-bold text-slate-800 dark:text-white tracking-wide animate-pulse">Loading chat…</span>
-                  <div className="w-48 h-2 mt-6 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 rounded-full overflow-hidden relative">
-                    <div className="absolute left-0 top-0 h-2 w-1/3 bg-white/60 rounded-full animate-loading-bar" />
-                  </div>
-                </div>
-                <style>{`
-                  @keyframes loading-bar {
-                    0% { left: 0; width: 20%; opacity: 0.7; }
-                    50% { left: 60%; width: 40%; opacity: 1; }
-                    100% { left: 100%; width: 20%; opacity: 0.7; }
-                  }
-                  .animate-loading-bar {
-                    animation: loading-bar 1.4s cubic-bezier(0.4,0,0.2,1) infinite;
-                  }
-                `}</style>
-              </div>
-            ) : (
-              <>
-            {messages.length === 0 && (
-              <div className="text-center py-12">
-                    {isMobile ? (
-                      <div className="mx-auto mb-4 w-12 h-12 min-w-[48px] min-h-[48px] flex-shrink-0 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
-                        <Logo size={48} />
-                      </div>
-                    ) : (
-                <Logo size={64} className="mx-auto mb-4" />
-                    )}
-                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Welcome to BarathAI</h3>
-                <p className="text-lg text-slate-600 dark:text-slate-400 mb-6">Your intelligent AI assistant created by Barathraj</p>
-                
-                <div className="max-w-4xl mx-auto">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                    <div className="p-4 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-                      <div className="text-2xl mb-2">💻</div>
-                      <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Code Help</div>
-                      <div className="text-xs text-slate-500 dark:text-slate-500">Java, Python, JS</div>
-                    </div>
-                    <div className="p-4 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-                      <div className="text-2xl mb-2">🔍</div>
-                      <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Research</div>
-                      <div className="text-xs text-slate-500 dark:text-slate-500">Deep Analysis</div>
-                    </div>
-                    <div className="p-4 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-                      <div className="text-2xl mb-2">✍️</div>
-                      <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Writing</div>
-                      <div className="text-xs text-slate-500 dark:text-slate-500">Creative & Technical</div>
-                    </div>
-                    <div className="p-4 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-                      <div className="text-2xl mb-2">🤔</div>
-                      <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Problem Solving</div>
-                      <div className="text-xs text-slate-500 dark:text-slate-500">Step-by-step</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-                {messages.map((msg, idx) => (
+        {/* Messages */}
+        <ScrollArea className="flex-1 p-4">
+          <div className="max-w-4xl mx-auto space-y-6">
+            {messages.map((message) => (
               <div
-                key={msg.id}
-                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                key={message.id}
+                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                      className={`
-                        ${isMobile ? 'max-w-[90vw]' : 'max-w-[60%]'}
-                        rounded-xl transition-all duration-200
-                        break-words whitespace-pre-wrap
-                        ${msg.role === 'user'
-                          ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 shadow-lg'
-                          : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 shadow-lg'}
-                        text-base sm:text-base
-                        relative
-                      `}
+                  className={`max-w-[80%] rounded-lg p-4 ${
+                    message.role === 'user'
+                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
+                      : 'bg-slate-800/50 text-white border border-slate-700'
+                  }`}
                 >
-                  {msg.role === 'assistant' && (
-                        <div className="flex items-center mb-2">
-                          <div className="w-8 h-8 min-w-[32px] min-h-[32px] flex-shrink-0 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600 mr-2">
-                            <Logo size={20} />
-                          </div>
-                      <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">BarathAI</span>
-                    </div>
-                  )}
-                  {msg.role === 'assistant' ? (
-                    <div className="px-4 pb-4">
-                      <ProfessionalMarkdown content={msg.content} />
-                    </div>
-                  ) : (
-                    <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
-                  )}
-                  <div className="flex items-center justify-between mt-3 px-4 pb-2">
-                    <div className="text-xs opacity-70">
-                      {msg.timestamp.toLocaleTimeString()}
-                    </div>
-                    {msg.role === 'assistant' && (
-                      <TextToSpeech text={msg.content} className="ml-2" />
-                    )}
-                  </div>
-                      {msg.role === 'assistant' && (
-                        <button
-                          className={`absolute top-2 right-2 z-10 p-1 rounded-md bg-white/80 dark:bg-slate-700/80 border border-slate-200 dark:border-slate-600 shadow hover:bg-slate-100 dark:hover:bg-slate-800 transition-opacity duration-200`}
-                          onClick={() => {
-                            navigator.clipboard.writeText(msg.content);
-                            setCopiedMsgId(msg.id);
-                            setTimeout(() => setCopiedMsgId(null), 1500);
-                          }}
-                          title="Copy"
-                        >
-                          {copiedMsgId === msg.id ? <Check size={18} className="text-green-500" /> : <Copy size={18} />}
-                        </button>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      {message.role === 'assistant' ? (
+                        <ProfessionalMarkdown content={message.content} />
+                      ) : (
+                        <p className="whitespace-pre-wrap">{message.content}</p>
                       )}
+                    </div>
+                    <div className="flex items-center space-x-2 ml-4">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copyMessage(message.id, message.content)}
+                        className="text-slate-400 hover:text-white"
+                      >
+                        {copiedMessageId === message.id ? (
+                          <Check className="h-4 w-4" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
+                      {message.role === 'assistant' && (
+                        <TextToSpeech text={message.content} />
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
-            {isBarathAITyping && (
+            {isLoading && (
               <div className="flex justify-start">
-                    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg p-4">
-                      <div className="flex items-center mb-2">
-                        <div className="w-8 h-8 min-w-[32px] min-h-[32px] flex-shrink-0 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600 mr-2">
-                          <Logo size={20} />
-                        </div>
-                    <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">BarathAI</span>
-                  </div>
-                      <div className="flex items-center space-x-3 pb-2">
-                        <TypingIndicator />
-                        <span className="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500 font-semibold">Thinking</span>
+                <div className="bg-slate-800/50 text-white border border-slate-700 rounded-lg p-4 max-w-[80%]">
+                  <div className="flex items-center space-x-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
+                    <span>BarathAI is thinking...</span>
                   </div>
                 </div>
               </div>
             )}
             <div ref={messagesEndRef} />
-              </>
-            )}
           </div>
+        </ScrollArea>
 
-          {/* Input Area */}
-          <div ref={inputRefContainer} className={`fixed bottom-0 right-0 z-40 p-2 sm:p-3 bg-gradient-to-t from-white/95 via-white/98 to-white/90 dark:from-slate-800/95 dark:via-slate-900/98 dark:to-slate-900/90 backdrop-blur-lg border-t border-slate-200 dark:border-slate-700 transition-colors duration-300 shadow-2xl ${!isMobile ? 'left-80' : 'left-0'}`}
-            style={{maxWidth: '100vw'}}>
-            <div className="flex justify-center w-full max-w-4xl mx-auto">
-              <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl shadow-md px-2 py-1 w-full">
-                <Textarea
-                  ref={inputRef}
-                  value={message}
-                  onChange={handleInputChange}
-                  onKeyDown={handleKeyPress}
-                  placeholder="Type your message... (max 1000 words)"
-                  className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none resize-none text-base text-slate-900 dark:text-white min-h-[40px] max-h-40"
-                  rows={2}
-                  maxLength={10000}
-                  disabled={isLoading || !isOnline}
+        {/* Input Area */}
+        <div className="border-t border-slate-700 p-4 bg-slate-800/50 backdrop-blur-lg">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex items-center space-x-4">
+              <div className="flex-1 relative">
+                <Input
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Type your message..."
+                  className="bg-slate-700/50 border-slate-600 text-white placeholder-slate-400 pr-12"
+                  disabled={isLoading}
                 />
-                <div className="flex items-center space-x-1 ml-2">
-                  <Button
-                    onClick={toggleVoiceInput}
-                    variant="outline"
-                    size="icon"
-                    className={`h-10 w-10 rounded-lg ${isListening ? 'bg-red-500 text-white' : ''}`}
-                    disabled={isLoading}
-                  >
-                    {isListening ? (
-                      <span className="relative flex items-center justify-center">
-                        <span className="absolute inline-flex h-8 w-8 rounded-full bg-red-400 opacity-75 animate-ping"></span>
-                        <Mic size={20} className="relative z-10 animate-pulse" />
-                      </span>
-                    ) : (
-                      <Mic size={20} />
-                    )}
-                  </Button>
-                  <Button
-                    onClick={sendMessage}
-                    disabled={!message.trim() || isLoading || wordCount > 1000}
-                    className="h-10 w-10 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg hover:shadow-xl focus:ring-2 focus:ring-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    size="icon"
-                  >
-                    {isLoading ? (
-                      <div className="flex items-center justify-center">
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      </div>
-                    ) : (
-                      <Send size={20} />
-                    )}
-                  </Button>
-                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleVoiceRecognition}
+                  className={`absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 ${
+                    isListening ? 'text-red-500' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                </Button>
               </div>
-            </div>
-            <div className="flex justify-between items-center mt-2 px-1 max-w-4xl mx-auto">
-              <span className={`text-xs ${wordCount > 1000 ? 'text-red-500' : 'text-slate-400 dark:text-slate-500'}`}>{wordCount}/1000 words</span>
-              {wordLimitError && <span className="text-xs text-red-500">{wordLimitError}</span>}
+              <Button
+                onClick={sendMessage}
+                disabled={!inputMessage.trim() || isLoading}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Sidebar Overlay */}
+      {showSidebar && (
+        <div
+          className="fixed inset-0 bg-black/50 z-20 lg:hidden"
+          onClick={() => setShowSidebar(false)}
+        />
+      )}
     </div>
   );
 };
