@@ -11,6 +11,7 @@ import { ErrorBanner, LoadingSpinner } from "@/components/ErrorBoundary";
 import { Logo } from "@/components/Logo";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import { sendRateLimitAlert } from '@/lib/utils';
 
 interface Message {
   id: string;
@@ -480,7 +481,14 @@ export const Chat = () => {
           },
           body: JSON.stringify(requestBody)
         });
-        
+        if (response.status === 429) {
+          const today = new Date().toISOString().slice(0, 10);
+          const lastSent = localStorage.getItem('barathai_429_alert_date');
+          if (lastSent !== today) {
+            sendRateLimitAlert(`Status: 429\nResponse: ${await response.text()}`);
+            localStorage.setItem('barathai_429_alert_date', today);
+          }
+        }
         if (response.status !== 429) break;
         
         if (triedSecondary || !OPENROUTER_API_KEY2) {

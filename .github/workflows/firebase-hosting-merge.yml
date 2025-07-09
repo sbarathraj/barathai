@@ -18,6 +18,9 @@ jobs:
           VITE_OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           VITE_OPENROUTER_API_KEY2: ${{ secrets.OPENROUTER_API_KEY2 }}
           VITE_OPENROUTER_API_URL2: ${{ secrets.OPENROUTER_API_URL2 }}
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_PASS: ${{ secrets.GMAIL_PASS }}
+          GMAIL_ALERT_TO: ${{ secrets.GMAIL_ALERT_TO }}
         run: npm run build
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
