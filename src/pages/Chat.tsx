@@ -470,15 +470,10 @@ export const Chat = () => {
       let response;
       
       while (true) {
-        response = await fetch(usedApiUrl, {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${usedApiKey}`,
-            "Content-Type": "application/json",
-            "HTTP-Referer": window.location.origin,
-            "X-Title": "BarathAI Chat"
-          },
-          body: JSON.stringify(requestBody)
+        response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message }),
         });
         if (response.status === 429) {
           const today = new Date().toISOString().slice(0, 10);
