@@ -702,7 +702,7 @@ export const Chat = () => {
 
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 transition-colors duration-300">
-      <div className="flex w-full text-slate-900 dark:text-white transition-all duration-300 min-h-screen">
+      <div className="flex w-full bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-blue-900/20 dark:to-purple-900/20 text-slate-900 dark:text-white transition-all duration-300 min-h-screen">
         
         {!isOnline && (
           <div className="fixed top-0 left-0 right-0 z-50 bg-red-600 text-white text-center py-2 text-sm flex items-center justify-center">
@@ -1172,51 +1172,51 @@ export const Chat = () => {
               </div>
             ) : (
               <>
-                {messages.length === 0 && (
-                  <div className="text-center py-12">
+            {messages.length === 0 && (
+              <div className="text-center py-12">
                     {isMobile ? (
                       <div className="mx-auto mb-4 w-12 h-12 min-w-[48px] min-h-[48px] flex-shrink-0 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
                         <Logo size={48} />
                       </div>
                     ) : (
-                    <Logo size={64} className="mx-auto mb-4" />
+                <Logo size={64} className="mx-auto mb-4" />
                     )}
-                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Welcome to BarathAI</h3>
-                    <p className="text-lg text-slate-600 dark:text-slate-400 mb-6">Your intelligent AI assistant created by Barathraj</p>
-                    
-                    <div className="max-w-4xl mx-auto">
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                        <div className="p-4 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-                          <div className="text-2xl mb-2">💻</div>
-                          <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Code Help</div>
-                          <div className="text-xs text-slate-500 dark:text-slate-500">Java, Python, JS</div>
-                        </div>
-                        <div className="p-4 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-                          <div className="text-2xl mb-2">🔍</div>
-                          <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Research</div>
-                          <div className="text-xs text-slate-500 dark:text-slate-500">Deep Analysis</div>
-                        </div>
-                        <div className="p-4 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-                          <div className="text-2xl mb-2">✍️</div>
-                          <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Writing</div>
-                          <div className="text-xs text-slate-500 dark:text-slate-500">Creative & Technical</div>
-                        </div>
-                        <div className="p-4 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-                          <div className="text-2xl mb-2">🤔</div>
-                          <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Problem Solving</div>
-                          <div className="text-xs text-slate-500 dark:text-slate-500">Step-by-step</div>
-                        </div>
-                      </div>
+                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Welcome to BarathAI</h3>
+                <p className="text-lg text-slate-600 dark:text-slate-400 mb-6">Your intelligent AI assistant created by Barathraj</p>
+                
+                <div className="max-w-4xl mx-auto">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                    <div className="p-4 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                      <div className="text-2xl mb-2">💻</div>
+                      <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Code Help</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-500">Java, Python, JS</div>
+                    </div>
+                    <div className="p-4 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                      <div className="text-2xl mb-2">🔍</div>
+                      <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Research</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-500">Deep Analysis</div>
+                    </div>
+                    <div className="p-4 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                      <div className="text-2xl mb-2">✍️</div>
+                      <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Writing</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-500">Creative & Technical</div>
+                    </div>
+                    <div className="p-4 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                      <div className="text-2xl mb-2">🤔</div>
+                      <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Problem Solving</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-500">Step-by-step</div>
                     </div>
                   </div>
-                )}
+                </div>
+              </div>
+            )}
 
                 {messages.map((msg, idx) => (
-                  <div
-                    key={msg.id}
-                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
+              <div
+                key={msg.id}
+                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
                       className={`
                         ${isMobile ? 'max-w-[90vw]' : 'max-w-[60%]'}
                         rounded-xl transition-all duration-200
@@ -1227,30 +1227,30 @@ export const Chat = () => {
                         text-base sm:text-base
                         relative
                       `}
-                    >
-                      {msg.role === 'assistant' && (
+                >
+                  {msg.role === 'assistant' && (
                         <div className="flex items-center mb-2">
                           <div className="w-8 h-8 min-w-[32px] min-h-[32px] flex-shrink-0 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600 mr-2">
                             <Logo size={20} />
                           </div>
-                          <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">BarathAI</span>
-                        </div>
-                      )}
-                      {msg.role === 'assistant' ? (
-                        <div className="px-4 pb-4">
-                          <ProfessionalMarkdown content={msg.content} />
-                        </div>
-                      ) : (
-                        <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
-                      )}
-                      <div className="flex items-center justify-between mt-3 px-4 pb-2">
-                        <div className="text-xs opacity-70">
-                          {msg.timestamp.toLocaleTimeString()}
-                        </div>
-                        {msg.role === 'assistant' && (
-                          <TextToSpeech text={msg.content} className="ml-2" />
-                        )}
-                      </div>
+                      <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">BarathAI</span>
+                    </div>
+                  )}
+                  {msg.role === 'assistant' ? (
+                    <div className="px-4 pb-4">
+                      <ProfessionalMarkdown content={msg.content} />
+                    </div>
+                  ) : (
+                    <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                  )}
+                  <div className="flex items-center justify-between mt-3 px-4 pb-2">
+                    <div className="text-xs opacity-70">
+                      {msg.timestamp.toLocaleTimeString()}
+                    </div>
+                    {msg.role === 'assistant' && (
+                      <TextToSpeech text={msg.content} className="ml-2" />
+                    )}
+                  </div>
                       {msg.role === 'assistant' && (
                         <button
                           className={`absolute top-2 right-2 z-10 p-1 rounded-md bg-white/80 dark:bg-slate-700/80 border border-slate-200 dark:border-slate-600 shadow hover:bg-slate-100 dark:hover:bg-slate-800 transition-opacity duration-200`}
@@ -1264,26 +1264,26 @@ export const Chat = () => {
                           {copiedMsgId === msg.id ? <Check size={18} className="text-green-500" /> : <Copy size={18} />}
                         </button>
                       )}
-                    </div>
-                  </div>
-                ))}
-                {isBarathAITyping && (
-                  <div className="flex justify-start">
+                </div>
+              </div>
+            ))}
+            {isBarathAITyping && (
+              <div className="flex justify-start">
                     <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg p-4">
                       <div className="flex items-center mb-2">
                         <div className="w-8 h-8 min-w-[32px] min-h-[32px] flex-shrink-0 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600 mr-2">
                           <Logo size={20} />
                         </div>
-                        <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">BarathAI</span>
-                      </div>
+                    <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">BarathAI</span>
+                  </div>
                       <div className="flex items-center space-x-3 pb-2">
                         <TypingIndicator />
                         <span className="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500 font-semibold">Thinking</span>
-                      </div>
-                    </div>
                   </div>
-                )}
-                <div ref={messagesEndRef} />
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
               </>
             )}
           </div>
