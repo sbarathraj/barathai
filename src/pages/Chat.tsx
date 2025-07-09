@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Mic, MicOff, Menu, X, Plus, Settings, LogOut, Moon, Sun, User, Search, Edit2, Trash2, WifiOff, Crown, Zap, Brain, Sparkles, Copy, Check } from "lucide-react";
+import { Send, Mic, MicOff, Menu, X, Plus, Settings, LogOut, Moon, Sun, User, Search, Edit2, Trash2, WifiOff, Crown, Zap, Brain, Sparkles, Copy, Check, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -70,6 +70,7 @@ export const Chat = () => {
   const inputRefContainer = useRef<HTMLDivElement>(null);
   const [inputHeight, setInputHeight] = useState<number>(0);
   const [copiedMsgId, setCopiedMsgId] = useState<string | null>(null);
+  const [profile, setProfile] = useState<{ full_name: string | null } | null>(null);
 
   // API Configuration
   const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
@@ -186,6 +187,13 @@ export const Chat = () => {
       }
       setSession(session);
       setUser(session.user);
+      // Fetch user profile (full_name)
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', session.user.id)
+        .single();
+      setProfile(profileData);
       
       const urlParams = new URLSearchParams(window.location.search);
       const chatId = urlParams.get('chat');
@@ -228,6 +236,15 @@ export const Chat = () => {
       }
       setSession(session);
       setUser(session.user);
+      // Fetch user profile (full_name)
+      (async () => {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', session.user.id)
+          .single();
+        setProfile(profileData);
+      })();
     });
 
     return () => subscription.unsubscribe();
@@ -657,12 +674,35 @@ export const Chat = () => {
   }, [isMobile]);
 
   if (sessionsLoading) {
-    return <LoadingSpinner message="Loading chats..." />;
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] w-full">
+        <div className="backdrop-blur-xl bg-white/40 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl px-10 py-12 flex flex-col items-center">
+          <div className="rounded-full bg-gradient-to-r from-blue-600 to-purple-600 shadow-2xl p-6 animate-pulse">
+            <Logo size={80} className="drop-shadow-2xl" />
+          </div>
+          <span className="mt-4 text-3xl font-extrabold tracking-tight bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent font-sans" style={{letterSpacing: '0.04em'}}>BarathAI</span>
+          <span className="mt-2 text-2xl font-extrabold tracking-tight bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent animate-pulse font-sans" style={{letterSpacing: '0.04em'}}>Loading chats…</span>
+          <div className="w-64 h-3 mt-8 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 rounded-full overflow-hidden relative shadow-lg">
+            <div className="absolute left-0 top-0 h-3 w-1/3 bg-white/60 rounded-full animate-loading-bar" />
+          </div>
+        </div>
+        <style>{`
+          @keyframes loading-bar {
+            0% { left: 0; width: 20%; opacity: 0.7; }
+            50% { left: 60%; width: 40%; opacity: 1; }
+            100% { left: 100%; width: 20%; opacity: 0.7; }
+          }
+          .animate-loading-bar {
+            animation: loading-bar 1.4s cubic-bezier(0.4,0,0.2,1) infinite;
+          }
+        `}</style>
+      </div>
+    );
   }
 
   return (
-    <div className={`flex flex-col h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 transition-colors duration-300 text-slate-900 dark:text-white`}>
-      <div className="flex w-full bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-blue-900/20 dark:to-purple-900/20 text-slate-900 dark:text-white transition-all duration-300 min-h-screen">
+    <div className="min-h-screen w-full overflow-x-hidden bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 transition-colors duration-300">
+      <div className="flex w-full text-slate-900 dark:text-white transition-all duration-300 min-h-screen">
         
         {!isOnline && (
           <div className="fixed top-0 left-0 right-0 z-50 bg-red-600 text-white text-center py-2 text-sm flex items-center justify-center">
@@ -709,12 +749,11 @@ export const Chat = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-slate-900 dark:text-white truncate">
-                    {user?.email || 'User'}
+                    {profile?.full_name || user?.email || 'User'}
                   </p>
-                  <div className="flex items-center space-x-1 mt-0.5">
-                    <Crown size={10} className="text-yellow-500" />
-                    <span className="text-xs text-slate-600 dark:text-slate-400">Premium</span>
-                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                    {user?.email}
+                  </p>
                 </div>
               </div>
               
@@ -816,11 +855,11 @@ export const Chat = () => {
               )}
             </div>
 
-            <div className="p-3 border-t border-slate-200 dark:border-slate-700 space-y-2 bg-gradient-to-r from-slate-50 to-purple-50 dark:from-slate-700/50 dark:to-purple-900/10 backdrop-blur-lg flex-shrink-0">
+            <div className="p-2 border-t border-slate-200 dark:border-slate-700 space-y-1 bg-gradient-to-r from-slate-50 to-purple-50 dark:from-slate-700/50 dark:to-purple-900/10 backdrop-blur-lg flex-shrink-0">
               <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
                 Features
               </div>
-              <div className="grid grid-cols-2 gap-1.5">
+              <div className="grid grid-cols-2 gap-1">
                 <div className="flex items-center space-x-1.5 p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
                   <Zap size={12} className="text-yellow-500" />
                   <span className="text-xs text-slate-700 dark:text-slate-300">Fast AI</span>
@@ -834,8 +873,8 @@ export const Chat = () => {
                   <span className="text-xs text-slate-700 dark:text-slate-300">Creative</span>
                 </div>
                 <div className="flex items-center space-x-1.5 p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
-                  <Crown size={12} className="text-yellow-500" />
-                  <span className="text-xs text-slate-700 dark:text-slate-300">Premium</span>
+                  <Lock size={12} className="text-green-600" />
+                  <span className="text-xs text-slate-700 dark:text-slate-300">Secure</span>
                 </div>
               </div>
             </div>
@@ -905,12 +944,11 @@ export const Chat = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold text-slate-900 dark:text-white truncate">
-                      {user?.email || 'User'}
+                      {profile?.full_name || user?.email || 'User'}
                     </p>
-                    <div className="flex items-center space-x-1 mt-0.5">
-                      <Crown size={10} className="text-yellow-500" />
-                      <span className="text-xs text-slate-600 dark:text-slate-400">Premium</span>
-                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                      {user?.email}
+                    </p>
                   </div>
                 </div>
                 
@@ -1014,11 +1052,11 @@ export const Chat = () => {
                 )}
               </div>
 
-              <div className="p-3 border-t border-slate-200 dark:border-slate-700 space-y-2 bg-gradient-to-r from-slate-50 to-purple-50 dark:from-slate-700/50 dark:to-purple-900/10 backdrop-blur-lg flex-shrink-0">
+              <div className="p-2 border-t border-slate-200 dark:border-slate-700 space-y-1 bg-gradient-to-r from-slate-50 to-purple-50 dark:from-slate-700/50 dark:to-purple-900/10 backdrop-blur-lg flex-shrink-0">
                 <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
                   Features
                 </div>
-                <div className="grid grid-cols-2 gap-1.5">
+                <div className="grid grid-cols-2 gap-1">
                   <div className="flex items-center space-x-1.5 p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
                     <Zap size={12} className="text-yellow-500" />
                     <span className="text-xs text-slate-700 dark:text-slate-300">Fast AI</span>
@@ -1030,10 +1068,6 @@ export const Chat = () => {
                   <div className="flex items-center space-x-1.5 p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
                     <Sparkles size={12} className="text-purple-500" />
                     <span className="text-xs text-slate-700 dark:text-slate-300">Creative</span>
-                  </div>
-                  <div className="flex items-center space-x-1.5 p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
-                    <Crown size={12} className="text-yellow-500" />
-                    <span className="text-xs text-slate-700 dark:text-slate-300">Premium</span>
                   </div>
                 </div>
               </div>
@@ -1114,118 +1148,144 @@ export const Chat = () => {
               />
             )}
 
-            {messages.length === 0 && (
-              <div className="text-center py-12">
-                {isMobile ? (
-                  <div className="mx-auto mb-4 w-12 h-12 min-w-[48px] min-h-[48px] flex-shrink-0 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
-                    <Logo size={48} />
+            {sessionsLoading ? (
+              <div className="flex flex-col items-center justify-center min-h-[60vh] w-full">
+                <div className="flex flex-col items-center">
+                  <div className="rounded-full bg-gradient-to-r from-blue-600 to-purple-600 shadow-xl p-4 animate-pulse">
+                    <Logo size={56} className="drop-shadow-lg" />
                   </div>
-                ) : (
-                <Logo size={64} className="mx-auto mb-4" />
-                )}
-                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Welcome to BarathAI</h3>
-                <p className="text-lg text-slate-600 dark:text-slate-400 mb-6">Your intelligent AI assistant created by Barathraj</p>
-                
-                <div className="max-w-4xl mx-auto">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                    <div className="p-4 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-                      <div className="text-2xl mb-2">💻</div>
-                      <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Code Help</div>
-                      <div className="text-xs text-slate-500 dark:text-slate-500">Java, Python, JS</div>
-                    </div>
-                    <div className="p-4 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-                      <div className="text-2xl mb-2">🔍</div>
-                      <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Research</div>
-                      <div className="text-xs text-slate-500 dark:text-slate-500">Deep Analysis</div>
-                    </div>
-                    <div className="p-4 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-                      <div className="text-2xl mb-2">✍️</div>
-                      <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Writing</div>
-                      <div className="text-xs text-slate-500 dark:text-slate-500">Creative & Technical</div>
-                    </div>
-                    <div className="p-4 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-                      <div className="text-2xl mb-2">🤔</div>
-                      <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Problem Solving</div>
-                      <div className="text-xs text-slate-500 dark:text-slate-500">Step-by-step</div>
-                    </div>
+                  <span className="mt-4 text-xl font-bold text-slate-800 dark:text-white tracking-wide animate-pulse">Loading chat…</span>
+                  <div className="w-48 h-2 mt-6 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 rounded-full overflow-hidden relative">
+                    <div className="absolute left-0 top-0 h-2 w-1/3 bg-white/60 rounded-full animate-loading-bar" />
                   </div>
                 </div>
+                <style>{`
+                  @keyframes loading-bar {
+                    0% { left: 0; width: 20%; opacity: 0.7; }
+                    50% { left: 60%; width: 40%; opacity: 1; }
+                    100% { left: 100%; width: 20%; opacity: 0.7; }
+                  }
+                  .animate-loading-bar {
+                    animation: loading-bar 1.4s cubic-bezier(0.4,0,0.2,1) infinite;
+                  }
+                `}</style>
               </div>
-            )}
-
-            {messages.map((msg, idx) => (
-              <div
-                key={msg.id}
-                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`
-                    ${isMobile ? 'max-w-[90vw]' : 'max-w-[60%]'}
-                    rounded-xl transition-all duration-200
-                    break-words whitespace-pre-wrap
-                    ${msg.role === 'user'
-                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 shadow-lg'
-                      : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 shadow-lg'}
-                    text-base sm:text-base
-                    relative
-                  `}
-                >
-                  {msg.role === 'assistant' && (
-                    <div className="flex items-center mb-2">
-                      <div className="w-8 h-8 min-w-[32px] min-h-[32px] flex-shrink-0 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600 mr-2">
-                        <Logo size={20} />
+            ) : (
+              <>
+                {messages.length === 0 && (
+                  <div className="text-center py-12">
+                    {isMobile ? (
+                      <div className="mx-auto mb-4 w-12 h-12 min-w-[48px] min-h-[48px] flex-shrink-0 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
+                        <Logo size={48} />
                       </div>
-                      <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">BarathAI</span>
-                    </div>
-                  )}
-                  {msg.role === 'assistant' ? (
-                    <div className="px-4 pb-4">
-                      <ProfessionalMarkdown content={msg.content} />
-                    </div>
-                  ) : (
-                    <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
-                  )}
-                  <div className="flex items-center justify-between mt-3 px-4 pb-2">
-                    <div className="text-xs opacity-70">
-                      {msg.timestamp.toLocaleTimeString()}
-                    </div>
-                    {msg.role === 'assistant' && (
-                      <TextToSpeech text={msg.content} className="ml-2" />
+                    ) : (
+                    <Logo size={64} className="mx-auto mb-4" />
                     )}
-                  </div>
-                  {msg.role === 'assistant' && (
-                    <button
-                      className={`absolute top-2 right-2 z-10 p-1 rounded-md bg-white/80 dark:bg-slate-700/80 border border-slate-200 dark:border-slate-600 shadow hover:bg-slate-100 dark:hover:bg-slate-800 transition-opacity duration-200`}
-                      onClick={() => {
-                        navigator.clipboard.writeText(msg.content);
-                        setCopiedMsgId(msg.id);
-                        setTimeout(() => setCopiedMsgId(null), 1500);
-                      }}
-                      title="Copy"
-                    >
-                      {copiedMsgId === msg.id ? <Check size={18} className="text-green-500" /> : <Copy size={18} />}
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-            {isBarathAITyping && (
-              <div className="flex justify-start">
-                <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg p-4">
-                  <div className="flex items-center mb-2">
-                    <div className="w-8 h-8 min-w-[32px] min-h-[32px] flex-shrink-0 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600 mr-2">
-                      <Logo size={20} />
+                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Welcome to BarathAI</h3>
+                    <p className="text-lg text-slate-600 dark:text-slate-400 mb-6">Your intelligent AI assistant created by Barathraj</p>
+                    
+                    <div className="max-w-4xl mx-auto">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                        <div className="p-4 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                          <div className="text-2xl mb-2">💻</div>
+                          <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Code Help</div>
+                          <div className="text-xs text-slate-500 dark:text-slate-500">Java, Python, JS</div>
+                        </div>
+                        <div className="p-4 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                          <div className="text-2xl mb-2">🔍</div>
+                          <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Research</div>
+                          <div className="text-xs text-slate-500 dark:text-slate-500">Deep Analysis</div>
+                        </div>
+                        <div className="p-4 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                          <div className="text-2xl mb-2">✍️</div>
+                          <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Writing</div>
+                          <div className="text-xs text-slate-500 dark:text-slate-500">Creative & Technical</div>
+                        </div>
+                        <div className="p-4 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                          <div className="text-2xl mb-2">🤔</div>
+                          <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Problem Solving</div>
+                          <div className="text-xs text-slate-500 dark:text-slate-500">Step-by-step</div>
+                        </div>
+                      </div>
                     </div>
-                    <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">BarathAI</span>
                   </div>
-                  <div className="flex items-center space-x-3 pb-2">
-                    <TypingIndicator />
-                    <span className="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500 font-semibold">Thinking</span>
+                )}
+
+                {messages.map((msg, idx) => (
+                  <div
+                    key={msg.id}
+                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`
+                        ${isMobile ? 'max-w-[90vw]' : 'max-w-[60%]'}
+                        rounded-xl transition-all duration-200
+                        break-words whitespace-pre-wrap
+                        ${msg.role === 'user'
+                          ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 shadow-lg'
+                          : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 shadow-lg'}
+                        text-base sm:text-base
+                        relative
+                      `}
+                    >
+                      {msg.role === 'assistant' && (
+                        <div className="flex items-center mb-2">
+                          <div className="w-8 h-8 min-w-[32px] min-h-[32px] flex-shrink-0 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600 mr-2">
+                            <Logo size={20} />
+                          </div>
+                          <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">BarathAI</span>
+                        </div>
+                      )}
+                      {msg.role === 'assistant' ? (
+                        <div className="px-4 pb-4">
+                          <ProfessionalMarkdown content={msg.content} />
+                        </div>
+                      ) : (
+                        <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                      )}
+                      <div className="flex items-center justify-between mt-3 px-4 pb-2">
+                        <div className="text-xs opacity-70">
+                          {msg.timestamp.toLocaleTimeString()}
+                        </div>
+                        {msg.role === 'assistant' && (
+                          <TextToSpeech text={msg.content} className="ml-2" />
+                        )}
+                      </div>
+                      {msg.role === 'assistant' && (
+                        <button
+                          className={`absolute top-2 right-2 z-10 p-1 rounded-md bg-white/80 dark:bg-slate-700/80 border border-slate-200 dark:border-slate-600 shadow hover:bg-slate-100 dark:hover:bg-slate-800 transition-opacity duration-200`}
+                          onClick={() => {
+                            navigator.clipboard.writeText(msg.content);
+                            setCopiedMsgId(msg.id);
+                            setTimeout(() => setCopiedMsgId(null), 1500);
+                          }}
+                          title="Copy"
+                        >
+                          {copiedMsgId === msg.id ? <Check size={18} className="text-green-500" /> : <Copy size={18} />}
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </div>
+                ))}
+                {isBarathAITyping && (
+                  <div className="flex justify-start">
+                    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg p-4">
+                      <div className="flex items-center mb-2">
+                        <div className="w-8 h-8 min-w-[32px] min-h-[32px] flex-shrink-0 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600 mr-2">
+                          <Logo size={20} />
+                        </div>
+                        <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">BarathAI</span>
+                      </div>
+                      <div className="flex items-center space-x-3 pb-2">
+                        <TypingIndicator />
+                        <span className="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500 font-semibold">Thinking</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </>
             )}
-            <div ref={messagesEndRef} />
           </div>
 
           {/* Input Area */}
@@ -1252,7 +1312,14 @@ export const Chat = () => {
                     className={`h-10 w-10 rounded-lg ${isListening ? 'bg-red-500 text-white' : ''}`}
                     disabled={isLoading}
                   >
-                    {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+                    {isListening ? (
+                      <span className="relative flex items-center justify-center">
+                        <span className="absolute inline-flex h-8 w-8 rounded-full bg-red-400 opacity-75 animate-ping"></span>
+                        <Mic size={20} className="relative z-10 animate-pulse" />
+                      </span>
+                    ) : (
+                      <Mic size={20} />
+                    )}
                   </Button>
                   <Button
                     onClick={sendMessage}

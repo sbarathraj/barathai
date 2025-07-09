@@ -115,30 +115,17 @@ export const ProfessionalMarkdown: React.FC<ProfessionalMarkdownProps> = ({
   };
 
   const preprocessContent = (rawContent: string): string => {
-    // Handle Java code specifically
-    if (rawContent.includes('public class') || rawContent.includes('import java.')) {
-      if (!rawContent.includes('```')) {
-        return `\`\`\`java\n${rawContent.trim()}\n\`\`\``;
+    // Split by triple backticks to separate code and non-code blocks
+    const parts = rawContent.split(/(```[a-zA-Z]*[\s\S]*?```)/g);
+    return parts.map(part => {
+      // If this is a code block (starts and ends with triple backticks)
+      if (/^```[a-zA-Z]*[\s\S]*```$/.test(part.trim())) {
+        // Return as is, do not process further
+        return part;
       }
-    }
-
-    // Auto-detect and wrap code blocks
-    let processedContent = rawContent.replace(/```\s*\n([^`]+)```/g, (match, code) => {
-      const trimmedCode = code.trim();
-      const detectedLang = detectLanguage(trimmedCode);
-      return `\`\`\`${detectedLang}\n${trimmedCode}\n\`\`\``;
-    });
-
-    // Handle inline code that should be code blocks
-    processedContent = processedContent.replace(/`([^`\n]+)`/g, (match, code) => {
-      const detectedLang = detectLanguage(code);
-      if (detectedLang !== 'text' && code.length > 20) {
-        return `\`\`\`${detectedLang}\n${code}\n\`\`\``;
-      }
-      return match;
-    });
-
-    return processedContent;
+      // Otherwise, process non-code markdown (remove code block markers inside)
+      return part.replace(/```/g, '');
+    }).join('');
   };
 
   const processedContent = preprocessContent(content);
@@ -204,9 +191,9 @@ export const ProfessionalMarkdown: React.FC<ProfessionalMarkdownProps> = ({
           ),
           
           // Enhanced list styling
-          ul: ({ children }) => <ul className="list-disc list-outside pl-6 space-y-0.5 mb-1 text-[15px] marker:text-xs marker:leading-none">{children}</ul>,
-          ol: ({ children }) => <ol className="list-decimal list-outside pl-6 space-y-0.5 mb-1 text-[15px] marker:text-xs marker:leading-none">{children}</ol>,
-          li: ({ children }) => <li className="mb-0.5 leading-relaxed break-words text-[15px]">{children}</li>,
+          ul: ({ children }) => <ul className="list-disc list-outside pl-6 m-0 p-0 space-y-0 text-[15px] marker:text-xs marker:leading-none">{children}</ul>,
+          ol: ({ children }) => <ol className="list-decimal list-outside pl-6 m-0 p-0 space-y-0 text-[15px] marker:text-xs marker:leading-none">{children}</ol>,
+          li: ({ children }) => <li className="m-0 p-0 leading-[1.0] text-[15px] break-words">{children}</li>,
           
           // Enhanced blockquote
           blockquote: ({ children }) => (

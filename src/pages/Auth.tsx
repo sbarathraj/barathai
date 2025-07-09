@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Logo } from "@/components/Logo";
+import { FcGoogle } from 'react-icons/fc';
 
 export const Auth = () => {
   const navigate = useNavigate();
@@ -135,21 +136,48 @@ export const Auth = () => {
     setIsLoading(false);
   };
 
+  const handleGoogleLogin = async () => {
+    setIsLoading(true);
+    try {
+      await supabase.auth.signInWithOAuth({ provider: 'google' });
+    } catch (error) {
+      toast({
+        title: 'Google Sign In Failed',
+        description: 'Could not sign in with Google.',
+        variant: 'destructive',
+      });
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-xl border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900/90 backdrop-blur-lg">
-        <CardHeader className="text-center">
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md shadow-2xl border-0 bg-white/70 dark:bg-slate-900/80 backdrop-blur-2xl rounded-3xl">
+        <CardHeader className="text-center pb-2">
           <div className="flex justify-center mb-4">
-            <Logo size={48} />
+            <button onClick={() => navigate('/')} aria-label="Back to Home" className="focus:outline-none">
+              <Logo size={56} className="hover:scale-110 transition-transform duration-200 drop-shadow-xl" />
+            </button>
           </div>
-          <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Welcome to BarathAI
-          </CardTitle>
-          <CardDescription>
-            Sign in to your account or create a new one
-          </CardDescription>
+          <CardTitle className="text-3xl font-extrabold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent tracking-tight mb-1">Welcome to BarathAI</CardTitle>
+          <CardDescription className="text-base text-slate-500 dark:text-slate-300 mb-2">Sign in to your account or create a new one</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6 pt-0">
+          <Button
+            onClick={handleGoogleLogin}
+            disabled={isLoading}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow hover:shadow-md hover:bg-slate-50 dark:hover:bg-slate-700 transition-all text-base font-semibold text-slate-700 dark:text-white mb-2"
+            variant="outline"
+            aria-label="Sign in with Google"
+          >
+            <FcGoogle size={22} />
+            {isLoading ? 'Signing in with Google…' : 'Sign in with Google'}
+          </Button>
+          <div className="relative flex items-center my-4">
+            <div className="flex-grow border-t border-slate-200 dark:border-slate-700" />
+            <span className="mx-3 text-xs text-slate-400 dark:text-slate-500 font-medium">or</span>
+            <div className="flex-grow border-t border-slate-200 dark:border-slate-700" />
+          </div>
           <Tabs defaultValue="signin" className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-4">
               <TabsTrigger value="signin">Sign In</TabsTrigger>
@@ -294,6 +322,11 @@ export const Auth = () => {
             </TabsContent>
           </Tabs>
         </CardContent>
+        <div className="flex justify-center mt-4 pb-4">
+          <Button variant="outline" onClick={() => navigate('/')} className="rounded-lg px-4 py-2 text-base font-medium">
+            ← Back to Home
+          </Button>
+        </div>
       </Card>
     </div>
   );
