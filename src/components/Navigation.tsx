@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, Menu, X, MessageCircle, Settings, User, LogOut, Shield } from "lucide-react";
+import { Moon, Sun, Menu, X, MessageCircle, Settings, User, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Logo } from "@/components/Logo";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,7 +10,6 @@ export const Navigation = () => {
   const [darkMode, setDarkMode] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [user, setUser] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     // Check for saved theme preference
@@ -30,7 +28,6 @@ export const Navigation = () => {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user || null);
-      setIsAdmin(session?.user?.email === 'jcibarathraj@gmail.com');
     };
     
     checkUser();
@@ -38,7 +35,6 @@ export const Navigation = () => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user || null);
-      setIsAdmin(session?.user?.email === 'jcibarathraj@gmail.com');
     });
 
     return () => subscription.unsubscribe();
@@ -86,16 +82,6 @@ export const Navigation = () => {
                   <MessageCircle className="mr-2 h-4 w-4" />
                   Chat
                 </Button>
-                {isAdmin && (
-                  <Button
-                    variant="ghost"
-                    onClick={() => navigate('/admin')}
-                    className="text-slate-700 dark:text-slate-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
-                  >
-                    <Shield className="mr-2 h-4 w-4" />
-                    Admin Control
-                  </Button>
-                )}
                 <Button
                   variant="ghost"
                   onClick={() => navigate('/settings')}
@@ -181,19 +167,6 @@ export const Navigation = () => {
                     <MessageCircle className="mr-2 h-4 w-4" />
                     Chat
                   </Button>
-                  {isAdmin && (
-                    <Button
-                      variant="ghost"
-                      onClick={() => {
-                        navigate('/admin');
-                        setMobileMenuOpen(false);
-                      }}
-                      className="justify-start text-slate-700 dark:text-slate-300"
-                    >
-                      <Shield className="mr-2 h-4 w-4" />
-                      Admin Control
-                    </Button>
-                  )}
                   <Button
                     variant="ghost"
                     onClick={() => {
@@ -201,9 +174,10 @@ export const Navigation = () => {
                       setMobileMenuOpen(false);
                     }}
                     className="justify-start text-slate-700 dark:text-slate-300"
+                    size="icon"
+                    title="Settings"
                   >
-                    <Settings className="mr-2 h-4 w-4" />
-                    Settings
+                    <Settings className="h-5 w-5" />
                   </Button>
                   <Button
                     variant="ghost"
@@ -212,9 +186,10 @@ export const Navigation = () => {
                       setMobileMenuOpen(false);
                     }}
                     className="justify-start text-slate-700 dark:text-slate-300"
+                    size="icon"
+                    title="Logout"
                   >
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Logout
+                    <LogOut className="h-5 w-5" />
                   </Button>
                 </>
               ) : (
