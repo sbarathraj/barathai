@@ -2,31 +2,27 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useApiTracking } from "@/hooks/useApiTracking";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { ProfessionalMarkdown } from "@/components/ProfessionalMarkdown";
 import { TextToSpeech } from "@/components/TextToSpeech";
-import { ChatLoading } from "@/components/ChatLoading";
 import { 
   Send, 
   Mic, 
   MicOff, 
   Plus, 
-  MessageSquare, 
   Settings, 
   LogOut, 
   Copy,
   Check,
-  History,
-  Zap,
-  Sparkles,
-  Shield,
-  Menu,
-  X
+  Shield
 } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
+import { Badge } from "@/components/ui/badge";
+import { History, Zap, Sparkles } from "lucide-react";
 
 interface Message {
   id: string;
@@ -62,12 +58,13 @@ export const Chat = () => {
   const [currentSession, setCurrentSession] = useState<ChatSession | null>(null);
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
-  const [showSidebar, setShowSidebar] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { logApiUsage } = useApiTracking();
 
   useEffect(() => {
     // Check for SpeechRecognition API support
@@ -223,12 +220,12 @@ export const Chat = () => {
   const selectSession = async (session: ChatSession) => {
     setCurrentSession(session);
     await loadMessages(session.id);
-    setShowSidebar(false);
   };
 
   const sendMessage = async () => {
     if (!inputMessage.trim() || isLoading || !currentSession) return;
 
+    const startTime = Date.now();
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -251,10 +248,13 @@ export const Chat = () => {
         }
       ]);
 
-      // Here you would typically call your AI service
-      // For now, we'll simulate a response
+      // Log API usage for prompt
+      await logApiUsage('/chat/prompt', 'prompt');
+
+      // Simulate AI response
       await new Promise(resolve => setTimeout(resolve, 1000));
       
+      const responseTime = Date.now() - startTime;
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -273,6 +273,11 @@ export const Chat = () => {
           content: assistantMessage.content
         }
       ]);
+
+      // Log API usage for response
+      await logApiUsage('/chat/response', 'prompt', responseTime, 200, {
+        message_length: assistantMessage.content.length
+      });
 
       // Update session updated_at
       await supabase
@@ -303,7 +308,7 @@ export const Chat = () => {
     navigate('/');
   };
 
-  const toggleVoiceRecognition = () => {
+  const toggleVoiceRecognition = async () => {
     if (isListening) {
       recognition?.stop();
       setIsListening(false);
@@ -311,6 +316,8 @@ export const Chat = () => {
       if (recognition) {
         recognition.start();
         setIsListening(true);
+        // Log voice input usage
+        await logApiUsage('/voice/input', 'voice');
       }
     }
   };
@@ -327,151 +334,105 @@ export const Chat = () => {
   }, [messages]);
 
   if (!user || !profile) {
-    return <ChatLoading />;
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card>
+          <CardContent className="p-8 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-lg">Loading...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex">
+    <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-30 w-80 bg-slate-900/95 backdrop-blur-lg border-r border-slate-700 transform transition-transform duration-300 ease-in-out ${showSidebar ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static lg:inset-0`}>
-        <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="p-4 border-b border-slate-700">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-white">BarathAI</h2>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowSidebar(false)}
-                className="lg:hidden text-slate-400 hover:text-white"
+      <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
+        {/* Header */}
+        <div className="p-4 border-b border-gray-200">
+          <h2 className="text-xl font-bold text-gray-900">BarathAI</h2>
+          <p className="text-sm text-gray-600 mt-1">
+            Welcome, {profile?.full_name || profile?.email}
+          </p>
+        </div>
+
+        {/* New Chat Button */}
+        <div className="p-4">
+          <Button
+            onClick={createNewSession}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            New Chat
+          </Button>
+        </div>
+
+        {/* Chat Sessions */}
+        <ScrollArea className="flex-1 px-4">
+          <div className="space-y-2">
+            {chatSessions.map((session) => (
+              <Card
+                key={session.id}
+                className={`cursor-pointer transition-all duration-200 ${
+                  currentSession?.id === session.id
+                    ? 'bg-blue-50 border-blue-200'
+                    : 'hover:bg-gray-50'
+                }`}
+                onClick={() => selectSession(session)}
               >
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-            <p className="text-sm text-slate-400 mt-1">
-              Welcome, {profile?.full_name || profile?.email}
-            </p>
+                <CardContent className="p-3">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {session.title}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {new Date(session.updated_at).toLocaleDateString()}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
           </div>
+        </ScrollArea>
 
-          {/* New Chat Button */}
-          <div className="p-4">
-            <Button
-              onClick={createNewSession}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              New Chat
-            </Button>
-          </div>
-
-          {/* Chat Sessions */}
-          <div className="flex-1 overflow-y-auto px-4">
-            <div className="space-y-2">
-              {chatSessions.map((session) => (
-                <Card
-                  key={session.id}
-                  className={`cursor-pointer transition-all duration-200 ${
-                    currentSession?.id === session.id
-                      ? 'bg-purple-600/20 border-purple-500'
-                      : 'bg-slate-800/50 border-slate-700 hover:bg-slate-700/50'
-                  }`}
-                  onClick={() => selectSession(session)}
-                >
-                  <CardContent className="p-3">
-                    <div className="flex items-center">
-                      <MessageSquare className="h-4 w-4 text-slate-400 mr-2 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-white truncate">
-                          {session.title}
-                        </p>
-                        <p className="text-xs text-slate-400">
-                          {new Date(session.updated_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-
-          {/* Navigation */}
-          <div className="p-4 border-t border-slate-700 space-y-2">
-            {isAdmin && (
-              <Button
-                variant="ghost"
-                onClick={() => navigate('/admin')}
-                className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-700"
-              >
-                <Shield className="mr-2 h-4 w-4" />
-                Admin Control
-              </Button>
-            )}
+        {/* Navigation */}
+        <div className="p-4 border-t border-gray-200 space-y-2">
+          {isAdmin && (
             <Button
               variant="ghost"
-              onClick={() => navigate('/settings')}
-              className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-700"
+              onClick={() => navigate('/admin')}
+              className="w-full justify-start text-gray-700 hover:bg-gray-100"
             >
-              <Settings className="mr-2 h-4 w-4" />
-              Settings
+              <Shield className="mr-2 h-4 w-4" />
+              Admin Control
             </Button>
-            <Button
-              variant="ghost"
-              onClick={handleLogout}
-              className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-700"
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              Logout
-            </Button>
-          </div>
-
-          {/* Footer */}
-          <div className="p-2 border-t border-slate-200 dark:border-slate-700 space-y-1 bg-gradient-to-r from-slate-50 to-purple-50 dark:from-slate-700/50 dark:to-purple-900/10 backdrop-blur-lg flex-shrink-0">
-            <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-              Features
-            </div>
-            <div className="flex flex-wrap gap-1">
-              <Badge variant="secondary" className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
-                <Zap className="w-3 h-3 mr-1" />
-                AI Chat
-              </Badge>
-              <Badge variant="secondary" className="text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300">
-                <Sparkles className="w-3 h-3 mr-1" />
-                Smart
-              </Badge>
-              <Badge variant="secondary" className="text-xs bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
-                <History className="w-3 h-3 mr-1" />
-                History
-              </Badge>
-            </div>
-          </div>
+          )}
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/settings')}
+            className="w-full justify-start text-gray-700 hover:bg-gray-100"
+          >
+            <Settings className="mr-2 h-4 w-4" />
+            Settings
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={handleLogout}
+            className="w-full justify-start text-gray-700 hover:bg-gray-100"
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Logout
+          </Button>
         </div>
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col lg:ml-0">
+      <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="bg-slate-800/50 backdrop-blur-lg border-b border-slate-700 p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowSidebar(true)}
-                className="lg:hidden text-slate-400 hover:text-white mr-3"
-              >
-                <Menu className="h-5 w-5" />
-              </Button>
-              <h1 className="text-xl font-semibold text-white">
-                {currentSession?.title || 'New Chat'}
-              </h1>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Badge variant="secondary" className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
-                Online
-              </Badge>
-            </div>
-          </div>
+        <div className="bg-white border-b border-gray-200 p-4">
+          <h1 className="text-xl font-semibold text-gray-900">
+            {currentSession?.title || 'New Chat'}
+          </h1>
         </div>
 
         {/* Messages */}
@@ -485,8 +446,8 @@ export const Chat = () => {
                 <div
                   className={`max-w-[80%] rounded-lg p-4 ${
                     message.role === 'user'
-                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
-                      : 'bg-slate-800/50 text-white border border-slate-700'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white border border-gray-200 text-gray-900'
                   }`}
                 >
                   <div className="flex items-start justify-between">
@@ -502,7 +463,7 @@ export const Chat = () => {
                         variant="ghost"
                         size="sm"
                         onClick={() => copyMessage(message.id, message.content)}
-                        className="text-slate-400 hover:text-white"
+                        className={message.role === 'user' ? 'text-blue-100 hover:text-white' : 'text-gray-400 hover:text-gray-600'}
                       >
                         {copiedMessageId === message.id ? (
                           <Check className="h-4 w-4" />
@@ -520,10 +481,10 @@ export const Chat = () => {
             ))}
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-slate-800/50 text-white border border-slate-700 rounded-lg p-4 max-w-[80%]">
+                <div className="bg-white border border-gray-200 rounded-lg p-4 max-w-[80%]">
                   <div className="flex items-center space-x-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
-                    <span>BarathAI is thinking...</span>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                    <span className="text-gray-600">BarathAI is thinking...</span>
                   </div>
                 </div>
               </div>
@@ -533,7 +494,7 @@ export const Chat = () => {
         </ScrollArea>
 
         {/* Input Area */}
-        <div className="border-t border-slate-700 p-4 bg-slate-800/50 backdrop-blur-lg">
+        <div className="border-t border-gray-200 p-4 bg-white">
           <div className="max-w-4xl mx-auto">
             <div className="flex items-center space-x-4">
               <div className="flex-1 relative">
@@ -542,7 +503,7 @@ export const Chat = () => {
                   onChange={(e) => setInputMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Type your message..."
-                  className="bg-slate-700/50 border-slate-600 text-white placeholder-slate-400 pr-12"
+                  className="pr-12"
                   disabled={isLoading}
                 />
                 <Button
@@ -550,7 +511,7 @@ export const Chat = () => {
                   size="icon"
                   onClick={toggleVoiceRecognition}
                   className={`absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 ${
-                    isListening ? 'text-red-500' : 'text-slate-400 hover:text-white'
+                    isListening ? 'text-red-500' : 'text-gray-400 hover:text-gray-600'
                   }`}
                 >
                   {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
@@ -559,7 +520,7 @@ export const Chat = () => {
               <Button
                 onClick={sendMessage}
                 disabled={!inputMessage.trim() || isLoading}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
               >
                 <Send className="h-4 w-4" />
               </Button>
@@ -567,14 +528,6 @@ export const Chat = () => {
           </div>
         </div>
       </div>
-
-      {/* Sidebar Overlay */}
-      {showSidebar && (
-        <div
-          className="fixed inset-0 bg-black/50 z-20 lg:hidden"
-          onClick={() => setShowSidebar(false)}
-        />
-      )}
     </div>
   );
 };

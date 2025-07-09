@@ -282,6 +282,22 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      log_api_usage: {
+        Args: {
+          p_user_id: string
+          p_user_email: string
+          p_endpoint: string
+          p_request_type: string
+          p_response_time?: number
+          p_status_code?: number
+          p_metadata?: Json
+        }
+        Returns: string
+      }
+      update_user_usage: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
