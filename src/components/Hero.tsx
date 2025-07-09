@@ -7,7 +7,7 @@ export const Hero = () => {
   const navigate = useNavigate();
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center px-4 pt-16 overflow-hidden">
+    <section className="relative min-h-screen flex items-center justify-center px-4 pt-20 sm:pt-16 overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0">
         <div className="absolute top-20 left-10 w-32 h-32 bg-blue-400/10 dark:bg-blue-400/20 rounded-full blur-xl animate-pulse"></div>
@@ -25,12 +25,12 @@ export const Hero = () => {
             </div>
           </div>
           
-          <h1 className="text-5xl md:text-7xl font-bold text-slate-900 dark:text-white mb-6">
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold text-slate-900 dark:text-white mb-6">
             <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-teal-600 bg-clip-text text-transparent">
               BarathAI
             </span>
             <br />
-            <span className="text-3xl md:text-4xl text-slate-700 dark:text-slate-300 font-medium">
+            <span className="text-2xl sm:text-3xl md:text-4xl text-slate-700 dark:text-slate-300 font-medium">
               Your Smartest Assistant
             </span>
           </h1>
@@ -38,17 +38,17 @@ export const Hero = () => {
         
         {/* Animated tagline */}
         <div className="mb-8 animate-fade-in delay-300">
-          <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-400 mb-4">
+          <p className="text-lg sm:text-xl md:text-2xl text-slate-600 dark:text-slate-400 mb-4">
             Chat naturally. Work smarter. Think faster.
           </p>
-          <p className="text-lg text-slate-500 dark:text-slate-500 max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg text-slate-500 dark:text-slate-500 max-w-2xl mx-auto px-4">
             Experience the future of AI conversation with advanced natural language processing, 
             voice interaction, and intelligent responses tailored to your needs.
           </p>
         </div>
 
         {/* Feature highlights */}
-        <div className="flex flex-wrap justify-center gap-4 mb-10 animate-fade-in delay-500">
+        <div className="flex flex-wrap justify-center gap-3 sm:gap-4 mb-8 sm:mb-10 animate-fade-in delay-500 px-4">
           <div className="flex items-center space-x-2 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm px-4 py-2 rounded-full border border-slate-200 dark:border-slate-700">
             <Brain className="h-5 w-5 text-blue-600" />
             <span className="text-sm font-medium text-slate-700 dark:text-slate-300">AI Powered</span>
@@ -64,7 +64,7 @@ export const Hero = () => {
         </div>
         
         {/* CTA buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in delay-700">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in delay-700 px-4">
           <Button 
             size="lg" 
             onClick={() => navigate('/chat')}
@@ -86,16 +86,16 @@ export const Hero = () => {
         </div>
 
         {/* Trust indicators */}
-        <div className="mt-16 animate-fade-in delay-1000">
+        <div className="mt-12 sm:mt-16 animate-fade-in delay-1000 px-4">
           <p className="text-sm text-slate-500 dark:text-slate-500 mb-4">Trusted by thousands of users worldwide</p>
-          <div className="flex justify-center items-center space-x-8 opacity-60">
-            <div className="text-2xl font-bold text-slate-400 dark:text-slate-600">10K+</div>
-            <div className="w-px h-8 bg-slate-300 dark:bg-slate-600"></div>
-            <div className="text-2xl font-bold text-slate-400 dark:text-slate-600">24/7</div>
-            <div className="w-px h-8 bg-slate-300 dark:bg-slate-600"></div>
-            <div className="text-2xl font-bold text-slate-400 dark:text-slate-600">99.9%</div>
+          <div className="flex justify-center items-center space-x-4 sm:space-x-8 opacity-60">
+            <div className="text-xl sm:text-2xl font-bold text-slate-400 dark:text-slate-600">10K+</div>
+            <div className="w-px h-6 sm:h-8 bg-slate-300 dark:bg-slate-600"></div>
+            <div className="text-xl sm:text-2xl font-bold text-slate-400 dark:text-slate-600">24/7</div>
+            <div className="w-px h-6 sm:h-8 bg-slate-300 dark:bg-slate-600"></div>
+            <div className="text-xl sm:text-2xl font-bold text-slate-400 dark:text-slate-600">99.9%</div>
           </div>
-          <div className="flex justify-center items-center space-x-8 mt-2">
+          <div className="flex justify-center items-center space-x-4 sm:space-x-8 mt-2">
             <div className="text-xs text-slate-400 dark:text-slate-500">Active Users</div>
             <div className="text-xs text-slate-400 dark:text-slate-500">Available</div>
             <div className="text-xs text-slate-400 dark:text-slate-500">Uptime</div>

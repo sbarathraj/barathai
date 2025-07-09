@@ -204,9 +204,9 @@ export const ProfessionalMarkdown: React.FC<ProfessionalMarkdownProps> = ({
           ),
           
           // Enhanced list styling
-          ul: ({ children }) => <ul className="list-disc pl-5 space-y-0.5 mb-1 text-[15px] marker:text-xs marker:leading-none">{children}</ul>,
-          ol: ({ children }) => <ol className="list-decimal pl-5 space-y-0.5 mb-1 text-[15px] marker:text-xs marker:leading-none">{children}</ol>,
-          li: ({ children }) => <li className="mb-0.5 leading-tight text-[15px]">{children}</li>,
+          ul: ({ children }) => <ul className="list-disc list-outside pl-6 space-y-0.5 mb-1 text-[15px] marker:text-xs marker:leading-none">{children}</ul>,
+          ol: ({ children }) => <ol className="list-decimal list-outside pl-6 space-y-0.5 mb-1 text-[15px] marker:text-xs marker:leading-none">{children}</ol>,
+          li: ({ children }) => <li className="mb-0.5 leading-relaxed break-words text-[15px]">{children}</li>,
           
           // Enhanced blockquote
           blockquote: ({ children }) => (
@@ -228,20 +228,46 @@ export const ProfessionalMarkdown: React.FC<ProfessionalMarkdownProps> = ({
             const codeString = String(children).replace(/\n$/, "");
             codeBlockIndex++;
             if (!inline) {
+              // Language label logic
+              let langLabel = 'Text';
+              if (match && match[1]) {
+                langLabel = match[1].charAt(0).toUpperCase() + match[1].slice(1);
+              }
+              
+              // Special handling for text blocks (separators, plain content)
+              if (langLabel.toLowerCase() === 'text') {
+                return (
+                  <div className="relative group mb-6 mt-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4">
+                    <pre className="overflow-x-auto text-[15px] font-mono text-slate-700 dark:text-slate-300">
+                      <code>{children}</code>
+                    </pre>
+                  </div>
+                );
+              }
+              
+              // Regular code blocks with header
               return (
-                <div className="relative group">
-                  <pre className={clsx(className, "rounded-lg bg-slate-100 dark:bg-slate-900 p-4 overflow-x-auto text-sm")}
+                <div className="relative group mb-6 mt-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-md overflow-hidden">
+                  {/* Header bar with language and copy button */}
+                  <div className="flex items-center justify-between px-4 py-2 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-600">
+                    <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+                      {langLabel}
+                    </span>
+                    <button
+                      className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                      onClick={() => copyToClipboard(codeString, codeBlockIndex)}
+                      title="Copy code"
+                      aria-label="Copy code block"
+                    >
+                      {copiedIndex === codeBlockIndex ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+                    </button>
+                  </div>
+                  {/* Code content */}
+                  <pre className={clsx(className, "bg-slate-100 dark:bg-slate-900 p-4 overflow-x-auto text-[15px] font-mono")}
+                    style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace' }}
                   >
                     <code>{children}</code>
                   </pre>
-                  <button
-                    className={`absolute top-2 right-2 z-10 p-1 rounded-md bg-white/80 dark:bg-slate-700/80 border border-slate-200 dark:border-slate-600 shadow hover:bg-slate-100 dark:hover:bg-slate-800 transition-opacity duration-200 ${typeof window !== 'undefined' && window.innerWidth < 768 ? '' : 'opacity-0 group-hover:opacity-100'}`}
-                    onClick={() => copyToClipboard(codeString, codeBlockIndex)}
-                    title="Copy code"
-                    aria-label="Copy code block"
-                  >
-                    {copiedIndex === codeBlockIndex ? <Check size={18} className="text-green-500" /> : <Copy size={18} />}
-                  </button>
                 </div>
               );
             }
@@ -282,7 +308,7 @@ export const ProfessionalMarkdown: React.FC<ProfessionalMarkdownProps> = ({
           
           // Enhanced horizontal rule
           hr: ({ ...props }) => (
-            <hr className="my-12 border-0 h-px bg-gradient-to-r from-transparent via-slate-300 dark:via-slate-600 to-transparent" {...props} />
+            <hr className="my-12 mt-8 border-0 h-px bg-gradient-to-r from-transparent via-slate-300 dark:via-slate-600 to-transparent" {...props} />
           ),
         }}
       >
