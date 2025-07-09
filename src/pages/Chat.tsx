@@ -11,7 +11,7 @@ import { ErrorBanner, LoadingSpinner } from "@/components/ErrorBoundary";
 import { Logo } from "@/components/Logo";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
-import { sendRateLimitAlert } from '@/lib/utils';
+import { sendRateLimitAlert } from '@/lib/server-utils';
 
 interface Message {
   id: string;
