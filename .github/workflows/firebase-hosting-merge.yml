@@ -22,7 +22,6 @@ jobs:
           GMAIL_PASS: ${{ secrets.GMAIL_PASS }}
           GMAIL_ALERT_TO: ${{ secrets.GMAIL_ALERT_TO }}
         run: npm run build
-        
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
