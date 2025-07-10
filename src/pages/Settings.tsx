@@ -14,7 +14,7 @@ export const Settings = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  const [darkMode, setDarkMode] = useState(true);
+  const [darkMode, setDarkMode] = useState(false);
   const [voiceInputEnabled, setVoiceInputEnabled] = useState(true);
   const [voiceOutputEnabled, setVoiceOutputEnabled] = useState(true);
   const [soundEffectsEnabled, setSoundEffectsEnabled] = useState(true);
@@ -27,12 +27,14 @@ export const Settings = () => {
     const savedSettings = localStorage.getItem('barathAI-settings');
     if (savedSettings) {
       const settings = JSON.parse(savedSettings);
-      setDarkMode(settings.darkMode ?? true);
+      setDarkMode(settings.darkMode ?? false);
       setVoiceInputEnabled(settings.voiceInputEnabled ?? true);
       setVoiceOutputEnabled(settings.voiceOutputEnabled ?? true);
       setSoundEffectsEnabled(settings.soundEffectsEnabled ?? true);
       setNotificationsEnabled(settings.notificationsEnabled ?? true);
       setSelectedLanguage(settings.language ?? 'en');
+    } else {
+      setDarkMode(false); // Default to light mode
     }
 
     // Apply theme

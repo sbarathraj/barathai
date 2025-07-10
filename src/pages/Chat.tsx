@@ -46,7 +46,8 @@ export const Chat = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('barathAI-darkMode');
-    return saved ? JSON.parse(saved) : true;
+    // Default to light mode (false) unless user has explicitly chosen dark
+    return saved ? JSON.parse(saved) : false;
   });
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string>('');

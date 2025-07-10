@@ -27,9 +27,10 @@ export const ProfessionalMarkdown: React.FC<ProfessionalMarkdownProps> = ({
   className = "" 
 }) => {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-  const [isDarkMode, setIsDarkMode] = useState(() => 
-    document.documentElement.classList.contains('dark')
-  );
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    // Default to light mode unless user has chosen dark
+    return document.documentElement.classList.contains('dark');
+  });
 
   useEffect(() => {
     const observer = new MutationObserver(() => {

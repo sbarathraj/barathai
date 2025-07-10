@@ -14,9 +14,10 @@ interface MarkdownRendererProps {
 
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, className = "" }) => {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-  const [isDarkMode, setIsDarkMode] = useState(() => 
-    document.documentElement.classList.contains('dark')
-  );
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    // Default to light mode unless user has chosen dark
+    return document.documentElement.classList.contains('dark');
+  });
 
   // Listen for theme changes
   React.useEffect(() => {

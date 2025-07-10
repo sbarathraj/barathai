@@ -19,8 +19,8 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <div className="min-h-screen flex flex-col">
-          <div className="flex-1">
+        <div className="min-h-screen w-full bg-gradient-to-br from-rose-200/80 via-rose-100/70 to-pink-200/80 dark:from-rose-900/80 dark:via-rose-800/70 dark:to-pink-900/80 backdrop-blur-2xl flex flex-col items-center justify-center border border-white/30 dark:border-slate-800/40 shadow-2xl">
+          <div className="flex-1 w-full">
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />

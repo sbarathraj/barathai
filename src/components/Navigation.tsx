@@ -1,22 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Moon, Sun, Menu, X, MessageCircle, Settings, User, LogOut } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Logo } from "@/components/Logo";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Navigation = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [darkMode, setDarkMode] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [user, setUser] = useState(null);
 
+  // Section tracking logic
+  const sectionIds = ["hero", "features", "how-it-works", "testimonials", "get-started"];
+  const [activeSection, setActiveSection] = useState<string>("hero");
+
   useEffect(() => {
     // Check for saved theme preference
     const savedTheme = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const shouldUseDark = savedTheme === 'dark' || (!savedTheme && prefersDark);
-    
+    // Default to light mode unless user has chosen dark
+    const shouldUseDark = savedTheme === 'dark';
     setDarkMode(shouldUseDark);
     if (shouldUseDark) {
       document.documentElement.classList.add('dark');
@@ -40,6 +44,26 @@ export const Navigation = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  useEffect(() => {
+    if (location.pathname !== "/") return;
+    const handleScroll = () => {
+      let current = "hero";
+      for (const id of sectionIds) {
+        const el = document.getElementById(id);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          if (rect.top <= 120) {
+            current = id;
+          }
+        }
+      }
+      setActiveSection(current);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [location.pathname]);
+
   const toggleTheme = () => {
     const newDarkMode = !darkMode;
     setDarkMode(newDarkMode);
@@ -59,7 +83,7 @@ export const Navigation = () => {
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-b border-slate-200 dark:border-slate-700 transition-colors duration-300 w-full">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/60 dark:bg-slate-900/60 backdrop-blur-2xl border-b border-white/30 dark:border-slate-800/40 shadow-xl transition-all duration-500 w-full animate-fade-in-slide-down">
       <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 w-full">
           {/* Logo */}
@@ -69,6 +93,31 @@ export const Navigation = () => {
               BarathAI
             </span>
           </div>
+          {/* Section links (only on landing page) */}
+          {location.pathname === "/" && (
+            <div className="hidden md:flex items-center space-x-4">
+              {[
+                { id: "hero", label: "Home" },
+                { id: "features", label: "Features" },
+                { id: "how-it-works", label: "How It Works" },
+                { id: "testimonials", label: "Testimonials" },
+                { id: "get-started", label: "Get Started" },
+              ].map(({ id, label }) => (
+                <button
+                  key={id}
+                  onClick={() => {
+                    const el = document.getElementById(id);
+                    if (el) {
+                      el.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }
+                  }}
+                  className={`px-3 py-1 rounded-full font-medium text-sm transition-all duration-200 ${activeSection === id ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md" : "text-slate-700 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-700/40"}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-6">
