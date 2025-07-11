@@ -92,7 +92,8 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
       .eq('id', userId);
 
     if (error) {
-      setToast({ type: 'error', message: 'Failed to update user status.' });
+      console.error('Failed to update user status:', error);
+      setToast({ type: 'error', message: `Failed to update user status: ${error.message}` });
     } else {
       setToast({ type: 'success', message: `User status updated to ${newStatus}.` });
       fetchUsers();

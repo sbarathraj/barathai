@@ -160,7 +160,7 @@ export const Auth = () => {
       return;
     }
     setForgotLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, { redirectTo: `${window.location.origin}/auth` });
+    const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, { redirectTo: `${window.location.origin}/reset-password` });
     setForgotLoading(false);
     if (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
