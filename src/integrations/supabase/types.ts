@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_usage_logs: {
+        Row: {
+          api_name: string
+          created_at: string | null
+          endpoint_hit: string
+          error_message: string | null
+          id: string
+          ip_address: unknown | null
+          request_method: string | null
+          request_payload: Json | null
+          response_payload: Json | null
+          response_time: number | null
+          status_code: number | null
+          user_agent: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          api_name: string
+          created_at?: string | null
+          endpoint_hit: string
+          error_message?: string | null
+          id?: string
+          ip_address?: unknown | null
+          request_method?: string | null
+          request_payload?: Json | null
+          response_payload?: Json | null
+          response_time?: number | null
+          status_code?: number | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          api_name?: string
+          created_at?: string | null
+          endpoint_hit?: string
+          error_message?: string | null
+          id?: string
+          ip_address?: unknown | null
+          request_method?: string | null
+          request_payload?: Json | null
+          response_payload?: Json | null
+          response_time?: number | null
+          status_code?: number | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       chat_sessions: {
         Row: {
           created_at: string
@@ -78,27 +129,39 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_status: string | null
           avatar_url: string | null
           created_at: string
+          created_by: string | null
           email: string | null
           full_name: string | null
           id: string
+          last_login: string | null
+          modified_at: string | null
           updated_at: string
         }
         Insert: {
+          account_status?: string | null
           avatar_url?: string | null
           created_at?: string
+          created_by?: string | null
           email?: string | null
           full_name?: string | null
           id: string
+          last_login?: string | null
+          modified_at?: string | null
           updated_at?: string
         }
         Update: {
+          account_status?: string | null
           avatar_url?: string | null
           created_at?: string
+          created_by?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
+          last_login?: string | null
+          modified_at?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -111,6 +174,49 @@ export type Database = {
       generate_unique_url: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_api_usage_count: {
+        Args: { request_type_filter?: string }
+        Returns: number
+      }
+      get_user_count: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      log_api_usage: {
+        Args:
+          | {
+              p_user_id: string
+              p_user_email: string
+              p_api_name: string
+              p_endpoint_hit: string
+              p_request_method?: string
+              p_response_time?: number
+              p_status_code?: number
+              p_request_payload?: Json
+              p_response_payload?: Json
+              p_error_message?: string
+              p_ip_address?: unknown
+              p_user_agent?: string
+            }
+          | {
+              p_user_id: string
+              p_user_email: string
+              p_endpoint: string
+              p_request_type: string
+              p_response_time?: number
+              p_status_code?: number
+              p_metadata?: Json
+            }
+        Returns: string
+      }
+      update_user_last_login: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
+      update_user_usage: {
+        Args: { p_user_id: string }
+        Returns: undefined
       }
     }
     Enums: {
