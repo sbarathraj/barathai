@@ -165,7 +165,7 @@ export const Navigation = () => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => setAdminPanelOpen(true)}
+                    onClick={() => navigate('/admin')}
                     className="text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                     title="Admin Panel"
                   >

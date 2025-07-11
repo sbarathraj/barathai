@@ -11,7 +11,6 @@ import { ErrorBanner, LoadingSpinner } from "@/components/ErrorBoundary";
 import { Logo } from "@/components/Logo";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
-import AdminPanel from "@/components/AdminPanel";
 
 interface Message {
   id: string;
@@ -73,7 +72,6 @@ export const Chat = () => {
   const [inputHeight, setInputHeight] = useState<number>(0);
   const [copiedMsgId, setCopiedMsgId] = useState<string | null>(null);
   const [profile, setProfile] = useState<{ full_name: string | null } | null>(null);
-  const [adminPanelOpen, setAdminPanelOpen] = useState(false);
 
   // API Configuration
   const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
@@ -407,6 +405,26 @@ export const Chat = () => {
     }
   };
 
+  const logApiUsage = async ({ user_id, user_email, api_name, endpoint_hit, request_method, request_payload, response_payload, response_time, status_code }: any) => {
+    const { error } = await supabase.from('api_usage_logs').insert({
+      user_id,
+      user_email,
+      api_name,
+      endpoint_hit,
+      request_method,
+      request_payload,
+      response_payload,
+      response_time,
+      status_code,
+      created_at: new Date().toISOString(),
+    });
+    return !error;
+  };
+
+  function sleep(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
   const sendMessage = async () => {
     if (!message.trim() || isLoading || !currentSessionId || !user) {
       return;
@@ -471,49 +489,116 @@ export const Chat = () => {
       let usedApiUrl = API_URL;
       let triedSecondary = false;
       let response;
-      
-      while (true) {
-        response = await fetch(usedApiUrl, {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${usedApiKey}`,
-            "Content-Type": "application/json",
-            "HTTP-Referer": window.location.origin,
-            "X-Title": "BarathAI Chat"
-          },
-          body: JSON.stringify(requestBody)
-        });
-        if (response.status === 429) {
-          const today = new Date().toISOString().slice(0, 10);
-          const lastSent = localStorage.getItem('barathai_429_alert_date');
-          if (lastSent !== today) {
-            localStorage.setItem('barathai_429_alert_date', today);
+      let apiError = null;
+      let apiResponseData = null;
+      let apiStatus = null;
+      let apiResponseTime = null;
+      let apiName = null;
+      let attempt = 0;
+      const maxAttempts = 3;
+      while (attempt < maxAttempts) {
+        attempt++;
+        const attemptStart = Date.now();
+        try {
+          response = await fetch(usedApiUrl, {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${usedApiKey}`,
+              "Content-Type": "application/json",
+              "HTTP-Referer": window.location.origin,
+              "X-Title": "BarathAI Chat"
+            },
+            body: JSON.stringify(requestBody)
+          });
+          apiResponseTime = Date.now() - attemptStart;
+          apiStatus = response.status;
+          apiName = usedApiUrl.includes('openrouter') ? (usedApiUrl === API_URL ? 'OpenRouter_API_1' : 'OpenRouter_API_2') : 'Unknown';
+          let logSuccess = false;
+          if (!response.ok) {
+            const errorText = await response.text();
+            apiError = errorText;
+            logSuccess = await logApiUsage({
+              user_id: user.id,
+              user_email: user.email,
+              api_name: apiName,
+              endpoint_hit: usedApiUrl,
+              request_method: 'POST',
+              request_payload: requestBody,
+              response_payload: { error: errorText },
+              response_time: apiResponseTime,
+              status_code: apiStatus
+            });
+            if (apiStatus === 429 && !triedSecondary && OPENROUTER_API_KEY2) {
+              usedApiKey = OPENROUTER_API_KEY2;
+              usedApiUrl = API_URL2;
+              triedSecondary = true;
+              continue;
+            }
+            if (attempt < maxAttempts) {
+              await sleep(1000 * attempt); // Exponential backoff
+              continue;
+            }
+            setError(`API error (${apiStatus}): ${errorText}`);
+            setIsLoading(false);
+            setIsBarathAITyping(false);
+            return;
+          } else {
+            apiResponseData = await response.json();
+            logSuccess = await logApiUsage({
+              user_id: user.id,
+              user_email: user.email,
+              api_name: apiName,
+              endpoint_hit: usedApiUrl,
+              request_method: 'POST',
+              request_payload: requestBody,
+              response_payload: apiResponseData,
+              response_time: apiResponseTime,
+              status_code: apiStatus
+            });
+            if (!logSuccess) {
+              setError('Failed to log API usage. Please try again.');
+              setIsLoading(false);
+              setIsBarathAITyping(false);
+              return;
+            }
+            break;
           }
+        } catch (err: any) {
+          apiResponseTime = Date.now() - attemptStart;
+          apiStatus = null;
+          apiError = err.message || 'Network error';
+          await logApiUsage({
+            user_id: user.id,
+            user_email: user.email,
+            api_name: apiName || 'Unknown',
+            endpoint_hit: usedApiUrl,
+            request_method: 'POST',
+            request_payload: requestBody,
+            response_payload: { error: apiError },
+            response_time: apiResponseTime,
+            status_code: apiStatus
+          });
+          if (attempt < maxAttempts) {
+            await sleep(1000 * attempt); // Exponential backoff
+            continue;
+          }
+          setError('Network error. Please try again.');
+          setIsLoading(false);
+          setIsBarathAITyping(false);
+          return;
         }
-        if (response.status !== 429) break;
-        
-        if (triedSecondary || !OPENROUTER_API_KEY2) {
-          break;
-        }
-        usedApiKey = OPENROUTER_API_KEY2;
-        usedApiUrl = API_URL2;
-        triedSecondary = true;
       }
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`API error (${response.status}): ${errorText}`);
-      }
-      
-      const data = await response.json();
-
-      if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-        throw new Error('Invalid response format from API');
+      if (!apiResponseData || !apiResponseData.choices || !apiResponseData.choices[0] || !apiResponseData.choices[0].message) {
+        setError('Invalid response format from API');
+        setIsLoading(false);
+        setIsBarathAITyping(false);
+        return;
       }
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: data.choices[0].message.content,
+        content: apiResponseData.choices[0].message.content,
         role: 'assistant',
         timestamp: new Date()
       };
@@ -1127,7 +1212,7 @@ export const Chat = () => {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => setAdminPanelOpen(true)}
+                  onClick={() => navigate('/admin')}
                   className="text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                   title="Admin Panel"
                 >
@@ -1369,13 +1454,6 @@ export const Chat = () => {
           </div>
         </div>
       </div>
-      {adminPanelOpen && (
-        <AdminPanel
-          open={adminPanelOpen}
-          onClose={() => setAdminPanelOpen(false)}
-          currentUser={user}
-        />
-      )}
     </div>
   );
 };

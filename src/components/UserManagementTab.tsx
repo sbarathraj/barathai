@@ -4,12 +4,23 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import * as XLSX from 'xlsx';
+import { WorkBook, WorkSheet } from 'xlsx';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faUser, faFileExcel } from '@fortawesome/free-solid-svg-icons';
 
 const getInitials = (name: string | null) => {
   if (!name) return '?';
   const parts = name.split(' ');
   if (parts.length === 1) return parts[0][0].toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+};
+
+// Helper for date-time formatting
+const formatDateTime = (iso: string) => {
+  if (!iso) return '-';
+  const d = new Date(iso);
+  return d.toLocaleString('en-GB', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/\//g, '-');
 };
 
 interface UserManagementTabProps {
@@ -23,6 +34,7 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editStatus, setEditStatus] = useState('active');
+  const [editRole, setEditRole] = useState('user');
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const isAdmin = currentUser?.email === 'jcibarathraj@gmail.com';
@@ -45,6 +57,7 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
     setEditName(user.full_name || '');
     setEditEmail(user.email || '');
     setEditStatus(user.account_status || 'active');
+    setEditRole(user.role || 'user');
   };
 
   const saveEdit = async (id: string) => {
@@ -54,6 +67,7 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
         full_name: editName, 
         email: editEmail, 
         account_status: editStatus,
+        role: editRole,
         modified_at: new Date().toISOString()
       })
       .eq('id', id);
@@ -85,6 +99,38 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
     }
   };
 
+  const exportToExcel = () => {
+    const data = users.map(u => ({
+      ID: u.id,
+      Name: u.full_name,
+      Email: u.email,
+      Status: u.account_status,
+      Role: u.role,
+      Created: u.created_at,
+      Modified: u.modified_at,
+      LastLogin: u.last_login
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    // Add colored header row
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const cell = ws[XLSX.utils.encode_cell({ r: 0, c: C })];
+      if (cell) {
+        cell.s = {
+          fill: { fgColor: { rgb: 'F472B6' } }, // pink
+          font: { color: { rgb: 'FFFFFF' }, bold: true },
+          alignment: { horizontal: 'center' }
+        };
+      }
+    }
+    ws['!cols'] = [
+      { wch: 24 }, { wch: 24 }, { wch: 32 }, { wch: 16 }, { wch: 16 }, { wch: 24 }, { wch: 24 }, { wch: 24 }
+    ];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Users');
+    XLSX.writeFile(wb, `users_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.xlsx`);
+  };
+
   useEffect(() => {
     if (toast) {
       const timer = setTimeout(() => setToast(null), 3000);
@@ -104,19 +150,27 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
         </div>
       )}
 
-      <div className="bg-white dark:bg-slate-800 rounded-lg p-6 shadow-sm">
+      <div className="bg-white dark:bg-slate-800 rounded-lg p-6 shadow-sm overflow-x-auto">
         <h3 className="text-lg font-semibold mb-4 text-slate-800 dark:text-slate-100">User Management</h3>
         
         {loading ? (
           <div className="flex justify-center items-center h-32 text-slate-500">Loading users...</div>
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
+          <div className="overflow-x-auto w-full">
+            <Button
+              onClick={exportToExcel}
+              className="mb-4 bg-gradient-to-r from-green-400 via-blue-400 to-green-600 text-white font-semibold px-6 py-2 rounded-full shadow-lg flex items-center gap-2 hover:from-green-500 hover:to-blue-500 transition-all duration-200 border-0 w-full sm:w-auto text-base sm:text-lg"
+            >
+              <FontAwesomeIcon icon={faFileExcel} className="text-white mr-2" />
+              Export to Excel
+            </Button>
+            <Table className="min-w-[700px] text-xs sm:text-sm md:text-base">
               <TableHeader>
                 <TableRow>
                   <TableHead>User</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Role</TableHead>
                   <TableHead>Last Login</TableHead>
                   <TableHead>Created</TableHead>
                   <TableHead>Modified</TableHead>
@@ -127,13 +181,9 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
                 {users.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 sm:gap-3 flex-col sm:flex-row items-start sm:items-center">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-pink-400 flex items-center justify-center text-white font-bold text-sm">
-                          {user.avatar_url ? (
-                            <img src={user.avatar_url} alt="avatar" className="w-8 h-8 rounded-full object-cover" />
-                          ) : (
-                            getInitials(user.full_name)
-                          )}
+                          <FontAwesomeIcon icon={faUser} size="lg" className="text-white drop-shadow" style={{ background: 'linear-gradient(135deg, #60a5fa 0%, #f472b6 100%)', borderRadius: '50%', padding: '4px' }} />
                         </div>
                         {editingId === user.id ? (
                           <div className="flex flex-col gap-1">
@@ -192,55 +242,51 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
                       )}
                     </TableCell>
                     <TableCell>
-                      <span className="text-slate-500 text-sm">
-                        {user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-slate-500 text-sm">
-                        {new Date(user.created_at).toLocaleDateString()}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-slate-500 text-sm">
-                        {user.modified_at ? new Date(user.modified_at).toLocaleDateString() : 'Never'}
-                      </span>
-                    </TableCell>
-                    <TableCell>
                       {editingId === user.id ? (
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline" onClick={() => saveEdit(user.id)}>
-                            Save
-                          </Button>
-                          <Button size="sm" variant="ghost" onClick={cancelEdit}>
-                            Cancel
-                          </Button>
-                        </div>
+                        <select
+                          className="border border-blue-300 focus:border-blue-500 rounded px-2 py-1 text-sm outline-none"
+                          value={editRole}
+                          onChange={e => setEditRole(e.target.value)}
+                        >
+                          <option value="user">User</option>
+                          <option value="admin">Admin</option>
+                          <option value="moderator">Moderator</option>
+                        </select>
                       ) : (
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline" onClick={() => startEdit(user)}>
-                            Edit
-                          </Button>
-                          {user.account_status !== 'suspended' && (
-                            <Button 
-                              size="sm" 
-                              variant="destructive" 
-                              onClick={() => updateUserStatus(user.id, 'suspended')}
-                            >
-                              Suspend
-                            </Button>
-                          )}
-                          {user.account_status === 'suspended' && (
-                            <Button 
-                              size="sm" 
-                              variant="default" 
-                              onClick={() => updateUserStatus(user.id, 'active')}
-                            >
-                              Activate
-                            </Button>
-                          )}
-                        </div>
+                        <span className="text-slate-600 dark:text-slate-300">{user.role || 'user'}</span>
                       )}
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-slate-600 dark:text-slate-300 text-xs font-mono">
+                        {user.last_login ? formatDateTime(user.last_login) : '-'}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-slate-600 dark:text-slate-300 text-xs font-mono">
+                        {user.created_at ? formatDateTime(user.created_at) : '-'}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-slate-600 dark:text-slate-300 text-xs font-mono">
+                        {user.modified_at ? formatDateTime(user.modified_at) : '-'}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        {editingId === user.id ? (
+                          <>
+                            <Button size="sm" onClick={() => saveEdit(user.id)} className="bg-blue-500 text-white w-full sm:w-auto">Save</Button>
+                            <Button size="sm" variant="outline" onClick={cancelEdit} className="w-full sm:w-auto">Cancel</Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button size="sm" onClick={() => startEdit(user)} className="bg-blue-500 text-white w-full sm:w-auto">Edit</Button>
+                            <Button size="sm" variant="outline" onClick={() => updateUserStatus(user.id, user.account_status === 'active' ? 'inactive' : 'active')} className="w-full sm:w-auto">
+                              {user.account_status === 'active' ? 'Deactivate' : 'Activate'}
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

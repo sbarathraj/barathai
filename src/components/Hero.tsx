@@ -6,21 +6,7 @@ import { useEffect, useRef, useState } from "react";
 
 export const Hero = () => {
   const navigate = useNavigate();
-  const [typedText, setTypedText] = useState("");
-  const tagline = "Chat naturally. Work smarter. Think faster.";
-  const typingIndex = useRef(0);
-
-  // Typewriter effect for tagline
-  useEffect(() => {
-    setTypedText("");
-    typingIndex.current = 0;
-    const interval = setInterval(() => {
-      setTypedText((prev) => prev + tagline[typingIndex.current]);
-      typingIndex.current++;
-      if (typingIndex.current >= tagline.length) clearInterval(interval);
-    }, 32);
-    return () => clearInterval(interval);
-  }, []);
+  const tagline = "Converse with AI. Boost productivity. Unlock creativity.";
 
   return (
     <section className="relative min-h-screen flex items-center justify-center px-4 pt-24 sm:pt-20 overflow-hidden">
@@ -46,11 +32,10 @@ export const Hero = () => {
         <h2 className="text-2xl sm:text-3xl md:text-4xl text-slate-700 dark:text-slate-300 font-medium animate-fade-in delay-200 mb-4">
           Your Smartest Assistant
         </h2>
-        {/* Animated tagline */}
-        <div className="mb-6 min-h-[2.5rem] animate-fade-in delay-300">
-          <span className="text-lg sm:text-xl md:text-2xl text-slate-600 dark:text-slate-400 font-mono tracking-wide">
-            {typedText}
-            <span className="inline-block w-2 h-6 bg-gradient-to-r from-blue-500 to-purple-500 rounded animate-blink align-middle ml-1" />
+        {/* Static tagline */}
+        <div className="mb-6 animate-fade-in delay-300">
+          <span className="text-lg sm:text-xl md:text-2xl text-slate-600 dark:text-slate-400 font-semibold tracking-wide">
+            {tagline}
           </span>
         </div>
         {/* Feature highlights */}

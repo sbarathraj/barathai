@@ -21,6 +21,9 @@ export const Auth = () => {
     password: '',
     fullName: ''
   });
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
 
   useEffect(() => {
     // Check if user is already authenticated and redirect to chat
@@ -150,6 +153,24 @@ export const Auth = () => {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail) {
+      toast({ title: 'Error', description: 'Please enter your email', variant: 'destructive' });
+      return;
+    }
+    setForgotLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, { redirectTo: `${window.location.origin}/auth` });
+    setForgotLoading(false);
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Check your email', description: 'A password reset link has been sent to your email.' });
+      setShowForgot(false);
+      setForgotEmail('');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-2xl border-0 bg-white/70 dark:bg-slate-900/80 backdrop-blur-2xl rounded-3xl">
@@ -236,7 +257,7 @@ export const Auth = () => {
                   <button
                     type="button"
                     className="text-xs text-blue-600 dark:text-blue-400 hover:underline focus:outline-none"
-                    onClick={() => toast({ title: 'Forgot password?', description: 'Password reset coming soon!' })}
+                    onClick={() => navigate('/forgot-password')}
                   >
                     Forgot password?
                   </button>
