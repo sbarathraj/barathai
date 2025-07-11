@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Mic, MicOff, Menu, X, Plus, Settings, LogOut, Moon, Sun, User, Search, Edit2, Trash2, WifiOff, Crown, Zap, Brain, Sparkles, Copy, Check, Lock } from "lucide-react";
+import { Send, Mic, MicOff, Menu, X, Plus, Settings, LogOut, Moon, Sun, User, Search, Edit2, Trash2, WifiOff, Crown, Zap, Brain, Sparkles, Copy, Check, Lock, User as UserIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -11,6 +11,7 @@ import { ErrorBanner, LoadingSpinner } from "@/components/ErrorBoundary";
 import { Logo } from "@/components/Logo";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import AdminPanel from "@/components/AdminPanel";
 
 interface Message {
   id: string;
@@ -72,6 +73,7 @@ export const Chat = () => {
   const [inputHeight, setInputHeight] = useState<number>(0);
   const [copiedMsgId, setCopiedMsgId] = useState<string | null>(null);
   const [profile, setProfile] = useState<{ full_name: string | null } | null>(null);
+  const [adminPanelOpen, setAdminPanelOpen] = useState(false);
 
   // API Configuration
   const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
@@ -1121,6 +1123,17 @@ export const Chat = () => {
               >
                 {darkMode ? <Sun size={20} /> : <Moon size={20} />}
               </Button>
+              {user && user.email === 'jcibarathraj@gmail.com' && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setAdminPanelOpen(true)}
+                  className="text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  title="Admin Panel"
+                >
+                  <UserIcon className="h-5 w-5" />
+                </Button>
+              )}
               <Button
                 onClick={() => navigate('/settings')}
                 variant="ghost"
@@ -1356,6 +1369,13 @@ export const Chat = () => {
           </div>
         </div>
       </div>
+      {adminPanelOpen && (
+        <AdminPanel
+          open={adminPanelOpen}
+          onClose={() => setAdminPanelOpen(false)}
+          currentUser={user}
+        />
+      )}
     </div>
   );
 };

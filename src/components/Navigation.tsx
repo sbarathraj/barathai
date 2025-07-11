@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, Menu, X, MessageCircle, Settings, User, LogOut } from "lucide-react";
+import { Moon, Sun, Menu, X, MessageCircle, Settings, User, LogOut, User as UserIcon } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Logo } from "@/components/Logo";
 import { supabase } from "@/integrations/supabase/client";
+import AdminPanel from "./AdminPanel";
 
 export const Navigation = () => {
   const navigate = useNavigate();
@@ -11,6 +12,7 @@ export const Navigation = () => {
   const [darkMode, setDarkMode] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [user, setUser] = useState(null);
+  const [adminPanelOpen, setAdminPanelOpen] = useState(false);
 
   // Section tracking logic
   const sectionIds = ["hero", "features", "how-it-works", "testimonials", "get-started"];
@@ -160,6 +162,15 @@ export const Navigation = () => {
                   >
                     <LogOut className="h-5 w-5" />
                   </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setAdminPanelOpen(true)}
+                    className="text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                    title="Admin Panel"
+                  >
+                    <UserIcon className="h-5 w-5" />
+                  </Button>
                 </>
               ) : (
                 <>
@@ -207,6 +218,17 @@ export const Navigation = () => {
               >
                 {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
               </Button>
+              {user && user.email === 'jcibarathraj@gmail.com' && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate('/admin')}
+                  className="text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  title="Admin Panel"
+                >
+                  <UserIcon className="h-5 w-5" />
+                </Button>
+              )}
             </div>
           </div>
 
