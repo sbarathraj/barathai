@@ -1,86 +1,45 @@
-# Welcome to your Lovable project
+# About BarathAI
 
-## Project info
+BarathAI is a modern, professional, AI-powered web application designed for seamless chat, real-time collaboration, and efficient admin management. Built with React, TypeScript, and Supabase, BarathAI delivers a beautiful, responsive user experience with advanced features for both end-users and administrators. The platform emphasizes productivity, security, and a delightful UI, making it ideal for individuals and teams seeking a next-generation AI assistant and management tool.
 
-**URL**: https://lovable.dev/projects/094068e3-284b-4d4c-a339-6b3dae550042
+# BarathAI Project Overview
 
-## How can I edit this code?
+This project is a modern, full-stack AI-powered web application. It is organized as follows:
 
-There are several ways of editing your application.
+## Project Structure
 
-**Use Lovable**
+- **frontend (src/):**
+  - Built with React and TypeScript.
+  - Contains all user interface components, pages, and logic for interacting with Supabase (authentication, database, etc.).
+  - Main features include:
+    - User authentication (sign up, sign in, sign out)
+    - Chat interface and chat session management
+    - Admin portal for user and API management
+    - Settings and personalization
+    - Responsive, modern UI with glassmorphism and gradient themes
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/094068e3-284b-4d4c-a339-6b3dae550042) and start prompting.
+- **backend (backend/):**
+  - Node.js project for optional server-side utilities (e.g., sending alert emails, admin scripts).
+  - Not required for main app features, which are handled by Supabase and the frontend.
 
-Changes made via Lovable will be committed automatically to this repo.
+- **supabase/**
+  - Contains Supabase configuration and database migrations.
+  - Supabase provides authentication, database, and storage as a managed backend.
 
-**Use your preferred IDE**
+- **public/**
+  - Static assets (images, icons, etc.) served by the frontend.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Main Features
+- User authentication (sign up, sign in, sign out)
+- Real-time chat and session management
+- Admin portal for user and API log management
+- Professional, responsive UI
+- Settings and personalization
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## Not Included
+- Password reset and recovery flows have been **completely removed** from this project. Users cannot reset their password via the app.
 
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/094068e3-284b-4d4c-a339-6b3dae550042) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
-
-## Environment Variables
-
-To configure the API settings, create a `.env` file in the root directory with the following variables:
-
-```env
-# OpenRouter API Configuration
-VITE_OPENROUTER_API_KEY=your_openrouter_api_key_here
-VITE_OPENROUTER_MODEL=deepseek/deepseek-chat-v3-0324:free
-VITE_OPENROUTER_API_URL=https://openrouter.ai/api/v1/chat/completions
-```
-
-The application will use these environment variables if available, otherwise it will fall back to the default values configured in `src/lib/config.ts`.
+## How to Run
+- Install dependencies and start the frontend (see package.json scripts).
+- Backend utilities are optional and can be run separately if needed.
+- Supabase must be configured and running for authentication and database features.
