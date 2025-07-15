@@ -467,7 +467,7 @@ export const Chat = () => {
       const apiMessages = [
         {
           "role": "system",
-          "content": "You are BarathAI, an intelligent AI assistant created by Barathraj. You are knowledgeable, friendly, and always strive to provide accurate and helpful information. You communicate in a natural, conversational manner. You can help with coding, problem-solving, research, creative writing, and general questions. Always be helpful, accurate, and engaging in your responses. Format your responses using proper Markdown syntax for better readability."
+          "content": "You are BarathAI, an intelligent AI assistant created by Barathraj. You are knowledgeable, friendly, and always strive to provide accurate and helpful information. You communicate in a natural, conversational manner. You can help with coding, problem-solving, research, creative writing, and general questions. Always be helpful, accurate, and engaging in your responses. Format your responses using proper Markdown syntax for better readability.\n\nPrivacy Notice: All features are built on BarathAI. No third parties are involved—your data is processed securely and privately within BarathAI."
         },
         ...newMessages.slice(-10).map(msg => ({
           "role": msg.role,
@@ -500,16 +500,16 @@ export const Chat = () => {
         attempt++;
         const attemptStart = Date.now();
         try {
-          response = await fetch(usedApiUrl, {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${usedApiKey}`,
-              "Content-Type": "application/json",
-              "HTTP-Referer": window.location.origin,
-              "X-Title": "BarathAI Chat"
-            },
-            body: JSON.stringify(requestBody)
-          });
+        response = await fetch(usedApiUrl, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${usedApiKey}`,
+            "Content-Type": "application/json",
+            "HTTP-Referer": window.location.origin,
+            "X-Title": "BarathAI Chat"
+          },
+          body: JSON.stringify(requestBody)
+        });
           apiResponseTime = Date.now() - attemptStart;
           apiStatus = response.status;
           apiName = usedApiUrl.includes('openrouter') ? (usedApiUrl === API_URL ? 'OpenRouter_API_1' : 'OpenRouter_API_2') : 'Unknown';
@@ -561,8 +561,8 @@ export const Chat = () => {
               setIsBarathAITyping(false);
               return;
             }
-            break;
-          }
+          break;
+        }
         } catch (err: any) {
           apiResponseTime = Date.now() - attemptStart;
           apiStatus = null;
@@ -586,7 +586,7 @@ export const Chat = () => {
           setIsLoading(false);
           setIsBarathAITyping(false);
           return;
-        }
+      }
       }
       
       if (!apiResponseData || !apiResponseData.choices || !apiResponseData.choices[0] || !apiResponseData.choices[0].message) {

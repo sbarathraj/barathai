@@ -201,7 +201,7 @@ const ApiTrackingTab: React.FC<ApiTrackingTabProps> = ({ currentUser }) => {
               ))}
               {/* Other APIs as multi-select */}
               {apiOptions.filter(api => !openRouterApis.includes(api)).length > 0 && (
-                <select
+            <select
                   multiple
                   value={filterApis.filter(api => !openRouterApis.includes(api))}
                   onChange={e => {
@@ -212,11 +212,11 @@ const ApiTrackingTab: React.FC<ApiTrackingTabProps> = ({ currentUser }) => {
                     ]);
                   }}
                   className="w-full border border-slate-300 dark:border-slate-600 rounded px-3 py-2 text-sm h-20 mt-2"
-                >
+            >
                   {apiOptions.filter(api => !openRouterApis.includes(api)).map(api => (
                     <option key={api} value={api}>{api}</option>
                   ))}
-                </select>
+            </select>
               )}
             </div>
           </div>

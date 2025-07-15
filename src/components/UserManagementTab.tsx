@@ -274,20 +274,20 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col sm:flex-row gap-2">
-                        {editingId === user.id ? (
+                      {editingId === user.id ? (
                           <>
                             <Button size="sm" onClick={() => saveEdit(user.id)} className="bg-blue-500 text-white w-full sm:w-auto">Save</Button>
                             <Button size="sm" variant="outline" onClick={cancelEdit} className="w-full sm:w-auto">Cancel</Button>
                           </>
-                        ) : (
+                      ) : (
                           <>
                             <Button size="sm" onClick={() => startEdit(user)} className="bg-blue-500 text-white w-full sm:w-auto">Edit</Button>
                             <Button size="sm" variant="outline" onClick={() => updateUserStatus(user.id, user.account_status === 'active' ? 'inactive' : 'active')} className="w-full sm:w-auto">
                               {user.account_status === 'active' ? 'Deactivate' : 'Activate'}
                             </Button>
                           </>
-                        )}
-                      </div>
+                          )}
+                        </div>
                     </TableCell>
                   </TableRow>
                 ))}
