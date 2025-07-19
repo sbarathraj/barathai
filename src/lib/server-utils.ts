@@ -13,7 +13,7 @@ export async function sendRateLimitAlert(errorDetails: string) {
     from: `"BarathAI Alerts" <${process.env.GMAIL_USER}>`,
     to: process.env.GMAIL_ALERT_TO || process.env.GMAIL_USER,
     subject: '🚨 [BarathAI] Rate Limit Exceeded (429 Error) – Immediate Attention Required',
-    text: `BarathAI has detected a 429 (Too Many Requests) error.\n\nDetails:\n${errorDetails}\n\nTime: ${new Date().toLocaleString()}`,
+    text: `BarathAI has detected a 429 (Too Many Requests) error.\n\nDetails:\n${errorDetails}\n\nTime: ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}`,
     html: `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg, #f8fafc 0%, #f0abfc 100%); padding: 0; min-height: 100vh;">
         <div style="max-width: 540px; margin: 40px auto; background: #fff; border-radius: 22px; box-shadow: 0 8px 40px rgba(80, 80, 180, 0.10); border: 2px solid; border-image: linear-gradient(90deg, #2563eb 0%, #a21caf 100%) 1; padding: 40px 8vw 32px 8vw; max-width: 98vw;">
@@ -58,7 +58,7 @@ export async function sendRateLimitAlert(errorDetails: string) {
             <pre style="white-space: pre-wrap; word-break: break-all; margin: 0; color: #334155; font-size: 1.01rem;">${errorDetails}</pre>
           </div>
           <div style="color: #64748b; font-size: 1rem; text-align: right; margin-bottom: 8px;">
-            <span>Time: ${new Date().toLocaleString()}</span>
+            <span>Time: ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
           </div>
           <div style="margin-top: 32px; text-align: center;">
             <a href="https://your-barathai-dashboard.com" style="display: inline-block; background: linear-gradient(90deg, #2563eb 0%, #a21caf 100%); color: #fff; font-weight: 700; padding: 14px 38px; border-radius: 10px; text-decoration: none; font-size: 1.08rem; box-shadow: 0 2px 12px #a21caf22; letter-spacing: 0.01em; transition: background 0.2s;">Open BarathAI Dashboard</a>
@@ -96,7 +96,7 @@ export async function sendErrorAlert(errorTitle: string, errorDetails: string) {
     from: `"BarathAI Alerts" <${process.env.GMAIL_USER}>`,
     to: process.env.GMAIL_ALERT_TO || process.env.GMAIL_USER,
     subject: `🚨 [BarathAI] ${errorTitle} – Immediate Attention Required`,
-    text: `BarathAI has detected an error: ${errorTitle}\n\nDetails:\n${errorDetails}\n\nTime: ${new Date().toLocaleString()}`,
+    text: `BarathAI has detected an error: ${errorTitle}\n\nDetails:\n${errorDetails}\n\nTime: ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}`,
     html: `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg, #f8fafc 0%, #f0abfc 100%); padding: 0; min-height: 100vh;">
         <div style="max-width: 540px; margin: 40px auto; background: #fff; border-radius: 22px; box-shadow: 0 8px 40px rgba(80, 80, 180, 0.10); border: 2px solid; border-image: linear-gradient(90deg, #2563eb 0%, #a21caf 100%) 1; padding: 40px 8vw 32px 8vw; max-width: 98vw;">
@@ -138,7 +138,7 @@ export async function sendErrorAlert(errorTitle: string, errorDetails: string) {
             <pre style="white-space: pre-wrap; word-break: break-all; margin: 0; color: #334155; font-size: 1.01rem;">${errorDetails}</pre>
           </div>
           <div style="color: #64748b; font-size: 1rem; text-align: right; margin-bottom: 8px;">
-            <span>Time: ${new Date().toLocaleString()}</span>
+            <span>Time: ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
           </div>
           <div style="margin-top: 32px; text-align: center;">
             <a href="https://your-barathai-dashboard.com" style="display: inline-block; background: linear-gradient(90deg, #2563eb 0%, #a21caf 100%); color: #fff; font-weight: 700; padding: 14px 38px; border-radius: 10px; text-decoration: none; font-size: 1.08rem; box-shadow: 0 2px 12px #a21caf22; letter-spacing: 0.01em; transition: background 0.2s;">Open BarathAI Dashboard</a>

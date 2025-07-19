@@ -851,24 +851,18 @@ export const Chat = () => {
                 </div>
               </div>
               
-              <div className="grid grid-cols-3 gap-1 mt-2">
-                <div className="text-center p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
-                  <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
+              <div className="grid grid-cols-2 gap-1 mt-1">
+                <div className="text-center p-1 bg-white/70 dark:bg-slate-800/70 rounded">
+                  <div className="text-xs font-bold text-blue-600 dark:text-blue-400">
                     {chatSessions.length}
                   </div>
-                  <div className="text-xs text-slate-600 dark:text-slate-400">Chats</div>
+                  <div className="text-[10px] text-slate-600 dark:text-slate-400">Chats</div>
                 </div>
-                <div className="text-center p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
-                  <div className="text-sm font-bold text-purple-600 dark:text-purple-400">
+                <div className="text-center p-1 bg-white/70 dark:bg-slate-800/70 rounded">
+                  <div className="text-xs font-bold text-purple-600 dark:text-purple-400">
                     {messages.length}
                   </div>
-                  <div className="text-xs text-slate-600 dark:text-slate-400">Messages</div>
-                </div>
-                <div className="text-center p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
-                  <div className="text-sm font-bold text-green-600 dark:text-green-400">
-                    {Math.floor(Math.random() * 100) + 50}%
-                  </div>
-                  <div className="text-xs text-slate-600 dark:text-slate-400">Accuracy</div>
+                  <div className="text-[10px] text-slate-600 dark:text-slate-400">Messages</div>
                 </div>
               </div>
             </div>
@@ -940,7 +934,7 @@ export const Chat = () => {
                           </div>
                         </div>
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                          {new Date(session.created_at).toLocaleDateString()}
+                          {new Date(session.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                         </p>
                       </>
                     )}
@@ -1046,24 +1040,18 @@ export const Chat = () => {
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-3 gap-1 mt-2">
-                  <div className="text-center p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
-                    <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                <div className="grid grid-cols-2 gap-1 mt-1">
+                  <div className="text-center p-1 bg-white/70 dark:bg-slate-800/70 rounded">
+                    <div className="text-xs font-bold text-blue-600 dark:text-blue-400">
                       {chatSessions.length}
                     </div>
-                    <div className="text-xs text-slate-600 dark:text-slate-400">Chats</div>
+                    <div className="text-[10px] text-slate-600 dark:text-slate-400">Chats</div>
                   </div>
-                  <div className="text-center p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
-                    <div className="text-sm font-bold text-purple-600 dark:text-purple-400">
+                  <div className="text-center p-1 bg-white/70 dark:bg-slate-800/70 rounded">
+                    <div className="text-xs font-bold text-purple-600 dark:text-purple-400">
                       {messages.length}
                     </div>
-                    <div className="text-xs text-slate-600 dark:text-slate-400">Messages</div>
-                  </div>
-                  <div className="text-center p-1.5 bg-white/80 dark:bg-slate-800/80 rounded-md">
-                    <div className="text-sm font-bold text-green-600 dark:text-green-400">
-                      {Math.floor(Math.random() * 100) + 50}%
-                    </div>
-                    <div className="text-xs text-slate-600 dark:text-slate-400">Accuracy</div>
+                    <div className="text-[10px] text-slate-600 dark:text-slate-400">Messages</div>
                   </div>
                 </div>
               </div>
@@ -1137,7 +1125,7 @@ export const Chat = () => {
                             </div>
                           </div>
                           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0 mb-0">
-                            {new Date(session.created_at).toLocaleDateString()}
+                            {new Date(session.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                           </p>
                         </>
                       )}

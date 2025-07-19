@@ -8,6 +8,8 @@ import * as XLSX from 'xlsx';
 import { WorkBook, WorkSheet } from 'xlsx';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUser, faFileExcel } from '@fortawesome/free-solid-svg-icons';
+import { Dialog, DialogContent } from './ui/dialog';
+import { useMediaQuery } from '@/hooks/use-mobile';
 
 const getInitials = (name: string | null) => {
   if (!name) return '?';
@@ -16,11 +18,11 @@ const getInitials = (name: string | null) => {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
-// Helper for date-time formatting
+// Helper for date formatting (dd/mm/yyyy)
 const formatDateTime = (iso: string) => {
   if (!iso) return '-';
   const d = new Date(iso);
-  return d.toLocaleString('en-GB', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/\//g, '-');
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
 interface UserManagementTabProps {
@@ -34,10 +36,14 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editStatus, setEditStatus] = useState('active');
-  const [editRole, setEditRole] = useState('user');
+  // Add avatar_url state
+  const [editAvatar, setEditAvatar] = useState('');
+  // Remove all role-related state and logic
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const isAdmin = currentUser?.email === 'jcibarathraj@gmail.com';
+  const isDesktop = useMediaQuery('(min-width: 768px)');
 
   useEffect(() => {
     if (isAdmin) {
@@ -57,7 +63,9 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
     setEditName(user.full_name || '');
     setEditEmail(user.email || '');
     setEditStatus(user.account_status || 'active');
-    setEditRole(user.role || 'user');
+    setEditAvatar(user.avatar_url || '');
+    setEditDialogOpen(true);
+    // No scrolling
   };
 
   const saveEdit = async (id: string) => {
@@ -67,8 +75,8 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
         full_name: editName, 
         email: editEmail, 
         account_status: editStatus,
-        role: editRole,
-        modified_at: new Date().toISOString()
+        avatar_url: editAvatar,
+        updated_at: new Date().toISOString()
       })
       .eq('id', id);
 
@@ -79,10 +87,12 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
       fetchUsers(); // Refresh the list
     }
     setEditingId(null);
+    setEditDialogOpen(false);
   };
 
   const cancelEdit = () => {
     setEditingId(null);
+    setEditDialogOpen(false);
   };
 
   const updateUserStatus = async (userId: string, newStatus: string) => {
@@ -105,11 +115,11 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
       ID: u.id,
       Name: u.full_name,
       Email: u.email,
+      Avatar: u.avatar_url,
       Status: u.account_status,
-      Role: u.role,
       Created: u.created_at,
-      Modified: u.modified_at,
-      LastLogin: u.last_login
+      Updated: u.updated_at,
+      Modified: u.modified_at
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     // Add colored header row
@@ -125,7 +135,7 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
       }
     }
     ws['!cols'] = [
-      { wch: 24 }, { wch: 24 }, { wch: 32 }, { wch: 16 }, { wch: 16 }, { wch: 24 }, { wch: 24 }, { wch: 24 }
+      { wch: 24 }, { wch: 24 }, { wch: 32 }, { wch: 32 }, { wch: 16 }, { wch: 24 }, { wch: 24 }, { wch: 24 }
     ];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Users');
@@ -146,14 +156,10 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
   return (
     <div className="space-y-4">
       {toast && (
-        <div className={`fixed top-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-lg shadow-lg text-white text-sm font-medium transition-all z-50 ${toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'}`}>
-          {toast.message}
-        </div>
+        <div className={`fixed top-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-lg shadow-lg text-white text-sm font-medium transition-all z-50 ${toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'}`}>{toast.message}</div>
       )}
-
-      <div className="bg-white dark:bg-slate-800 rounded-lg p-6 shadow-sm overflow-x-auto">
-        <h3 className="text-lg font-semibold mb-4 text-slate-800 dark:text-slate-100">User Management</h3>
-        
+      <div className="bg-white/90 dark:bg-slate-900/90 rounded-2xl p-4 sm:p-8 shadow-xl border border-white/30 dark:border-slate-800/40 backdrop-blur-xl overflow-x-auto">
+        <h3 className="text-xl font-bold mb-4 text-slate-800 dark:text-slate-100 bg-gradient-to-r from-blue-600 to-pink-500 bg-clip-text text-transparent">User Management</h3>
         {loading ? (
           <div className="flex justify-center items-center h-32 text-slate-500">Loading users...</div>
         ) : (
@@ -165,73 +171,45 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
               <FontAwesomeIcon icon={faFileExcel} className="text-white mr-2" />
               Export to Excel
             </Button>
-            <Table className="min-w-[700px] text-xs sm:text-sm md:text-base">
-              <TableHeader>
-                <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Last Login</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Modified</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2 sm:gap-3 flex-col sm:flex-row items-start sm:items-center">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-pink-400 flex items-center justify-center text-white font-bold text-sm">
-                          <FontAwesomeIcon icon={faUser} size="lg" className="text-white drop-shadow" style={{ background: 'linear-gradient(135deg, #60a5fa 0%, #f472b6 100%)', borderRadius: '50%', padding: '4px' }} />
-                        </div>
-                        {editingId === user.id ? (
-                          <div className="flex flex-col gap-1">
-                            <input
-                              className="border border-blue-300 focus:border-blue-500 rounded px-2 py-1 text-sm outline-none"
-                              value={editName}
-                              onChange={e => setEditName(e.target.value)}
-                              placeholder="Full Name"
-                            />
-                          </div>
+            <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-lg">
+              <Table className="min-w-[900px] text-xs sm:text-sm md:text-base">
+                <TableHeader className="sticky top-0 z-10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
+                  <TableRow>
+                    <TableHead className="py-3">Avatar</TableHead>
+                    <TableHead className="py-3">User</TableHead>
+                    <TableHead className="py-3">Email</TableHead>
+                    <TableHead className="py-3">Status</TableHead>
+                    <TableHead className="py-3">Last Login</TableHead>
+                    <TableHead className="py-3">Created</TableHead>
+                    <TableHead className="py-3">Updated</TableHead>
+                    <TableHead className="py-3">Modified</TableHead>
+                    <TableHead className="py-3">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {users.map((user) => (
+                    <TableRow key={user.id} className="hover:bg-blue-50/40 dark:hover:bg-pink-900/10 transition-colors">
+                      <TableCell>
+                        {user.avatar_url ? (
+                          <img
+                            src={user.avatar_url}
+                            alt="avatar"
+                            className="w-10 h-10 rounded-full object-cover border-2 border-blue-200 dark:border-pink-400 shadow"
+                            onError={e => { (e.target as HTMLImageElement).src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.full_name || user.email || 'User') + '&background=random'; }}
+                          />
                         ) : (
-                          <div>
-                            <div className="font-medium text-slate-800 dark:text-slate-100">
-                              {user.full_name || 'No Name'}
-                            </div>
-                            {user.email === 'jcibarathraj@gmail.com' && (
-                              <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-blue-500 to-pink-500 text-white text-xs font-bold">Admin</span>
-                            )}
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-pink-400 flex items-center justify-center text-white text-xl border-2 border-blue-200 dark:border-pink-400 shadow">
+                            <FontAwesomeIcon icon={faUser} />
                           </div>
                         )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {editingId === user.id ? (
-                        <input
-                          className="border border-blue-300 focus:border-blue-500 rounded px-2 py-1 text-sm outline-none"
-                          value={editEmail}
-                          onChange={e => setEditEmail(e.target.value)}
-                          placeholder="Email"
-                        />
-                      ) : (
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium text-slate-800 dark:text-slate-100">{user.full_name || 'No Name'}</div>
+                      </TableCell>
+                      <TableCell>
                         <span className="text-slate-600 dark:text-slate-300">{user.email}</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {editingId === user.id ? (
-                        <select
-                          className="border border-blue-300 focus:border-blue-500 rounded px-2 py-1 text-sm outline-none"
-                          value={editStatus}
-                          onChange={e => setEditStatus(e.target.value)}
-                        >
-                          <option value="active">Active</option>
-                          <option value="inactive">Inactive</option>
-                          <option value="suspended">Suspended</option>
-                          <option value="banned">Banned</option>
-                        </select>
-                      ) : (
+                      </TableCell>
+                      <TableCell>
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                           user.account_status === 'active' ? 'bg-green-100 text-green-800' :
                           user.account_status === 'inactive' ? 'bg-gray-100 text-gray-800' :
@@ -240,62 +218,60 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
                         }`}>
                           {user.account_status || 'active'}
                         </span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {editingId === user.id ? (
-                        <select
-                          className="border border-blue-300 focus:border-blue-500 rounded px-2 py-1 text-sm outline-none"
-                          value={editRole}
-                          onChange={e => setEditRole(e.target.value)}
-                        >
-                          <option value="user">User</option>
-                          <option value="admin">Admin</option>
-                          <option value="moderator">Moderator</option>
-                        </select>
-                      ) : (
-                        <span className="text-slate-600 dark:text-slate-300">{user.role || 'user'}</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-slate-600 dark:text-slate-300 text-xs font-mono">
-                        {user.last_login ? formatDateTime(user.last_login) : '-'}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-slate-600 dark:text-slate-300 text-xs font-mono">
-                        {user.created_at ? formatDateTime(user.created_at) : '-'}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-slate-600 dark:text-slate-300 text-xs font-mono">
-                        {user.modified_at ? formatDateTime(user.modified_at) : '-'}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col sm:flex-row gap-2">
-                      {editingId === user.id ? (
-                          <>
-                            <Button size="sm" onClick={() => saveEdit(user.id)} className="bg-blue-500 text-white w-full sm:w-auto">Save</Button>
-                            <Button size="sm" variant="outline" onClick={cancelEdit} className="w-full sm:w-auto">Cancel</Button>
-                          </>
-                      ) : (
-                          <>
-                            <Button size="sm" onClick={() => startEdit(user)} className="bg-blue-500 text-white w-full sm:w-auto">Edit</Button>
-                            <Button size="sm" variant="outline" onClick={() => updateUserStatus(user.id, user.account_status === 'active' ? 'inactive' : 'active')} className="w-full sm:w-auto">
-                              {user.account_status === 'active' ? 'Deactivate' : 'Activate'}
-                            </Button>
-                          </>
-                          )}
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-slate-600 dark:text-slate-300 text-xs font-mono">{user.last_login ? formatDateTime(user.last_login) : '-'}</span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-slate-600 dark:text-slate-300 text-xs font-mono">{user.created_at ? formatDateTime(user.created_at) : '-'}</span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-slate-600 dark:text-slate-300 text-xs font-mono">{user.updated_at ? formatDateTime(user.updated_at) : '-'}</span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-slate-600 dark:text-slate-300 text-xs font-mono">{user.modified_at ? formatDateTime(user.modified_at) : '-'}</span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <Button size="sm" onClick={() => startEdit(user)} className="bg-blue-500 text-white w-full sm:w-auto">Edit</Button>
+                          <Button size="sm" variant="outline" onClick={() => updateUserStatus(user.id, user.account_status === 'active' ? 'inactive' : 'active')} className="w-full sm:w-auto">
+                            {user.account_status === 'active' ? 'Deactivate' : 'Activate'}
+                          </Button>
                         </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         )}
       </div>
+      {/* Edit Dialog/Drawer for mobile/desktop */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <div className="p-6 max-w-md w-full mx-auto bg-white dark:bg-slate-900 rounded-2xl shadow-xl flex flex-col gap-4">
+            <h2 className="text-xl font-bold mb-2 text-slate-800 dark:text-slate-100">Edit User</h2>
+            <label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Full Name</label>
+            <input className="border border-blue-300 focus:border-blue-500 rounded px-3 py-2 text-sm outline-none bg-white/80 dark:bg-slate-800/80" value={editName} onChange={e => setEditName(e.target.value)} placeholder="Full Name" />
+            <label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Email</label>
+            <input className="border border-blue-300 focus:border-blue-500 rounded px-3 py-2 text-sm outline-none bg-white/80 dark:bg-slate-800/80" value={editEmail} onChange={e => setEditEmail(e.target.value)} placeholder="Email" />
+            <label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Avatar URL</label>
+            <input className="border border-blue-300 focus:border-blue-500 rounded px-3 py-2 text-sm outline-none bg-white/80 dark:bg-slate-800/80" value={editAvatar} onChange={e => setEditAvatar(e.target.value)} placeholder="Avatar URL" />
+            <label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Status</label>
+            <select className="border border-blue-300 focus:border-blue-500 rounded px-3 py-2 text-sm outline-none bg-white/80 dark:bg-slate-800/80" value={editStatus} onChange={e => setEditStatus(e.target.value)}>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="suspended">Suspended</option>
+              <option value="banned">Banned</option>
+            </select>
+            <div className="flex gap-2 mt-4">
+              <Button onClick={() => saveEdit(editingId!)} className="bg-blue-500 text-white flex-1">Save</Button>
+              <Button variant="outline" onClick={cancelEdit} className="flex-1">Cancel</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -63,7 +63,7 @@ export const Auth = () => {
 
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password,
       });
@@ -74,11 +74,39 @@ export const Auth = () => {
           description: error.message,
           variant: "destructive",
         });
-      } else {
-        toast({
-          title: "Success",
-          description: "Signed in successfully!",
-        });
+      } else if (data?.user) {
+        // Fetch profile and check account_status
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('account_status')
+          .eq('id', data.user.id)
+          .single();
+        if (profileError || !profile) {
+          toast({
+            title: "Error",
+            description: "Could not fetch user profile.",
+            variant: "destructive",
+          });
+          await supabase.auth.signOut();
+        } else if (profile.account_status !== 'active') {
+          toast({
+            title: "Account Inactive",
+            description: `Your account is ${profile.account_status}. Please contact support.`,
+            variant: "destructive",
+          });
+          await supabase.auth.signOut();
+        } else {
+          // Update last_login in profiles
+          await supabase
+            .from('profiles')
+            .update({ last_login: new Date().toISOString() })
+            .eq('id', data.user.id);
+          toast({
+            title: "Success",
+            description: "Signed in successfully!",
+          });
+          navigate('/chat');
+        }
       }
     } catch (error) {
       toast({

@@ -3,12 +3,22 @@ import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils.ts"
+import ReactDOM from 'react-dom';
 
 const Dialog = DialogPrimitive.Root
 
 const DialogTrigger = DialogPrimitive.Trigger
 
-const DialogPortal = DialogPrimitive.Portal
+interface DialogPortalProps extends React.PropsWithChildren {
+  container?: HTMLElement | null;
+}
+
+const DialogPortal: React.FC<DialogPortalProps> = ({ children, container }) => {
+  if (container) {
+    return ReactDOM.createPortal(children, container);
+  }
+  return <DialogPrimitive.Portal>{children}</DialogPrimitive.Portal>;
+};
 
 const DialogClose = DialogPrimitive.Close
 
@@ -50,6 +60,39 @@ const DialogContent = React.forwardRef<
   </DialogPortal>
 ))
 DialogContent.displayName = DialogPrimitive.Content.displayName
+
+interface DrawerDialogContentProps extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> {
+  container?: HTMLElement | null;
+}
+
+const DrawerDialogContent = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Content>,
+  DrawerDialogContentProps
+>(({ className, children, container, ...props }, ref) => {
+  const isScoped = !!container;
+  return (
+    <DialogPortal container={container}>
+      <DialogOverlay className={isScoped ? 'absolute inset-0 z-40 bg-black/40' : ''} />
+      <DialogPrimitive.Content
+        ref={ref}
+        className={cn(
+          isScoped
+            ? 'absolute right-0 top-0 z-50 h-full w-[480px] max-w-full grid gap-4 border-l bg-background p-8 shadow-lg duration-200 sm:rounded-l-2xl'
+            : 'fixed top-0 right-0 z-50 h-full w-[480px] max-w-full grid gap-4 border-l bg-background p-8 shadow-lg duration-200 sm:rounded-l-2xl',
+          className
+        )}
+        {...props}
+      >
+        {children}
+        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+          <X className="h-4 w-4" />
+          <span className="sr-only">Close</span>
+        </DialogPrimitive.Close>
+      </DialogPrimitive.Content>
+    </DialogPortal>
+  );
+});
+DrawerDialogContent.displayName = 'DrawerDialogContent';
 
 const DialogHeader = ({
   className,
@@ -113,6 +156,7 @@ export {
   DialogClose,
   DialogTrigger,
   DialogContent,
+  DrawerDialogContent,
   DialogHeader,
   DialogFooter,
   DialogTitle,

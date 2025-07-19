@@ -158,3 +158,11 @@ CREATE TRIGGER update_chat_sessions_updated_at
   BEFORE UPDATE ON public.chat_sessions
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
+
+-- Enable RLS on profiles table and allow admin to update any profile
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admin can update any profile"
+  ON public.profiles
+  FOR UPDATE
+  USING (auth.email() = 'jcibarathraj@gmail.com');
