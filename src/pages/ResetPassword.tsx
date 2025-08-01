@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,57 +12,75 @@ import { Logo } from '@/components/Logo';
 export const ResetPassword = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [searchParams] = useSearchParams();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [validToken, setValidToken] = useState(false);
+  const [isValidSession, setIsValidSession] = useState(false);
 
   useEffect(() => {
-    // Listen for auth state changes to detect successful recovery
+    let timeoutId: NodeJS.Timeout;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (event === 'PASSWORD_RECOVERY') {
-          setValidToken(true);
+        console.log('Auth state change:', event, session);
+        
+        if (event === 'PASSWORD_RECOVERY' && session) {
+          setIsValidSession(true);
+          setIsLoading(false);
+        } else if (event === 'SIGNED_IN' && session) {
+          // User might have already recovered and been signed in
+          setIsValidSession(true);
           setIsLoading(false);
         } else if (event === 'SIGNED_OUT') {
-          // User was signed out, redirect to auth
+          // Password was successfully reset, redirect to login
           navigate('/auth');
-        } else if (session) {
-          // User is authenticated, allow password reset
-          setValidToken(true);
-          setIsLoading(false);
         }
       }
     );
 
-    // Check if there's already a session (user might have refreshed the page)
-    const checkSession = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (session && !error) {
-        setValidToken(true);
+    // Check if there's already a valid session
+    const checkExistingSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (session && !error) {
+          setIsValidSession(true);
+          setIsLoading(false);
+        } else {
+          // Give some time for the recovery flow to complete
+          timeoutId = setTimeout(() => {
+            if (!isValidSession) {
+              toast({
+                title: "Invalid Reset Link",
+                description: "This password reset link is invalid or has expired. Please request a new one.",
+                variant: "destructive",
+              });
+              navigate('/forgot-password');
+            }
+          }, 3000);
+        }
+      } catch (error) {
+        console.error('Error checking session:', error);
         setIsLoading(false);
-      } else {
-        // No valid session, show error after a short delay to allow auth state change to fire
-        setTimeout(() => {
-          if (!validToken) {
-            toast({
-              title: "Invalid Reset Link",
-              description: "This password reset link is invalid or has expired. Please request a new reset link.",
-              variant: "destructive",
-            });
-            navigate('/auth');
-          }
-        }, 2000);
+        toast({
+          title: "Error",
+          description: "An error occurred. Please try again.",
+          variant: "destructive",
+        });
+        navigate('/forgot-password');
       }
     };
 
-    checkSession();
+    checkExistingSession();
 
-    return () => subscription.unsubscribe();
-  }, [navigate, toast, validToken]);
+    return () => {
+      subscription.unsubscribe();
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [navigate, toast, isValidSession]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,7 +112,7 @@ export const ResetPassword = () => {
       return;
     }
 
-    setIsLoading(true);
+    setIsSubmitting(true);
     
     try {
       const { error } = await supabase.auth.updateUser({
@@ -103,37 +121,72 @@ export const ResetPassword = () => {
 
       if (error) {
         toast({
-          title: "Password Reset Failed",
+          title: "Password Update Failed",
           description: error.message,
           variant: "destructive",
         });
       } else {
         toast({
-          title: "Success",
-          description: "Your password has been updated successfully!",
+          title: "Password Updated Successfully!",
+          description: "You will be redirected to the login page",
         });
-        // Sign out and redirect to login
-        await supabase.auth.signOut();
-        navigate('/auth');
+        
+        // Sign out the user and redirect to login
+        setTimeout(async () => {
+          await supabase.auth.signOut();
+          navigate('/auth');
+        }, 1500);
       }
     } catch (error) {
+      console.error('Password update error:', error);
       toast({
-        title: "Error",
-        description: "An unexpected error occurred",
+        title: "Unexpected Error",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     }
     
-    setIsLoading(false);
+    setIsSubmitting(false);
   };
 
-  if (!validToken) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4">
-        <div className="text-center">
-          <Logo size={56} className="mx-auto mb-4" />
-          <p className="text-slate-500 dark:text-slate-400">Validating reset link...</p>
-        </div>
+        <Card className="w-full max-w-md shadow-2xl border-0 bg-white/70 dark:bg-slate-900/80 backdrop-blur-2xl rounded-3xl">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Logo size={56} className="mb-4 drop-shadow-xl" />
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+            <p className="text-slate-600 dark:text-slate-400">Validating reset link...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!isValidSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4">
+        <Card className="w-full max-w-md shadow-2xl border-0 bg-white/70 dark:bg-slate-900/80 backdrop-blur-2xl rounded-3xl">
+          <CardHeader className="text-center pb-2">
+            <div className="flex justify-center mb-4">
+              <Logo size={56} className="drop-shadow-xl" />
+            </div>
+            <CardTitle className="text-3xl font-extrabold bg-gradient-to-r from-red-600 via-red-500 to-red-600 bg-clip-text text-transparent tracking-tight mb-1">
+              Invalid Link
+            </CardTitle>
+            <CardDescription className="text-base text-slate-500 dark:text-slate-300 mb-2">
+              This password reset link is invalid or has expired
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6 pt-0">
+            <Button onClick={() => navigate('/forgot-password')} className="w-full">
+              Request New Reset Link
+            </Button>
+            <Button variant="outline" onClick={() => navigate('/auth')} className="w-full">
+              Back to Login
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -214,8 +267,8 @@ export const ResetPassword = () => {
                 </Button>
               </div>
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Updating Password..." : "Update Password"}
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? "Updating Password..." : "Update Password"}
             </Button>
           </form>
           <div className="flex justify-center">
