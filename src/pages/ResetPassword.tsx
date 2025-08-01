@@ -21,36 +21,48 @@ export const ResetPassword = () => {
   const [validToken, setValidToken] = useState(false);
 
   useEffect(() => {
-    // Check for access token in URL params
-    const accessToken = searchParams.get('access_token');
-    const refreshToken = searchParams.get('refresh_token');
-    
-    if (accessToken && refreshToken) {
-      // Set session with tokens from URL
-      supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken
-      }).then(({ error }) => {
-        if (error) {
-          toast({
-            title: "Invalid Reset Link",
-            description: "This password reset link is invalid or has expired.",
-            variant: "destructive",
-          });
-          navigate('/auth');
-        } else {
+    // Listen for auth state changes to detect successful recovery
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'PASSWORD_RECOVERY') {
           setValidToken(true);
+          setIsLoading(false);
+        } else if (event === 'SIGNED_OUT') {
+          // User was signed out, redirect to auth
+          navigate('/auth');
+        } else if (session) {
+          // User is authenticated, allow password reset
+          setValidToken(true);
+          setIsLoading(false);
         }
-      });
-    } else {
-      toast({
-        title: "Invalid Reset Link",
-        description: "This password reset link is invalid or has expired.",
-        variant: "destructive",
-      });
-      navigate('/auth');
-    }
-  }, [searchParams, navigate, toast]);
+      }
+    );
+
+    // Check if there's already a session (user might have refreshed the page)
+    const checkSession = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (session && !error) {
+        setValidToken(true);
+        setIsLoading(false);
+      } else {
+        // No valid session, show error after a short delay to allow auth state change to fire
+        setTimeout(() => {
+          if (!validToken) {
+            toast({
+              title: "Invalid Reset Link",
+              description: "This password reset link is invalid or has expired. Please request a new reset link.",
+              variant: "destructive",
+            });
+            navigate('/auth');
+          }
+        }, 2000);
+      }
+    };
+
+    checkSession();
+
+    return () => subscription.unsubscribe();
+  }, [navigate, toast, validToken]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
