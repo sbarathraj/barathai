@@ -262,6 +262,15 @@ export const Auth = () => {
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Signing In..." : "Sign In"}
                 </Button>
+                <div className="text-center mt-3">
+                  <Button 
+                    variant="link" 
+                    onClick={() => navigate('/forgot-password')}
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline p-0 h-auto font-normal"
+                  >
+                    Forgot your password?
+                  </Button>
+                </div>
               </form>
             </TabsContent>
             <div className="flex items-center my-4">

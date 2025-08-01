@@ -4,7 +4,6 @@ import { Moon, Sun, Menu, X, MessageCircle, Settings, User, LogOut, User as User
 import { useNavigate, useLocation } from "react-router-dom";
 import { Logo } from "@/components/Logo";
 import { supabase } from "@/integrations/supabase/client";
-import AdminPanel from "./AdminPanel";
 
 export const Navigation = () => {
   const navigate = useNavigate();
