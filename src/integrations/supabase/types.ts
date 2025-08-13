@@ -92,6 +92,93 @@ export type Database = {
         }
         Relationships: []
       }
+      image_generation_logs: {
+        Row: {
+          api_provider: string | null
+          created_at: string | null
+          error_message: string | null
+          guidance_scale: number | null
+          has_mask: boolean | null
+          has_source_image: boolean | null
+          height: number | null
+          id: string
+          image_metadata: Json | null
+          image_size_bytes: number | null
+          image_url: string | null
+          model_id: string
+          model_name: string
+          negative_prompt: string | null
+          num_inference_steps: number | null
+          parameters: Json | null
+          processing_time_ms: number | null
+          prompt: string
+          response_time_ms: number | null
+          seed: number | null
+          status: string | null
+          success: boolean
+          task_type: string
+          user_email: string | null
+          user_id: string | null
+          width: number | null
+        }
+        Insert: {
+          api_provider?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          guidance_scale?: number | null
+          has_mask?: boolean | null
+          has_source_image?: boolean | null
+          height?: number | null
+          id?: string
+          image_metadata?: Json | null
+          image_size_bytes?: number | null
+          image_url?: string | null
+          model_id?: string
+          model_name: string
+          negative_prompt?: string | null
+          num_inference_steps?: number | null
+          parameters?: Json | null
+          processing_time_ms?: number | null
+          prompt: string
+          response_time_ms?: number | null
+          seed?: number | null
+          status?: string | null
+          success?: boolean
+          task_type: string
+          user_email?: string | null
+          user_id?: string | null
+          width?: number | null
+        }
+        Update: {
+          api_provider?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          guidance_scale?: number | null
+          has_mask?: boolean | null
+          has_source_image?: boolean | null
+          height?: number | null
+          id?: string
+          image_metadata?: Json | null
+          image_size_bytes?: number | null
+          image_url?: string | null
+          model_id?: string
+          model_name?: string
+          negative_prompt?: string | null
+          num_inference_steps?: number | null
+          parameters?: Json | null
+          processing_time_ms?: number | null
+          prompt?: string
+          response_time_ms?: number | null
+          seed?: number | null
+          status?: string | null
+          success?: boolean
+          task_type?: string
+          user_email?: string | null
+          user_id?: string | null
+          width?: number | null
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: string

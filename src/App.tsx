@@ -14,6 +14,7 @@ import { Settings } from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import { Footer } from "./components/Footer";
 import Admin from "./pages/Admin";
+import { ImageGeneration } from "./pages/ImageGeneration";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -67,6 +68,7 @@ const App = () => (
               <Route path="/chat" element={<Chat />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/admin" element={<Admin />} />
+              <Route path="/image-generation" element={<ImageGeneration />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

@@ -6,10 +6,11 @@ import { Sidebar } from '@/components/ui/sidebar';
 import { Topbar } from '@/components/ui/topbar';
 import UserManagementTab from '@/components/UserManagementTab';
 import ApiTrackingTab from '@/components/ApiTrackingTab';
+import ImageGenerationTrackingTab from '@/components/ImageGenerationTrackingTab';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUser, faTachometerAlt, faUsers, faChartBar } from '@fortawesome/free-solid-svg-icons';
+import { faUser, faTachometerAlt, faUsers, faChartBar, faImage } from '@fortawesome/free-solid-svg-icons';
 
 const Admin: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -17,6 +18,7 @@ const Admin: React.FC = () => {
   const [totalUsers, setTotalUsers] = useState<number | null>(null);
   const [apiCalls, setApiCalls] = useState<number | null>(null);
   const [activeAdmins, setActiveAdmins] = useState<number | null>(null);
+  const [imageGenerations, setImageGenerations] = useState<number | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -45,7 +47,7 @@ const Admin: React.FC = () => {
     // Set tab from query param
     const params = new URLSearchParams(location.search);
     const t = params.get('tab');
-    if (t === 'users' || t === 'api') setTab(t);
+    if (t === 'users' || t === 'api' || t === 'images') setTab(t);
     else setTab('dashboard');
   }, [location.search]);
 
@@ -56,6 +58,8 @@ const Admin: React.FC = () => {
     setApiCalls(apiCount ?? 0);
     const { count: adminCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('email', 'jcibarathraj@gmail.com');
     setActiveAdmins(adminCount ?? 0);
+    const { count: imageCount } = await supabase.from('image_generation_logs').select('*', { count: 'exact', head: true });
+    setImageGenerations(imageCount ?? 0);
   };
 
   if (!authChecked) return null;
@@ -111,7 +115,7 @@ const Admin: React.FC = () => {
             {/* Render section based on tab */}
             {tab === 'dashboard' && (
               <div className="space-y-8">
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
                   <div className="bg-white/80 dark:bg-slate-900/80 rounded-2xl p-6 shadow-xl flex flex-col items-center justify-center border border-white/30 dark:border-slate-800/40 backdrop-blur-xl transition-transform hover:scale-105">
                     <div className="bg-gradient-to-br from-blue-400 to-blue-600 rounded-full p-4 shadow-lg mb-2 flex items-center justify-center">
                       <FontAwesomeIcon icon={faUsers} size="2x" className="text-white drop-shadow" />
@@ -133,11 +137,19 @@ const Admin: React.FC = () => {
                     <div className="text-3xl font-extrabold text-slate-800 dark:text-white mb-1">{activeAdmins !== null ? activeAdmins : '--'}</div>
                     <div className="text-base font-semibold text-yellow-600 dark:text-yellow-300">Active Admins</div>
                   </div>
+                  <div className="bg-white/80 dark:bg-slate-900/80 rounded-2xl p-6 shadow-xl flex flex-col items-center justify-center border border-white/30 dark:border-slate-800/40 backdrop-blur-xl transition-transform hover:scale-105">
+                    <div className="bg-gradient-to-br from-purple-400 to-purple-600 rounded-full p-4 shadow-lg mb-2 flex items-center justify-center">
+                      <FontAwesomeIcon icon={faImage} size="2x" className="text-white drop-shadow" />
+                    </div>
+                    <div className="text-3xl font-extrabold text-slate-800 dark:text-white mb-1">{imageGenerations !== null ? imageGenerations : '--'}</div>
+                    <div className="text-base font-semibold text-purple-600 dark:text-purple-300">AI Images</div>
+                  </div>
                 </div>
             </div>
             )}
             {tab === 'users' && <UserManagementTab currentUser={currentUser} />}
             {tab === 'api' && <ApiTrackingTab currentUser={currentUser} />}
+            {tab === 'images' && <ImageGenerationTrackingTab currentUser={currentUser} />}
           </div>
         </main>
         </div>
