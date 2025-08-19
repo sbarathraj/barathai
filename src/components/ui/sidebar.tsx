@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTachometerAlt, faUsers, faChartBar, faCog, faImage } from '@fortawesome/free-solid-svg-icons';
 import { Logo } from '@/components/Logo';
+import { Palette } from 'lucide-react';
 
 export const Sidebar: React.FC<{
   mobileOpen: boolean;
@@ -24,7 +25,7 @@ export const Sidebar: React.FC<{
             <NavLink to="/admin?tab=users" className={({ isActive }) => `flex items-center gap-3 px-4 py-3 rounded-lg font-semibold transition-colors ${isActive ? 'bg-pink-100 dark:bg-slate-800 text-pink-600 dark:text-pink-400' : 'hover:bg-pink-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200'}` }><FontAwesomeIcon icon={faUsers} /> User Management</NavLink>
             <NavLink to="/admin?tab=api" className={({ isActive }) => `flex items-center gap-3 px-4 py-3 rounded-lg font-semibold transition-colors ${isActive ? 'bg-purple-100 dark:bg-slate-800 text-purple-600 dark:text-pink-400' : 'hover:bg-purple-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200'}` }><FontAwesomeIcon icon={faChartBar} /> API Tracking</NavLink>
             <NavLink to="/admin?tab=images" className={({ isActive }) => `flex items-center gap-3 px-4 py-3 rounded-lg font-semibold transition-colors ${isActive ? 'bg-green-100 dark:bg-slate-800 text-green-600 dark:text-green-400' : 'hover:bg-green-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200'}` }><FontAwesomeIcon icon={faImage} /> Image Generation</NavLink>
-            <NavLink to="/image-generation" className={({ isActive }) => `flex items-center gap-3 px-4 py-3 rounded-lg font-semibold transition-colors ${isActive ? 'bg-orange-100 dark:bg-slate-800 text-orange-600 dark:text-orange-400' : 'hover:bg-orange-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200'}` }><FontAwesomeIcon icon={faImage} /> AI Image Studio</NavLink>
+            <NavLink to="/image-generation" className={({ isActive }) => `flex items-center gap-3 px-4 py-3 rounded-lg font-semibold transition-colors ${isActive ? 'bg-orange-100 dark:bg-slate-800 text-orange-600 dark:text-orange-400' : 'hover:bg-orange-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200'}` }><Palette className="w-4 h-4" /> AI Image Studio</NavLink>
             <NavLink to="/settings" className={({ isActive }) => `flex items-center gap-3 px-4 py-3 rounded-lg font-semibold transition-colors ${isActive ? 'bg-yellow-100 dark:bg-slate-800 text-yellow-600 dark:text-yellow-400' : 'hover:bg-yellow-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200'}` }><FontAwesomeIcon icon={faCog} /> Settings</NavLink>
           </nav>
         </div>
