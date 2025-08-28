@@ -14,7 +14,7 @@ import { Settings } from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import { Footer } from "./components/Footer";
 import Admin from "./pages/Admin";
-import { ImageGeneration } from "./pages/ImageGeneration";
+import ImageGeneration from "./pages/ImageGeneration";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 

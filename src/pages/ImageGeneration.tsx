@@ -15,31 +15,45 @@ import { Loader2, Download, Upload, Palette, Image as ImageIcon, Sparkles, Shuff
 
 const POPULAR_MODELS = [
   {
-    id: 'runware:101@1',
-    name: 'FLUX.1 Dev',
-    description: 'High-quality, fast image generation',
-    category: 'FLUX',
-    supportsNegative: false
-  },
-  {
-    id: 'runware:100@1',
-    name: 'FLUX.1 Schnell',
-    description: 'Ultra-fast image generation',
-    category: 'FLUX',
-    supportsNegative: false
-  },
-  {
-    id: 'civitai:139562@297320',
-    name: 'Realistic Vision',
-    description: 'Photorealistic image generation',
+    id: 'stabilityai/stable-diffusion-xl-base-1.0',
+    name: 'Stable Diffusion XL',
+    description: 'High-quality 1024x1024 image generation',
     category: 'SDXL',
     supportsNegative: true
   },
   {
-    id: 'civitai:25694@143906',
-    name: 'DreamShaper',
-    description: 'Creative and artistic generation',
-    category: 'SD 1.5',
+    id: 'stabilityai/stable-diffusion-2-1',
+    name: 'Stable Diffusion v2.1',
+    description: 'Improved image generation model',
+    category: 'SD 2.x',
+    supportsNegative: true
+  },
+  {
+    id: 'runwayml/stable-diffusion-v1-5',
+    name: 'Stable Diffusion v1.5',
+    description: 'Classic and reliable image generation',
+    category: 'SD 1.x',
+    supportsNegative: true
+  },
+  {
+    id: 'kandinsky-community/kandinsky-2-2-decoder',
+    name: 'Kandinsky 2.2',
+    description: 'Multilingual text-to-image model',
+    category: 'Kandinsky',
+    supportsNegative: true
+  },
+  {
+    id: 'prompthero/openjourney-v4',
+    name: 'OpenJourney v4',
+    description: 'Artistic and creative image generation',
+    category: 'Community',
+    supportsNegative: true
+  },
+  {
+    id: 'wavymulder/Analog-Diffusion',
+    name: 'Analog Diffusion',
+    description: 'Vintage photography style',
+    category: 'Community',
     supportsNegative: true
   }
 ];
@@ -48,89 +62,106 @@ const WORKFLOWS = [
   { id: 'text-to-image', name: 'Text to Image', icon: Sparkles },
   { id: 'image-to-image', name: 'Image to Image', icon: ImageIcon },
   { id: 'inpainting', name: 'Inpainting', icon: Palette },
-  { id: 'outpainting', name: 'Outpainting', icon: Upload }
 ];
 
-export const ImageGeneration: React.FC = () => {
+interface GenerationParams {
+  workflow: string;
+  model: string;
+  prompt: string;
+  negative_prompt: string;
+  width: number;
+  height: number;
+  num_inference_steps: number;
+  guidance_scale: number;
+  seed: number | null;
+  n: number;
+  strength: number;
+  seed_image: string | null;
+  mask_image: string | null;
+}
+
+const ImageGeneration: React.FC = () => {
+  const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [prompt, setPrompt] = useState('');
-  const [negativePrompt, setNegativePrompt] = useState('');
-  const [selectedModel, setSelectedModel] = useState(POPULAR_MODELS[0].id);
-  const [workflow, setWorkflow] = useState<'text-to-image' | 'image-to-image' | 'inpainting' | 'outpainting'>('text-to-image');
-  const [guidanceScale, setGuidanceScale] = useState([7.5]);
-  const [steps, setSteps] = useState([28]);
-  const [seed, setSeed] = useState('');
-  const [width, setWidth] = useState(1024);
-  const [height, setHeight] = useState(1024);
-  const [strength, setStrength] = useState([0.7]);
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
-  const [sourceImage, setSourceImage] = useState<string | null>(null);
-  const [maskImage, setMaskImage] = useState<string | null>(null);
-  const [outpaintSettings, setOutpaintSettings] = useState({ top: 128, bottom: 128, left: 64, right: 64 });
-  const [numberResults, setNumberResults] = useState(1);
-  const [nsfw, setNsfw] = useState(false);
-  const navigate = useNavigate();
+  
+  const [params, setParams] = useState<GenerationParams>({
+    workflow: 'text-to-image',
+    model: 'stabilityai/stable-diffusion-xl-base-1.0',
+    prompt: '',
+    negative_prompt: '',
+    width: 1024,
+    height: 1024,
+    num_inference_steps: 20,
+    guidance_scale: 7.5,
+    seed: null,
+    n: 1,
+    strength: 0.7,
+    seed_image: null,
+    mask_image: null
+  });
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user || null);
-    };
     checkUser();
   }, []);
 
-  const handleImageUpload = (file: File, type: 'source' | 'mask') => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      if (type === 'source') {
-        setSourceImage(result);
-      } else {
-        setMaskImage(result);
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const randomizeSeed = () => {
-    setSeed(Math.floor(Math.random() * 4294967295).toString());
-  };
-
-  const validateDimensions = (width: number, height: number) => {
-    if (width < 128 || width > 2048 || width % 64 !== 0) {
-      toast.error('Width must be between 128-2048 and multiple of 64');
-      return false;
+  const checkUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      navigate('/auth');
+      return;
     }
-    if (height < 128 || height > 2048 || height % 64 !== 0) {
-      toast.error('Height must be between 128-2048 and multiple of 64');
-      return false;
-    }
-    return true;
+    setUser(user);
   };
 
-  const generateImage = async () => {
-    if (!prompt.trim()) {
+  const handleFileUpload = async (file: File, type: 'seed' | 'mask') => {
+    return new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        resolve(result);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleSeedImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const dataUrl = await handleFileUpload(file, 'seed');
+      setParams(prev => ({ ...prev, seed_image: dataUrl }));
+      toast.success('Seed image uploaded successfully');
+    }
+  };
+
+  const handleMaskImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const dataUrl = await handleFileUpload(file, 'mask');
+      setParams(prev => ({ ...prev, mask_image: dataUrl }));
+      toast.success('Mask image uploaded successfully');
+    }
+  };
+
+  const generateRandomSeed = () => {
+    const randomSeed = Math.floor(Math.random() * 1000000);
+    setParams(prev => ({ ...prev, seed: randomSeed }));
+  };
+
+  const handleGenerate = async () => {
+    if (!params.prompt.trim()) {
       toast.error('Please enter a prompt');
       return;
     }
 
-    if (!validateDimensions(width, height)) {
+    // Validate workflow requirements
+    if (params.workflow === 'image-to-image' && !params.seed_image) {
+      toast.error('Please upload a seed image for Image-to-Image generation');
       return;
     }
-
-    if (workflow === 'image-to-image' && !sourceImage) {
-      toast.error('Please upload a source image for image-to-image generation');
-      return;
-    }
-
-    if (workflow === 'inpainting' && (!sourceImage || !maskImage)) {
-      toast.error('Please upload both source and mask images for inpainting');
-      return;
-    }
-
-    if (workflow === 'outpainting' && !sourceImage) {
-      toast.error('Please upload a source image for outpainting');
+    if (params.workflow === 'inpainting' && (!params.seed_image || !params.mask_image)) {
+      toast.error('Please upload both seed and mask images for Inpainting');
       return;
     }
 
@@ -138,47 +169,24 @@ export const ImageGeneration: React.FC = () => {
     setGeneratedImages([]);
 
     try {
-      const requestBody: any = {
-        workflow,
-        model: selectedModel,
-        prompt,
-        negative_prompt: negativePrompt,
-        width,
-        height,
-        num_inference_steps: steps[0],
-        guidance_scale: guidanceScale[0],
-        seed: seed ? parseInt(seed) : null,
-        n: numberResults,
-        nsfw_check: nsfw
-      };
-
-      if (workflow === 'image-to-image') {
-        requestBody.seed_image = sourceImage;
-        requestBody.strength = strength[0];
-      } else if (workflow === 'inpainting') {
-        requestBody.seed_image = sourceImage;
-        requestBody.mask_image = maskImage;
-      } else if (workflow === 'outpainting') {
-        requestBody.seed_image = sourceImage;
-        requestBody.outpaint = outpaintSettings;
-      }
-
-      const { data, error } = await supabase.functions.invoke('runware-generate', {
-        body: requestBody
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await supabase.functions.invoke('huggingface-generate', {
+        body: params,
+        headers: session?.access_token ? {
+          Authorization: `Bearer ${session.access_token}`
+        } : {}
       });
 
-      if (error) throw error;
+      if (response.error) {
+        throw response.error;
+      }
 
-      if (data.success) {
-        setGeneratedImages([data.image]);
+      if (response.data?.success && response.data?.image) {
+        setGeneratedImages([response.data.image]);
         toast.success('Image generated successfully!');
-        
-        // Update seed if one was returned
-        if (data.metadata?.parameters?.seed) {
-          setSeed(data.metadata.parameters.seed.toString());
-        }
       } else {
-        throw new Error(data.details || 'Generation failed');
+        throw new Error(response.data?.error || 'Generation failed');
       }
     } catch (error: any) {
       console.error('Generation error:', error);
@@ -188,181 +196,266 @@ export const ImageGeneration: React.FC = () => {
     }
   };
 
-  const downloadImage = (imageUrl: string, index: number = 0) => {
+  const downloadImage = (imageUrl: string, index: number) => {
     const link = document.createElement('a');
     link.href = imageUrl;
-    link.download = `runware-ai-generated-${Date.now()}-${index}.png`;
+    link.download = `generated-image-${Date.now()}-${index}.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  const selectedModelInfo = POPULAR_MODELS.find(m => m.id === selectedModel);
+  const selectedModel = POPULAR_MODELS.find(m => m.id === params.model);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-background/90">
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="p-3 bg-gradient-to-br from-primary to-secondary rounded-xl shadow-lg">
-              <Sparkles className="w-8 h-8 text-primary-foreground" />
-            </div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              AI Image Generator
-            </h1>
-          </div>
-          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            Create stunning images with Runware AI's advanced models. Generate from text, modify existing images, or use inpainting and outpainting techniques.
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-foreground mb-2">AI Image Generation</h1>
+          <p className="text-muted-foreground">
+            Generate stunning images using Hugging Face's powerful AI models
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-8">
-          {/* Controls Panel */}
-          <Card className="shadow-xl border-border/50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ImageIcon className="w-5 h-5" />
-                Generation Controls
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Workflow Tabs */}
-              <div className="space-y-2">
-                <Label>Workflow</Label>
-                <Tabs value={workflow} onValueChange={(value: any) => setWorkflow(value)}>
-                  <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4">
-                    {WORKFLOWS.map((wf) => {
-                      const Icon = wf.icon;
-                      return (
-                        <TabsTrigger key={wf.id} value={wf.id} className="flex items-center gap-1 text-xs">
-                          <Icon className="w-3 h-3" />
-                          <span className="hidden sm:inline">{wf.name}</span>
-                        </TabsTrigger>
-                      );
-                    })}
-                  </TabsList>
-                </Tabs>
-              </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Generation Panel */}
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-primary" />
+                  Generation Settings
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Workflow Selection */}
+                <div>
+                  <Label className="text-sm font-medium mb-3 block">Workflow</Label>
+                  <Tabs value={params.workflow} onValueChange={(value) => setParams(prev => ({ ...prev, workflow: value }))}>
+                    <TabsList className="grid w-full grid-cols-3">
+                      {WORKFLOWS.map((workflow) => {
+                        const Icon = workflow.icon;
+                        return (
+                          <TabsTrigger key={workflow.id} value={workflow.id} className="flex items-center gap-1">
+                            <Icon className="w-4 h-4" />
+                            <span className="hidden sm:inline">{workflow.name}</span>
+                          </TabsTrigger>
+                        );
+                      })}
+                    </TabsList>
+                  </Tabs>
+                </div>
 
-              {/* Model Selection */}
-              <div className="space-y-2">
-                <Label>AI Model</Label>
-                <Select value={selectedModel} onValueChange={setSelectedModel}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {POPULAR_MODELS.map((model) => (
-                      <SelectItem key={model.id} value={model.id}>
-                        <div className="flex flex-col">
-                          <div className="font-medium">{model.name}</div>
-                          <div className="text-xs text-muted-foreground">{model.description}</div>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {selectedModelInfo && (
-                  <div className="flex gap-1 flex-wrap items-center">
-                    <Badge variant="secondary" className="text-xs">
-                      {selectedModelInfo.category}
-                    </Badge>
-                    {!selectedModelInfo.supportsNegative && (
-                      <Badge variant="outline" className="text-xs flex items-center gap-1">
-                        <Info className="w-3 h-3" />
-                        No negative prompts
-                      </Badge>
-                    )}
-                  </div>
-                )}
-              </div>
+                {/* Model Selection */}
+                <div>
+                  <Label htmlFor="model" className="text-sm font-medium mb-2 block">Model</Label>
+                  <Select value={params.model} onValueChange={(value) => setParams(prev => ({ ...prev, model: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {POPULAR_MODELS.map((model) => (
+                        <SelectItem key={model.id} value={model.id}>
+                          <div className="flex flex-col">
+                            <span className="font-medium">{model.name}</span>
+                            <span className="text-xs text-muted-foreground">{model.description}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {selectedModel && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <Badge variant="secondary">{selectedModel.category}</Badge>
+                      {selectedModel.supportsNegative && (
+                        <Badge variant="outline">Negative Prompts</Badge>
+                      )}
+                    </div>
+                  )}
+                </div>
 
-              {/* Prompt */}
-              <div className="space-y-2">
-                <Label>Prompt</Label>
-                <Textarea
-                  placeholder="Describe the image you want to generate..."
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  rows={3}
-                  className="resize-none"
-                />
-              </div>
-
-              {/* Negative Prompt */}
-              {selectedModelInfo?.supportsNegative && (
-                <div className="space-y-2">
-                  <Label>Negative Prompt (Optional)</Label>
+                {/* Prompt */}
+                <div>
+                  <Label htmlFor="prompt" className="text-sm font-medium mb-2 block">Prompt</Label>
                   <Textarea
-                    placeholder="What you don't want in the image..."
-                    value={negativePrompt}
-                    onChange={(e) => setNegativePrompt(e.target.value)}
-                    rows={2}
+                    id="prompt"
+                    placeholder="A magical forest with sparkling lights, fantasy art..."
+                    value={params.prompt}
+                    onChange={(e) => setParams(prev => ({ ...prev, prompt: e.target.value }))}
+                    rows={3}
                     className="resize-none"
                   />
                 </div>
-              )}
 
-              {/* Image Uploads for non-text-to-image workflows */}
-              {workflow !== 'text-to-image' && (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Source Image</Label>
-                    <div className="border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary/50 transition-colors">
-                      {sourceImage ? (
-                        <div className="space-y-2">
-                          <img src={sourceImage} alt="Source" className="max-h-32 mx-auto rounded" />
-                          <Button variant="outline" size="sm" onClick={() => setSourceImage(null)}>
-                            Remove
+                {/* Negative Prompt */}
+                {selectedModel?.supportsNegative && (
+                  <div>
+                    <Label htmlFor="negative_prompt" className="text-sm font-medium mb-2 block">
+                      Negative Prompt
+                      <span className="text-muted-foreground ml-1">(optional)</span>
+                    </Label>
+                    <Textarea
+                      id="negative_prompt"
+                      placeholder="low quality, blurry, distorted..."
+                      value={params.negative_prompt}
+                      onChange={(e) => setParams(prev => ({ ...prev, negative_prompt: e.target.value }))}
+                      rows={2}
+                      className="resize-none"
+                    />
+                  </div>
+                )}
+
+                {/* Image Uploads for I2I and Inpainting */}
+                {(params.workflow === 'image-to-image' || params.workflow === 'inpainting') && (
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="text-sm font-medium mb-2 block">Seed Image</Label>
+                      <div className="flex items-center gap-4">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => document.getElementById('seed-image-input')?.click()}
+                          className="flex items-center gap-2"
+                        >
+                          <Upload className="w-4 h-4" />
+                          Upload Image
+                        </Button>
+                        {params.seed_image && (
+                          <span className="text-sm text-muted-foreground">Image uploaded</span>
+                        )}
+                      </div>
+                      <input
+                        id="seed-image-input"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleSeedImageUpload}
+                        className="hidden"
+                      />
+                    </div>
+
+                    {params.workflow === 'inpainting' && (
+                      <div>
+                        <Label className="text-sm font-medium mb-2 block">Mask Image</Label>
+                        <div className="flex items-center gap-4">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => document.getElementById('mask-image-input')?.click()}
+                            className="flex items-center gap-2"
+                          >
+                            <Upload className="w-4 h-4" />
+                            Upload Mask
                           </Button>
+                          {params.mask_image && (
+                            <span className="text-sm text-muted-foreground">Mask uploaded</span>
+                          )}
                         </div>
-                      ) : (
-                        <div>
-                          <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], 'source')}
-                            className="w-full"
-                          />
-                        </div>
-                      )}
+                        <input
+                          id="mask-image-input"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleMaskImageUpload}
+                          className="hidden"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Advanced Parameters */}
+                <div className="space-y-4">
+                  <Label className="text-sm font-medium">Advanced Parameters</Label>
+                  
+                  {/* Dimensions */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-xs text-muted-foreground mb-1 block">Width</Label>
+                      <Select value={params.width.toString()} onValueChange={(value) => setParams(prev => ({ ...prev, width: parseInt(value) }))}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="512">512px</SelectItem>
+                          <SelectItem value="768">768px</SelectItem>
+                          <SelectItem value="1024">1024px</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground mb-1 block">Height</Label>
+                      <Select value={params.height.toString()} onValueChange={(value) => setParams(prev => ({ ...prev, height: parseInt(value) }))}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="512">512px</SelectItem>
+                          <SelectItem value="768">768px</SelectItem>
+                          <SelectItem value="1024">1024px</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
 
-                  {workflow === 'inpainting' && (
-                    <div className="space-y-2">
-                      <Label>Mask Image</Label>
-                      <div className="border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary/50 transition-colors">
-                        {maskImage ? (
-                          <div className="space-y-2">
-                            <img src={maskImage} alt="Mask" className="max-h-32 mx-auto rounded" />
-                            <Button variant="outline" size="sm" onClick={() => setMaskImage(null)}>
-                              Remove
-                            </Button>
-                          </div>
-                        ) : (
-                          <div>
-                            <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], 'mask')}
-                              className="w-full"
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
+                  {/* Steps */}
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-2 block">
+                      Inference Steps: {params.num_inference_steps}
+                    </Label>
+                    <Slider
+                      value={[params.num_inference_steps]}
+                      onValueChange={([value]) => setParams(prev => ({ ...prev, num_inference_steps: value }))}
+                      min={10}
+                      max={50}
+                      step={1}
+                      className="w-full"
+                    />
+                  </div>
 
-                  {workflow === 'image-to-image' && (
-                    <div className="space-y-2">
-                      <Label className="text-sm">Strength: {strength[0]}</Label>
+                  {/* Guidance Scale */}
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-2 block">
+                      Guidance Scale: {params.guidance_scale}
+                    </Label>
+                    <Slider
+                      value={[params.guidance_scale]}
+                      onValueChange={([value]) => setParams(prev => ({ ...prev, guidance_scale: value }))}
+                      min={1}
+                      max={20}
+                      step={0.5}
+                      className="w-full"
+                    />
+                  </div>
+
+                  {/* Seed */}
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-2 block">Seed (optional)</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="number"
+                        placeholder="Random"
+                        value={params.seed || ''}
+                        onChange={(e) => setParams(prev => ({ ...prev, seed: e.target.value ? parseInt(e.target.value) : null }))}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={generateRandomSeed}
+                      >
+                        <Shuffle className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Strength for I2I */}
+                  {params.workflow === 'image-to-image' && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground mb-2 block">
+                        Strength: {params.strength}
+                      </Label>
                       <Slider
-                        value={strength}
-                        onValueChange={setStrength}
+                        value={[params.strength]}
+                        onValueChange={([value]) => setParams(prev => ({ ...prev, strength: value }))}
                         min={0.1}
                         max={1}
                         step={0.1}
@@ -370,209 +463,84 @@ export const ImageGeneration: React.FC = () => {
                       />
                     </div>
                   )}
+                </div>
 
-                  {workflow === 'outpainting' && (
-                    <div className="space-y-4">
-                      <Label className="text-sm font-medium">Outpaint Settings</Label>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label className="text-xs">Top: {outpaintSettings.top}px</Label>
-                          <Slider
-                            value={[outpaintSettings.top]}
-                            onValueChange={([value]) => setOutpaintSettings(prev => ({ ...prev, top: value }))}
-                            min={0}
-                            max={512}
-                            step={64}
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs">Bottom: {outpaintSettings.bottom}px</Label>
-                          <Slider
-                            value={[outpaintSettings.bottom]}
-                            onValueChange={([value]) => setOutpaintSettings(prev => ({ ...prev, bottom: value }))}
-                            min={0}
-                            max={512}
-                            step={64}
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs">Left: {outpaintSettings.left}px</Label>
-                          <Slider
-                            value={[outpaintSettings.left]}
-                            onValueChange={([value]) => setOutpaintSettings(prev => ({ ...prev, left: value }))}
-                            min={0}
-                            max={512}
-                            step={64}
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs">Right: {outpaintSettings.right}px</Label>
-                          <Slider
-                            value={[outpaintSettings.right]}
-                            onValueChange={([value]) => setOutpaintSettings(prev => ({ ...prev, right: value }))}
-                            min={0}
-                            max={512}
-                            step={64}
-                          />
-                        </div>
-                      </div>
-                    </div>
+                {/* Generate Button */}
+                <Button
+                  onClick={handleGenerate}
+                  disabled={loading || !params.prompt.trim()}
+                  className="w-full"
+                  size="lg"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Generate Image
+                    </>
                   )}
-                </div>
-              )}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
 
-              {/* Dimensions */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-sm">Width</Label>
-                  <Input
-                    type="number"
-                    value={width}
-                    onChange={(e) => setWidth(Number(e.target.value))}
-                    min={128}
-                    max={2048}
-                    step={64}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm">Height</Label>
-                  <Input
-                    type="number"
-                    value={height}
-                    onChange={(e) => setHeight(Number(e.target.value))}
-                    min={128}
-                    max={2048}
-                    step={64}
-                  />
-                </div>
-              </div>
-
-              {/* Advanced Parameters */}
-              <div className="space-y-4">
-                <Label className="text-sm font-medium">Advanced Parameters</Label>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-xs">Guidance Scale: {guidanceScale[0]}</Label>
-                    <Slider
-                      value={guidanceScale}
-                      onValueChange={setGuidanceScale}
-                      min={0}
-                      max={50}
-                      step={0.5}
-                      className="w-full"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-xs">Steps: {steps[0]}</Label>
-                    <Slider
-                      value={steps}
-                      onValueChange={setSteps}
-                      min={1}
-                      max={100}
-                      step={1}
-                      className="w-full"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Label className="text-xs">Seed (Optional)</Label>
-                    <Button variant="ghost" size="sm" onClick={randomizeSeed}>
-                      <Shuffle className="w-3 h-3" />
-                    </Button>
-                  </div>
-                  <Input
-                    type="number"
-                    placeholder="Random seed for reproducible results"
-                    value={seed}
-                    onChange={(e) => setSeed(e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-xs">Number of Images: {numberResults}</Label>
-                  <Slider
-                    value={[numberResults]}
-                    onValueChange={([value]) => setNumberResults(value)}
-                    min={1}
-                    max={4}
-                    step={1}
-                    className="w-full"
-                  />
-                </div>
-              </div>
-
-              {/* Generate Button */}
-              <Button 
-                onClick={generateImage} 
-                disabled={loading || !prompt.trim()}
-                className="w-full bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90"
-                size="lg"
-              >
+          {/* Results Panel */}
+          <div>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ImageIcon className="w-5 h-5 text-primary" />
+                  Generated Images
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
                 {loading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Generate Image
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Result Panel */}
-          <Card className="shadow-xl border-border/50">
-            <CardHeader>
-              <CardTitle>Generated Images</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {loading ? (
-                  <div className="aspect-square bg-muted rounded-lg flex items-center justify-center">
-                    <div className="text-center space-y-4">
-                      <Loader2 className="w-12 h-12 animate-spin mx-auto text-primary" />
+                  <div className="flex items-center justify-center py-12">
+                    <div className="text-center">
+                      <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
                       <p className="text-muted-foreground">Generating your image...</p>
                     </div>
                   </div>
                 ) : generatedImages.length > 0 ? (
                   <div className="space-y-4">
-                    {generatedImages.map((image, index) => (
-                      <div key={index} className="space-y-2">
-                        <img 
-                          src={image} 
-                          alt={`Generated ${index + 1}`} 
-                          className="w-full h-auto rounded-lg shadow-lg"
+                    {generatedImages.map((imageUrl, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={imageUrl}
+                          alt={`Generated ${index + 1}`}
+                          className="w-full rounded-lg shadow-lg"
                         />
-                        <Button 
-                          onClick={() => downloadImage(image, index)}
-                          className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
-                        >
-                          <Download className="w-4 h-4 mr-2" />
-                          Download Image {index + 1}
-                        </Button>
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                          <Button
+                            onClick={() => downloadImage(imageUrl, index)}
+                            variant="secondary"
+                            size="sm"
+                            className="bg-white/90 text-black hover:bg-white"
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            Download
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="aspect-square bg-muted rounded-lg flex items-center justify-center">
-                    <div className="text-center space-y-2">
-                      <ImageIcon className="w-12 h-12 mx-auto text-muted-foreground" />
-                      <p className="text-muted-foreground">Your generated images will appear here</p>
-                    </div>
+                  <div className="text-center py-12">
+                    <ImageIcon className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">Generated images will appear here</p>
                   </div>
                 )}
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>
   );
 };
+
+export default ImageGeneration;

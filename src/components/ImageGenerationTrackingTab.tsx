@@ -345,7 +345,7 @@ const ImageGenerationTrackingTab: React.FC<{ currentUser: any }> = ({ currentUse
 
       {/* Image Modal */}
       {selectedImage && (
-        <Dialog open={!!selectedImage} onOpenChange={setSelectedImage}>
+        <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="flex flex-col items-center p-4">
               <img 

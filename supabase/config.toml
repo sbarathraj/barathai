@@ -29,5 +29,5 @@ claims_json = '{"hello":"world"}'
 # [auth.sms.template."Your Custom Template"]
 # template = "Your code is {{ .Code }}"
 
-[functions.runware-generate]
+[functions.huggingface-generate]
 verify_jwt = false
