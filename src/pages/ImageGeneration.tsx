@@ -80,7 +80,7 @@ interface GenerationParams {
   mask_image: string | null;
 }
 
-const ImageGeneration: React.FC = () => {
+export const ImageGeneration: React.FC = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(false);
