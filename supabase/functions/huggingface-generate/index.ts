@@ -14,31 +14,13 @@ serve(async (req) => {
 
   try {
     const { 
-      workflow = "text-to-image",
       model = "stabilityai/stable-diffusion-xl-base-1.0",
-      prompt, 
-      negative_prompt = "", 
-      width = 1024,
-      height = 1024,
-      num_inference_steps = 20,
-      guidance_scale = 7.5,
-      seed = null,
-      n = 1,
-      strength = 0.7,
-      seed_image = null,
-      mask_image = null
+      prompt
     } = await req.json()
 
-    console.log('Hugging Face image generation request:', { 
-      workflow,
+    console.log('Hugging Face Free Tier image generation request:', { 
       prompt, 
-      model, 
-      width,
-      height,
-      num_inference_steps,
-      guidance_scale,
-      seed,
-      n
+      model
     })
 
     const startTime = Date.now()
@@ -66,48 +48,16 @@ serve(async (req) => {
       throw new Error('Hugging Face API token not configured')
     }
 
-    // Build request payload based on workflow
-    const payload: any = {
-      inputs: prompt,
-      parameters: {
-        width,
-        height,
-        num_inference_steps,
-        guidance_scale,
-      }
+    // Simple free tier payload - only inputs for text-to-image
+    const payload = {
+      inputs: prompt
     }
 
-    // Add optional parameters
-    if (negative_prompt) {
-      payload.parameters.negative_prompt = negative_prompt
-    }
-    if (seed !== null) {
-      payload.parameters.seed = seed
-    }
-    if (n > 1) {
-      payload.parameters.num_images_per_prompt = n
-    }
-
-    // Handle different workflows
-    let apiUrl = `https://api-inference.huggingface.co/models/${model}`
+    const apiUrl = `https://api-inference.huggingface.co/models/${model}`
     
-    if (workflow === 'image-to-image' && seed_image) {
-      payload.inputs = {
-        prompt: prompt,
-        image: seed_image
-      }
-      payload.parameters.strength = strength
-    } else if (workflow === 'inpainting' && seed_image && mask_image) {
-      payload.inputs = {
-        prompt: prompt,
-        image: seed_image,
-        mask_image: mask_image
-      }
-    }
+    console.log('Calling Hugging Face Free Tier API:', apiUrl)
 
-    console.log('Calling Hugging Face API:', apiUrl)
-
-    // Call Hugging Face API
+    // Call Hugging Face API (free tier)
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
@@ -134,7 +84,6 @@ serve(async (req) => {
 
     console.log('Image generated successfully:', {
       model,
-      workflow,
       size: imageSizeBytes,
       responseTime
     })
@@ -146,19 +95,12 @@ serve(async (req) => {
       api_provider: 'huggingface',
       model_name: model,
       model_id: model,
-      task_type: workflow,
+      task_type: 'text-to-image',
       prompt,
-      negative_prompt,
       image_url: imageUrl,
       status: 'success',
       parameters: {
-        width,
-        height,
-        num_inference_steps,
-        guidance_scale,
-        seed,
-        strength,
-        n
+        model: model
       },
       image_metadata: {
         size_bytes: imageSizeBytes,
@@ -167,14 +109,7 @@ serve(async (req) => {
       processing_time_ms: responseTime,
       response_time_ms: responseTime,
       success: true,
-      image_size_bytes: imageSizeBytes,
-      has_source_image: !!seed_image,
-      has_mask: !!mask_image,
-      guidance_scale,
-      num_inference_steps,
-      seed,
-      width,
-      height
+      image_size_bytes: imageSizeBytes
     })
 
     if (logError) {
@@ -187,18 +122,7 @@ serve(async (req) => {
         image: imageUrl,
         metadata: {
           model,
-          workflow,
           prompt,
-          negative_prompt,
-          parameters: {
-            width,
-            height,
-            num_inference_steps,
-            guidance_scale,
-            seed,
-            strength,
-            n
-          },
           response_time_ms: responseTime,
           size_bytes: imageSizeBytes
         }
@@ -237,7 +161,7 @@ serve(async (req) => {
         api_provider: 'huggingface',
         model_name: 'unknown',
         model_id: 'unknown',
-        task_type: 'unknown',
+        task_type: 'text-to-image',
         prompt: 'unknown',
         status: 'error',
         error_message: error.message,
