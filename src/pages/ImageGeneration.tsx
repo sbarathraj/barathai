@@ -20,18 +20,6 @@ const FREE_TIER_MODELS = [
     description: 'High-quality image generation (Free)',
     category: 'Free Tier'
   },
-  {
-    id: 'runwayml/stable-diffusion-v1-5',
-    name: 'Stable Diffusion v1.5',
-    description: 'Classic model (Free)',
-    category: 'Free Tier'
-  },
-  {
-    id: 'CompVis/stable-diffusion-v1-4',
-    name: 'Stable Diffusion v1.4',
-    description: 'Original model (Free)',
-    category: 'Free Tier'
-  }
 ];
 
 interface GenerationParams {
@@ -134,30 +122,7 @@ export const ImageGeneration: React.FC = () => {
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Model Selection */}
-                <div>
-                  <Label htmlFor="model" className="text-sm font-medium mb-2 block">Free Tier Model</Label>
-                  <Select value={params.model} onValueChange={(value) => setParams(prev => ({ ...prev, model: value }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a model" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {FREE_TIER_MODELS.map((model) => (
-                        <SelectItem key={model.id} value={model.id}>
-                          <div className="flex flex-col">
-                            <span className="font-medium">{model.name}</span>
-                            <span className="text-xs text-muted-foreground">{model.description}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {selectedModel && (
-                    <div className="flex items-center gap-2 mt-2">
-                      <Badge variant="secondary">{selectedModel.category}</Badge>
-                    </div>
-                  )}
-                </div>
-
+                
                 {/* Prompt */}
                 <div>
                   <Label htmlFor="prompt" className="text-sm font-medium mb-2 block">Prompt</Label>
