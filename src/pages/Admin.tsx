@@ -88,7 +88,7 @@ const Admin: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-rose-100 via-blue-100 to-pink-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="h-screen overflow-hidden bg-gradient-to-br from-rose-100 via-blue-100 to-pink-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       {/* Sidebar (truly fixed, static) */}
       <div className="fixed left-0 top-0 h-full z-40 w-64 hidden md:block">
         <Sidebar mobileOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -100,8 +100,8 @@ const Admin: React.FC = () => {
         onLogout={async () => { await supabase.auth.signOut(); navigate('/'); }}
       />
       {/* Main Content (scrollable, with left padding) */}
-      <div className="md:pl-64">
-        <main id="admin-main-content" ref={mainContentRef} className="pt-20 px-2 sm:px-6 pb-8 relative">
+      <div className="flex flex-col flex-grow h-full md:pl-64">
+        <main id="admin-main-content" ref={mainContentRef} className="pt-20 px-2 sm:px-6 pb-8 relative overflow-y-auto">
           <div className="bg-white/90 dark:bg-slate-900/90 rounded-3xl shadow-2xl border border-white/30 dark:border-slate-800/40 animate-fade-in p-0 sm:p-0">
             <div className="flex items-center gap-4 px-6 pt-10 pb-2 border-b border-slate-200 dark:border-slate-700 mb-6">
               <div className="bg-gradient-to-br from-blue-500 via-pink-400 to-yellow-400 rounded-full p-3 shadow-lg flex items-center justify-center">

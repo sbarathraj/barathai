@@ -300,51 +300,27 @@ const ApiTrackingTab: React.FC<ApiTrackingTabProps> = ({ currentUser }) => {
       </div>
       {/* Log Details Dialog/Drawer for mobile/desktop */}
       <Dialog open={logDialogOpen} onOpenChange={setLogDialogOpen}>
-        {isDesktop ? (
-          <DrawerDialogContent container={typeof window !== 'undefined' ? document.getElementById('admin-main-content') : undefined}>
-            {selectedLog && (
-              <div className="h-full flex flex-col p-8 bg-white dark:bg-slate-900 rounded-l-2xl shadow-xl gap-4">
-                <h2 className="text-2xl font-bold mb-2 text-slate-800 dark:text-slate-100">API Log Details</h2>
-                <div className="flex flex-col gap-2">
-                  <div><span className="font-semibold">Timestamp:</span> {new Date(selectedLog.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</div>
-                  <div><span className="font-semibold">User:</span> {selectedLog.user_email || 'Anonymous'}</div>
-                  <div><span className="font-semibold">API:</span> {selectedLog.api_name}</div>
-                  <div><span className="font-semibold">Endpoint:</span> {selectedLog.endpoint_hit}</div>
-                  <div><span className="font-semibold">Method:</span> {selectedLog.request_method}</div>
-                  <div><span className="font-semibold">Status:</span> {selectedLog.status_code}</div>
-                  <div><span className="font-semibold">Response Time:</span> {selectedLog.response_time}</div>
-                  <div><span className="font-semibold">Request Payload:</span> <pre className="bg-slate-100 dark:bg-slate-800 rounded p-2 text-xs overflow-x-auto">{JSON.stringify(selectedLog.request_payload, null, 2)}</pre></div>
-                  <div><span className="font-semibold">Response Payload:</span> <pre className="bg-slate-100 dark:bg-slate-800 rounded p-2 text-xs overflow-x-auto">{JSON.stringify(selectedLog.response_payload, null, 2)}</pre></div>
-                </div>
-                <div className="flex gap-2 mt-4">
-                  <Button variant="outline" onClick={() => setLogDialogOpen(false)} className="flex-1 text-base">Close</Button>
-                </div>
+        <DialogContent className="max-w-4xl h-[90vh] overflow-y-auto">
+          {selectedLog && (
+            <div className="p-6 w-full mx-auto bg-white dark:bg-slate-900 rounded-2xl shadow-xl flex flex-col gap-4">
+              <h2 className="text-xl font-bold mb-2 text-slate-800 dark:text-slate-100">API Log Details</h2>
+              <div className="flex flex-col gap-2">
+                <div><span className="font-semibold">Timestamp:</span> {new Date(selectedLog.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</div>
+                <div><span className="font-semibold">User:</span> {selectedLog.user_email || 'Anonymous'}</div>
+                <div><span className="font-semibold">API:</span> {selectedLog.api_name}</div>
+                <div><span className="font-semibold">Endpoint:</span> {selectedLog.endpoint_hit}</div>
+                <div><span className="font-semibold">Method:</span> {selectedLog.request_method}</div>
+                <div><span className="font-semibold">Status:</span> {selectedLog.status_code}</div>
+                <div><span className="font-semibold">Response Time:</span> {selectedLog.response_time}</div>
+                <div><span className="font-semibold">Request Payload:</span> <pre className="bg-slate-100 dark:bg-slate-800 rounded p-2 text-sm overflow-x-auto">{JSON.stringify(selectedLog.request_payload, null, 2)}</pre></div>
+                <div><span className="font-semibold">Response Payload:</span> <pre className="bg-slate-100 dark:bg-slate-800 rounded p-2 text-sm overflow-x-auto">{JSON.stringify(selectedLog.response_payload, null, 2)}</pre></div>
               </div>
-            )}
-          </DrawerDialogContent>
-        ) : (
-          <DialogContent>
-            {selectedLog && (
-              <div className="p-6 max-w-lg w-full mx-auto bg-white dark:bg-slate-900 rounded-2xl shadow-xl flex flex-col gap-4">
-                <h2 className="text-xl font-bold mb-2 text-slate-800 dark:text-slate-100">API Log Details</h2>
-                <div className="flex flex-col gap-2">
-                  <div><span className="font-semibold">Timestamp:</span> {new Date(selectedLog.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</div>
-                  <div><span className="font-semibold">User:</span> {selectedLog.user_email || 'Anonymous'}</div>
-                  <div><span className="font-semibold">API:</span> {selectedLog.api_name}</div>
-                  <div><span className="font-semibold">Endpoint:</span> {selectedLog.endpoint_hit}</div>
-                  <div><span className="font-semibold">Method:</span> {selectedLog.request_method}</div>
-                  <div><span className="font-semibold">Status:</span> {selectedLog.status_code}</div>
-                  <div><span className="font-semibold">Response Time:</span> {selectedLog.response_time}</div>
-                  <div><span className="font-semibold">Request Payload:</span> <pre className="bg-slate-100 dark:bg-slate-800 rounded p-2 text-xs overflow-x-auto">{JSON.stringify(selectedLog.request_payload, null, 2)}</pre></div>
-                  <div><span className="font-semibold">Response Payload:</span> <pre className="bg-slate-100 dark:bg-slate-800 rounded p-2 text-xs overflow-x-auto">{JSON.stringify(selectedLog.response_payload, null, 2)}</pre></div>
-                </div>
-                <div className="flex gap-2 mt-4">
-                  <Button variant="outline" onClick={() => setLogDialogOpen(false)} className="flex-1">Close</Button>
-                </div>
+              <div className="flex gap-2 mt-4">
+                <Button variant="outline" onClick={() => setLogDialogOpen(false)} className="flex-1">Close</Button>
               </div>
-            )}
-          </DialogContent>
-        )}
+            </div>
+          )}
+        </DialogContent>
       </Dialog>
     </div>
   );

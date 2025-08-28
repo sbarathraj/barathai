@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Search, Download, Eye, Filter, Image as ImageIcon } from 'lucide-react';
 import { format } from 'date-fns';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 
 interface ImageGenerationLog {
   id: string;
@@ -344,18 +345,18 @@ const ImageGenerationTrackingTab: React.FC<{ currentUser: any }> = ({ currentUse
 
       {/* Image Modal */}
       {selectedImage && (
-        <div 
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-          onClick={() => setSelectedImage(null)}
-        >
-          <div className="max-w-4xl max-h-full">
-            <img 
-              src={selectedImage} 
-              alt="Generated" 
-              className="max-w-full max-h-full object-contain rounded-lg"
-            />
-          </div>
-        </div>
+        <Dialog open={!!selectedImage} onOpenChange={setSelectedImage}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="flex flex-col items-center p-4">
+              <img 
+                src={selectedImage} 
+                alt="Generated" 
+                className="max-w-full max-h-full object-contain rounded-lg"
+              />
+              <Button onClick={() => setSelectedImage(null)} className="mt-4">Close</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
