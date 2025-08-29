@@ -705,10 +705,10 @@ export const Chat = () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
-      const response = await supabase.functions.invoke('huggingface-generate', {
+      const response = await supabase.functions.invoke('openrouter-generate', {
         body: {
           prompt: prompt,
-          model: 'stabilityai/stable-diffusion-xl-base-1.0'
+          model: 'google/gemini-2.5-flash-image-preview:free'
         },
         headers: session?.access_token ? {
           Authorization: `Bearer ${session.access_token}`

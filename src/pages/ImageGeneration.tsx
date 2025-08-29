@@ -64,7 +64,7 @@ export const ImageGeneration: React.FC = () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
-      const response = await supabase.functions.invoke('huggingface-generate', {
+      const response = await supabase.functions.invoke('openrouter-generate', {
         body: params,
         headers: session?.access_token ? {
           Authorization: `Bearer ${session.access_token}`

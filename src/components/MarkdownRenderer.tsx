@@ -4,7 +4,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import atomOneDark from 'react-syntax-highlighter/dist/esm/styles/hljs/atom-one-dark';
 import atomOneLight from 'react-syntax-highlighter/dist/esm/styles/hljs/atom-one-light';
 import remarkGfm from 'remark-gfm';
-import { Copy, Check, Play, Terminal, Code, FileText, Lightbulb, AlertCircle } from 'lucide-react';
+import { Copy, Check, Play, Terminal, Code, FileText, Lightbulb, AlertCircle, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface MarkdownRendererProps {
