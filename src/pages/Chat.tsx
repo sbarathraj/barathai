@@ -79,6 +79,7 @@ export const Chat = () => {
   const [imageLoadingByMessageId, setImageLoadingByMessageId] = useState<Record<string, boolean>>({});
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
   const [imageViewerSrc, setImageViewerSrc] = useState<string | null>(null);
+  const [imageErrorByMessageId, setImageErrorByMessageId] = useState<Record<string, boolean>>({});
 
   // API Configuration
   const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
@@ -338,48 +339,24 @@ export const Chat = () => {
 
       if (error) throw error;
 
-      const formattedMessages: Message[] = (data || []).map((msg: any) => ({
-        id: msg.id,
-        content: msg.content,
-        role: msg.role as 'user' | 'assistant',
-        timestamp: new Date(msg.created_at)
-      }));
+      const formattedMessages: Message[] = (data || []).map((msg: any) => {
+        let extractedImage: string | undefined = undefined;
+        if (typeof msg.content === 'string' && msg.content.startsWith('[IMAGE]')) {
+          // Try patterns: "[IMAGE]: <url>" or "[IMAGE] (<url>)"
+          const colonMatch = msg.content.match(/\[IMAGE\]\s*:\s*(\S+)/);
+          const parenMatch = msg.content.match(/\[IMAGE\]\s*\(([^)]+)\)/);
+          extractedImage = colonMatch?.[1] || parenMatch?.[1] || undefined;
+        }
+        return {
+          id: msg.id,
+          content: msg.content,
+          role: msg.role as 'user' | 'assistant',
+          timestamp: new Date(msg.created_at),
+          image: extractedImage
+        };
+      });
 
       setMessages(formattedMessages);
-
-      // Fetch image generation logs separately and correlate
-      if (user?.id) {
-        const { data: imageLogs, error: imageLogsError } = await supabase
-          .from('image_generation_logs')
-          .select('prompt, image_url, created_at')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(100); // Limit to recent logs for performance
-
-        if (imageLogsError) {
-          console.error('Error fetching image generation logs:', imageLogsError);
-        } else if (imageLogs && imageLogs.length > 0) {
-          const updatedMessages = formattedMessages.map(msg => {
-            if (msg.role === 'assistant' && msg.content.startsWith('[IMAGE]') && !msg.image) {
-              // Try to find a matching image log
-              const matchedLog = imageLogs.find(log => {
-                // Heuristic match: content contains log.prompt, and timestamps are close
-                const messageTimestamp = msg.timestamp.getTime();
-                const logTimestamp = new Date(log.created_at).getTime();
-                const timeDifference = Math.abs(messageTimestamp - logTimestamp);
-                // Allow for a 1-minute difference for correlation
-                return msg.content.includes(log.prompt) && timeDifference < 60 * 1000;
-              });
-
-              if (matchedLog) {
-                return { ...msg, image: matchedLog.image_url };
-              }
-            }
-            return msg;
-          });
-          setMessages(updatedMessages);
-        }
-      }
     } catch (error) {
       setError('Failed to load messages');
     }
@@ -702,6 +679,16 @@ export const Chat = () => {
       setError('Failed to save message');
     }
 
+    // Add a pending assistant message so the loader shows immediately
+    const tempAssistantId = `img-${Date.now()}`;
+    const pendingAssistant: Message = {
+      id: tempAssistantId,
+      content: `[IMAGE]`,
+      role: 'assistant',
+      timestamp: new Date()
+    };
+    setMessages(prev => [...prev, pendingAssistant]);
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -719,20 +706,18 @@ export const Chat = () => {
         throw response.error;
       }
 
-      if (response.data?.success && response.data?.image) {
-        const assistantMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          content: `Generated image for: "${prompt}"`,
-          role: 'assistant',
-          timestamp: new Date(),
-          image: response.data.image
-        };
+      if (response.data?.success && response.data?.image_url) {
+        const imageUrl = response.data.image_url as string;
 
-        const updatedMessages = [...newMessages, assistantMessage];
-        setMessages(updatedMessages);
+        // Update pending assistant message with the image
+        setMessages(prev => prev.map(m => m.id === tempAssistantId ? {
+          ...m,
+          content: `[IMAGE]: ${imageUrl}`,
+          image: imageUrl
+        } : m));
 
         try {
-          await saveMessage(currentSessionId, `[IMAGE] ${assistantMessage.content}`, 'assistant');
+          await saveMessage(currentSessionId, `[IMAGE]: ${imageUrl}`, 'assistant');
         } catch (error) {
           setError('Failed to save assistant message');
         }
@@ -747,14 +732,12 @@ export const Chat = () => {
 
     } catch (error: any) {
       setError(`Failed to generate image: ${error.message}`);
-      
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
+      // Replace pending message with error text
+      setMessages(prev => prev.map(m => m.id === tempAssistantId ? {
+        ...m,
         content: "I'm sorry, I'm having trouble generating the image right now. Please try again.",
-        role: 'assistant',
-        timestamp: new Date()
-      };
-      setMessages([...newMessages, errorMessage]);
+        image: undefined
+      } : m));
     }
 
     setIsGeneratingImage(false);
@@ -906,6 +889,15 @@ export const Chat = () => {
       for (const m of messages) {
         if (m.image && next[m.id] === undefined) {
           next[m.id] = true;
+        }
+      }
+      return next;
+    });
+    setImageErrorByMessageId(prev => {
+      const next = { ...prev };
+      for (const m of messages) {
+        if (m.image && next[m.id] === undefined) {
+          next[m.id] = false;
         }
       }
       return next;
@@ -1498,11 +1490,13 @@ export const Chat = () => {
                   )}
                   {msg.role === 'assistant' ? (
                     <div className="px-4 pb-4">
-                      <ProfessionalMarkdown content={msg.content} />
+                      {(!msg.content || !msg.content.startsWith('[IMAGE]')) && (
+                        <ProfessionalMarkdown content={msg.content} />
+                      )}
                       {!msg.image && msg.content && msg.content.startsWith('[IMAGE]') && (
                         <div className="mt-4">
-                          <div className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 animate-pulse aspect-square flex items-center justify-center">
-                            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                          <div className="w-full max-w-[512px] aspect-square mx-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 animate-pulse flex items-center justify-center">
+                            <Loader2 className="w-8 h-8 animate-spin text-primary" />
                             <span className="sr-only">Loading image…</span>
                           </div>
                         </div>
@@ -1510,20 +1504,44 @@ export const Chat = () => {
                       {msg.image && (
                         <div className="mt-4 relative">
                           {imageLoadingByMessageId[msg.id] && (
-                            <div className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 animate-pulse flex items-center justify-center aspect-square max-w-full">
-                              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                            <div className="w-full max-w-[512px] aspect-square mx-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 animate-pulse flex items-center justify-center">
+                              <Loader2 className="w-8 h-8 animate-spin text-primary" />
                               <span className="sr-only">Loading image…</span>
                             </div>
                           )}
-                          <img 
-                            src={msg.image} 
-                            alt="Generated image" 
-                            className="max-w-full h-auto rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm"
-                            style={{ display: imageLoadingByMessageId[msg.id] ? 'none' : 'block' }}
-                            onLoad={() => setImageLoadingByMessageId(prev => ({ ...prev, [msg.id]: false }))}
-                            onError={() => setImageLoadingByMessageId(prev => ({ ...prev, [msg.id]: false }))}
-                          />
-                          {!imageLoadingByMessageId[msg.id] && (
+                          {!imageErrorByMessageId[msg.id] && (
+                            <div className="w-full max-w-[512px] aspect-square mx-auto">
+                              <img 
+                                src={msg.image} 
+                                alt="Generated image" 
+                                className="w-full h-full object-contain rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm"
+                                style={{ display: imageLoadingByMessageId[msg.id] ? 'none' : 'block' }}
+                                onLoad={() => setImageLoadingByMessageId(prev => ({ ...prev, [msg.id]: false }))}
+                                onError={() => {
+                                  setImageLoadingByMessageId(prev => ({ ...prev, [msg.id]: false }));
+                                  setImageErrorByMessageId(prev => ({ ...prev, [msg.id]: true }));
+                                }}
+                              />
+                            </div>
+                          )}
+                          {imageErrorByMessageId[msg.id] && (
+                            <div className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-4 flex flex-col items-center justify-center text-center">
+                              <div className="text-sm text-slate-600 dark:text-slate-400 mb-2">Unable to display the image.</div>
+                              <div className="flex gap-2">
+                                <Button variant="outline" size="sm" className="h-8 px-2" onClick={() => {
+                                  setImageErrorByMessageId(prev => ({ ...prev, [msg.id]: false }));
+                                  setImageLoadingByMessageId(prev => ({ ...prev, [msg.id]: true }));
+                                }}>Retry</Button>
+                                <Button variant="secondary" size="sm" className="h-8 px-2" onClick={() => openImageViewer(msg.image!)}>
+                                  <Eye className="w-4 h-4 mr-1" /> View
+                                </Button>
+                                <Button variant="secondary" size="sm" className="h-8 px-2" onClick={() => downloadImage(msg.image!)}>
+                                  <Download className="w-4 h-4 mr-1" /> Download
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                          {!imageLoadingByMessageId[msg.id] && !imageErrorByMessageId[msg.id] && (
                             <div className="flex items-center justify-end gap-2 mt-2">
                               <Button
                                 variant="outline"
@@ -1557,7 +1575,7 @@ export const Chat = () => {
                     <div className="text-xs opacity-70">
                       {msg.timestamp.toLocaleTimeString()}
                     </div>
-                    {msg.role === 'assistant' && (
+                    {msg.role === 'assistant' && (!msg.content || !msg.content.startsWith('[IMAGE]')) && (
                       <TextToSpeech text={msg.content} className="ml-2" />
                     )}
                   </div>

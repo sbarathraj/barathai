@@ -75,8 +75,8 @@ export const ImageGeneration: React.FC = () => {
         throw response.error;
       }
 
-      if (response.data?.success && response.data?.image) {
-        setGeneratedImages([response.data.image]);
+      if (response.data?.success && response.data?.image_url) {
+        setGeneratedImages([response.data.image_url]);
         toast.success('Image generated successfully!');
       } else {
         throw new Error(response.data?.error || 'Generation failed');

@@ -38,6 +38,10 @@ interface ImageGenerationLog {
 const ImageGenerationTrackingTab: React.FC<{ currentUser: any }> = ({ currentUser }) => {
   const [logs, setLogs] = useState<ImageGenerationLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(0);
+  const pageSize = 24;
+  const [hasMore, setHasMore] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [modelFilter, setModelFilter] = useState('all');
@@ -45,24 +49,50 @@ const ImageGenerationTrackingTab: React.FC<{ currentUser: any }> = ({ currentUse
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchLogs();
+    // Reset and fetch first page when component mounts
+    fetchLogs(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchLogs = async () => {
-    setLoading(true);
+  const fetchLogs = async (reset: boolean = false) => {
+    if (reset) {
+      setLoading(true);
+      setPage(0);
+      setHasMore(true);
+    } else {
+      if (!hasMore) return;
+      setLoadingMore(true);
+    }
+
     try {
+      const currentPage = reset ? 0 : page + 1;
+      const from = currentPage * pageSize;
+      const to = from + pageSize - 1;
+
       const { data, error } = await supabase
         .from('image_generation_logs')
-        .select('*')
+        .select(
+          'id, user_email, model_name, task_type, prompt, image_url, status, error_message, response_time_ms, image_size_bytes, width, height, created_at'
+        )
         .order('created_at', { ascending: false })
-        .limit(100);
+        .range(from, to);
 
       if (error) throw error;
-      setLogs(data || []);
+
+      const fetched = data || [];
+      if (reset) {
+        setLogs(fetched);
+      } else {
+        setLogs(prev => [...prev, ...fetched]);
+      }
+
+      setPage(currentPage);
+      if (fetched.length < pageSize) setHasMore(false);
     } catch (error) {
       console.error('Error fetching image generation logs:', error);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
@@ -126,7 +156,7 @@ const ImageGenerationTrackingTab: React.FC<{ currentUser: any }> = ({ currentUse
           <h2 className="text-2xl font-bold text-foreground">Image Generation Tracking</h2>
           <p className="text-muted-foreground">Monitor AI image generation requests and usage</p>
         </div>
-        <Button onClick={fetchLogs} variant="outline">
+        <Button onClick={() => fetchLogs(true)} variant="outline">
           <Search className="w-4 h-4 mr-2" />
           Refresh
         </Button>
@@ -338,6 +368,19 @@ const ImageGenerationTrackingTab: React.FC<{ currentUser: any }> = ({ currentUse
                   </div>
                 </div>
               ))
+            )}
+            {hasMore && (
+              <div className="flex justify-center pt-2">
+                <Button onClick={() => fetchLogs(false)} disabled={loadingMore} variant="outline">
+                  {loadingMore ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Loading...
+                    </>
+                  ) : (
+                    'Load more'
+                  )}
+                </Button>
+              </div>
             )}
           </div>
         </CardContent>
