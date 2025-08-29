@@ -300,6 +300,57 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
             />
           ),
 
+          // Enhanced image rendering for AI-generated images
+          img: ({ node, src, alt, ...props }) => {
+            // Check if this is a base64 image (AI-generated)
+            if (src?.startsWith('data:image')) {
+              return (
+                <div className="my-4 flex flex-col items-center">
+                  <div className="relative group max-w-full">
+                    <img
+                      src={src}
+                      alt={alt || "AI Generated Image"}
+                      className="max-w-full h-auto rounded-lg shadow-lg border border-slate-200 dark:border-slate-700"
+                      {...props}
+                    />
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                      <Button
+                        onClick={() => {
+                          const link = document.createElement('a');
+                          link.href = src;
+                          link.download = `barathai-generated-${Date.now()}.png`;
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                        }}
+                        variant="secondary"
+                        size="sm"
+                        className="bg-white/90 text-black hover:bg-white"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Download
+                      </Button>
+                    </div>
+                  </div>
+                  {alt && alt !== "AI Generated Image" && (
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mt-2 text-center italic">
+                      {alt}
+                    </p>
+                  )}
+                </div>
+              );
+            }
+            
+            // Regular image handling
+            return (
+              <img
+                src={src}
+                alt={alt}
+                className="max-w-full h-auto rounded-lg shadow-md border border-slate-200 dark:border-slate-700 my-4"
+                {...props}
+              />
+            );
+          },
           // Enhanced table rendering
           table: ({ node, ...props }) => (
             <div className="overflow-x-auto my-8 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
