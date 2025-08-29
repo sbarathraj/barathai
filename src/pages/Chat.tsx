@@ -36,6 +36,74 @@ const TypingIndicator = () => (
   </div>
 );
 
+const MessageBubble = ({ message, isUser }: { message: Message; isUser: boolean }) => {
+  const [copiedMsgId, setCopiedMsgId] = useState<string | null>(null);
+  const isMobile = useIsMobile();
+
+  return (
+    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+      <div
+        className={`
+          ${isMobile ? 'max-w-[90vw]' : 'max-w-[60%]'}
+          rounded-xl transition-all duration-200
+          break-words whitespace-pre-wrap
+          ${isUser
+            ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 shadow-lg'
+            : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 shadow-lg'}
+          text-base sm:text-base
+          relative
+        `}
+      >
+        {!isUser && (
+          <div className="flex items-center mb-2">
+            <div className="w-8 h-8 min-w-[32px] min-h-[32px] flex-shrink-0 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600 mr-2">
+              <Logo size={20} />
+            </div>
+            <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">BarathAI</span>
+          </div>
+        )}
+        {!isUser ? (
+          <div className="px-4 pb-4">
+            <ProfessionalMarkdown content={message.content} />
+            {message.image && (
+              <div className="mt-4">
+                <img 
+                  src={message.image} 
+                  alt="Generated image" 
+                  className="max-w-full h-auto rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm"
+                />
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
+        )}
+        <div className="flex items-center justify-between mt-3 px-4 pb-2">
+          <div className="text-xs opacity-70">
+            {message.timestamp.toLocaleTimeString()}
+          </div>
+          {!isUser && (
+            <TextToSpeech text={message.content} className="ml-2" />
+          )}
+        </div>
+        {!isUser && (
+          <button
+            className={`absolute top-2 right-2 z-10 p-1 rounded-md bg-white/80 dark:bg-slate-700/80 border border-slate-200 dark:border-slate-600 shadow hover:bg-slate-100 dark:hover:bg-slate-800 transition-opacity duration-200`}
+            onClick={() => {
+              navigator.clipboard.writeText(message.content);
+              setCopiedMsgId(message.id);
+              setTimeout(() => setCopiedMsgId(null), 1500);
+            }}
+            title="Copy"
+          >
+            {copiedMsgId === message.id ? <Check size={18} className="text-green-500" /> : <Copy size={18} />}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export const Chat = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -1403,70 +1471,12 @@ export const Chat = () => {
             )}
 
                 {messages.map((msg, idx) => (
-              <div
-                key={msg.id}
-                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                      className={`
-                        ${isMobile ? 'max-w-[90vw]' : 'max-w-[60%]'}
-                        rounded-xl transition-all duration-200
-                        break-words whitespace-pre-wrap
-                        ${msg.role === 'user'
-                          ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 shadow-lg'
-                          : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 shadow-lg'}
-                        text-base sm:text-base
-                        relative
-                      `}
-                >
-                  {msg.role === 'assistant' && (
-                        <div className="flex items-center mb-2">
-                          <div className="w-8 h-8 min-w-[32px] min-h-[32px] flex-shrink-0 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600 mr-2">
-                            <Logo size={20} />
-                          </div>
-                      <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">BarathAI</span>
-                    </div>
-                  )}
-                  {msg.role === 'assistant' ? (
-                    <div className="px-4 pb-4">
-                      <ProfessionalMarkdown content={msg.content} />
-                      {msg.image && (
-                        <div className="mt-4">
-                          <img 
-                            src={msg.image} 
-                            alt="Generated image" 
-                            className="max-w-full h-auto rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
-                  )}
-                  <div className="flex items-center justify-between mt-3 px-4 pb-2">
-                    <div className="text-xs opacity-70">
-                      {msg.timestamp.toLocaleTimeString()}
-                    </div>
-                    {msg.role === 'assistant' && (
-                      <TextToSpeech text={msg.content} className="ml-2" />
-                    )}
-                  </div>
-                      {msg.role === 'assistant' && (
-                        <button
-                          className={`absolute top-2 right-2 z-10 p-1 rounded-md bg-white/80 dark:bg-slate-700/80 border border-slate-200 dark:border-slate-600 shadow hover:bg-slate-100 dark:hover:bg-slate-800 transition-opacity duration-200`}
-                          onClick={() => {
-                            navigator.clipboard.writeText(msg.content);
-                            setCopiedMsgId(msg.id);
-                            setTimeout(() => setCopiedMsgId(null), 1500);
-                          }}
-                          title="Copy"
-                        >
-                          {copiedMsgId === msg.id ? <Check size={18} className="text-green-500" /> : <Copy size={18} />}
-                        </button>
-                      )}
-                </div>
-              </div>
-            ))}
+                    <MessageBubble
+                      key={msg.id}
+                      message={msg}
+                      isUser={msg.role === 'user'}
+                    />
+                   ))}
             {isBarathAITyping && (
               <div className="flex justify-start">
                     <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg p-4">
