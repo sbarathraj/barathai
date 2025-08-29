@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Mic, MicOff, Menu, X, Plus, Settings, LogOut, Moon, Sun, User, Search, Edit2, Trash2, WifiOff, Crown, Zap, Brain, Sparkles, Copy, Check, Lock, User as UserIcon, ImageIcon } from "lucide-react";
+import { Send, Mic, MicOff, Menu, X, Plus, Settings, LogOut, Moon, Sun, User, Search, Edit2, Trash2, WifiOff, Crown, Zap, Brain, Sparkles, Copy, Check, Lock, User as UserIcon, ImageIcon, Loader2, Eye, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -11,6 +11,7 @@ import { ErrorBanner, LoadingSpinner } from "@/components/ErrorBoundary";
 import { Logo } from "@/components/Logo";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface Message {
   id: string;
@@ -75,6 +76,9 @@ export const Chat = () => {
   const [profile, setProfile] = useState<{ full_name: string | null } | null>(null);
   const [isImageMode, setIsImageMode] = useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [imageLoadingByMessageId, setImageLoadingByMessageId] = useState<Record<string, boolean>>({});
+  const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
+  const [imageViewerSrc, setImageViewerSrc] = useState<string | null>(null);
 
   // API Configuration
   const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
@@ -334,14 +338,49 @@ export const Chat = () => {
 
       if (error) throw error;
 
-      const formattedMessages: Message[] = (data || []).map(msg => ({
+      const formattedMessages: Message[] = (data || []).map((msg: any) => ({
         id: msg.id,
         content: msg.content,
         role: msg.role as 'user' | 'assistant',
-        timestamp: new Date(msg.created_at)
+        timestamp: new Date(msg.created_at),
+        image: msg.image || undefined
       }));
 
       setMessages(formattedMessages);
+
+      // Fetch image generation logs separately and correlate
+      if (user?.id) {
+        const { data: imageLogs, error: imageLogsError } = await supabase
+          .from('image_generation_logs')
+          .select('prompt, image_url, created_at')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(100); // Limit to recent logs for performance
+
+        if (imageLogsError) {
+          console.error('Error fetching image generation logs:', imageLogsError);
+        } else if (imageLogs && imageLogs.length > 0) {
+          const updatedMessages = formattedMessages.map(msg => {
+            if (msg.role === 'assistant' && msg.content.startsWith('[IMAGE]') && !msg.image) {
+              // Try to find a matching image log
+              const matchedLog = imageLogs.find(log => {
+                // Heuristic match: content contains log.prompt, and timestamps are close
+                const messageTimestamp = msg.timestamp.getTime();
+                const logTimestamp = new Date(log.created_at).getTime();
+                const timeDifference = Math.abs(messageTimestamp - logTimestamp);
+                // Allow for a 1-minute difference for correlation
+                return msg.content.includes(log.prompt) && timeDifference < 60 * 1000;
+              });
+
+              if (matchedLog) {
+                return { ...msg, image: matchedLog.image_url };
+              }
+            }
+            return msg;
+          });
+          setMessages(updatedMessages);
+        }
+      }
     } catch (error) {
       setError('Failed to load messages');
     }
@@ -391,7 +430,7 @@ export const Chat = () => {
     }
   };
 
-  const saveMessage = async (sessionId: string, content: string, role: 'user' | 'assistant') => {
+  const saveMessage = async (sessionId: string, content: string, role: 'user' | 'assistant', imageUrl?: string) => {
     try {
       const { error } = await supabase
         .from('messages')
@@ -399,7 +438,8 @@ export const Chat = () => {
           session_id: sessionId,
           content,
           role,
-          user_id: user?.id || ''
+          user_id: user?.id || '',
+          image: imageUrl || null
         });
 
       if (error) throw error;
@@ -694,7 +734,7 @@ export const Chat = () => {
         setMessages(updatedMessages);
 
         try {
-          await saveMessage(currentSessionId, `[IMAGE] ${assistantMessage.content}`, 'assistant');
+          await saveMessage(currentSessionId, `[IMAGE] ${assistantMessage.content}`, 'assistant', assistantMessage.image);
         } catch (error) {
           setError('Failed to save assistant message');
         }
@@ -860,6 +900,37 @@ export const Chat = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [isMobile]);
+
+  // Initialize image loading state for messages that have images but no recorded state yet
+  useEffect(() => {
+    setImageLoadingByMessageId(prev => {
+      const next = { ...prev };
+      for (const m of messages) {
+        if (m.image && next[m.id] === undefined) {
+          next[m.id] = true;
+        }
+      }
+      return next;
+    });
+  }, [messages]);
+
+  const openImageViewer = (imageUrl: string) => {
+    setImageViewerSrc(imageUrl);
+    setIsImageViewerOpen(true);
+  };
+
+  const downloadImage = (imageUrl: string) => {
+    try {
+      const link = document.createElement('a');
+      link.href = imageUrl;
+      link.download = `barathai-image-${Date.now()}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (e) {
+      // no-op
+    }
+  };
 
   if (sessionsLoading) {
     return (
@@ -1430,13 +1501,54 @@ export const Chat = () => {
                   {msg.role === 'assistant' ? (
                     <div className="px-4 pb-4">
                       <ProfessionalMarkdown content={msg.content} />
-                      {msg.image && (
+                      {!msg.image && msg.content && msg.content.startsWith('[IMAGE]') && (
                         <div className="mt-4">
+                          <div className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 animate-pulse aspect-square flex items-center justify-center">
+                            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                            <span className="sr-only">Loading image…</span>
+                          </div>
+                        </div>
+                      )}
+                      {msg.image && (
+                        <div className="mt-4 relative">
+                          {imageLoadingByMessageId[msg.id] && (
+                            <div className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 animate-pulse flex items-center justify-center aspect-square max-w-full">
+                              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                              <span className="sr-only">Loading image…</span>
+                            </div>
+                          )}
                           <img 
                             src={msg.image} 
                             alt="Generated image" 
                             className="max-w-full h-auto rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm"
+                            style={{ display: imageLoadingByMessageId[msg.id] ? 'none' : 'block' }}
+                            onLoad={() => setImageLoadingByMessageId(prev => ({ ...prev, [msg.id]: false }))}
+                            onError={() => setImageLoadingByMessageId(prev => ({ ...prev, [msg.id]: false }))}
                           />
+                          {!imageLoadingByMessageId[msg.id] && (
+                            <div className="flex items-center justify-end gap-2 mt-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 px-2"
+                                onClick={() => openImageViewer(msg.image!)}
+                                title="View"
+                                aria-label="View image in new tab"
+                              >
+                                <Eye className="w-4 h-4 mr-1" /> View
+                              </Button>
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                className="h-8 px-2"
+                                onClick={() => downloadImage(msg.image!)}
+                                title="Download"
+                                aria-label="Download image"
+                              >
+                                <Download className="w-4 h-4 mr-1" /> Download
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -1560,6 +1672,21 @@ export const Chat = () => {
               {wordLimitError && <span className="text-xs text-red-500">{wordLimitError}</span>}
             </div>
           </div>
+
+          {/* Full-screen Image Viewer */}
+          <Dialog open={isImageViewerOpen} onOpenChange={setIsImageViewerOpen}>
+            <DialogContent className="max-w-[95vw] w-[95vw] h-[95vh] p-0 border-0 bg-transparent shadow-none">
+              <div className="w-full h-full flex items-center justify-center bg-black/80 rounded-lg">
+                {imageViewerSrc && (
+                  <img
+                    src={imageViewerSrc}
+                    alt="Full size"
+                    className="max-w-full max-h-full object-contain rounded-md"
+                  />
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </div>
