@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Mic, MicOff, Menu, X, Plus, Settings, LogOut, Moon, Sun, User, Search, Edit2, Trash2, WifiOff, Crown, Zap, Brain, Sparkles, Copy, Check, Lock, User as UserIcon } from "lucide-react";
+import { Send, Mic, MicOff, Menu, X, Plus, Settings, LogOut, Moon, Sun, User, Search, Edit2, Trash2, WifiOff, Crown, Zap, Brain, Sparkles, Copy, Check, Lock, User as UserIcon, ImageIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -17,6 +17,7 @@ interface Message {
   content: string;
   role: 'user' | 'assistant';
   timestamp: Date;
+  image?: string;
 }
 
 interface ChatSession {
@@ -72,6 +73,8 @@ export const Chat = () => {
   const [inputHeight, setInputHeight] = useState<number>(0);
   const [copiedMsgId, setCopiedMsgId] = useState<string | null>(null);
   const [profile, setProfile] = useState<{ full_name: string | null } | null>(null);
+  const [imageMode, setImageMode] = useState(false);
+  const [generatingImage, setGeneratingImage] = useState(false);
 
   // API Configuration
   const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
@@ -440,6 +443,12 @@ export const Chat = () => {
       return;
     }
 
+    // If image mode is enabled, generate image instead of text response
+    if (imageMode) {
+      await generateImage(message.trim());
+      return;
+    }
+
     const userMessage: Message = {
       id: Date.now().toString(),
       content: message.trim(),
@@ -626,6 +635,91 @@ export const Chat = () => {
 
     setIsLoading(false);
     setIsBarathAITyping(false);
+  };
+
+  const generateImage = async (prompt: string) => {
+    if (!prompt.trim() || generatingImage || !currentSessionId || !user) {
+      return;
+    }
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      content: prompt,
+      role: 'user',
+      timestamp: new Date()
+    };
+
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
+    setMessage('');
+    setGeneratingImage(true);
+    setError('');
+
+    try {
+      await saveMessage(currentSessionId, userMessage.content, 'user');
+      if (messages.length === 0) {
+        await updateSessionTitle(currentSessionId, userMessage.content);
+      }
+    } catch (error) {
+      setError('Failed to save message');
+    }
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await supabase.functions.invoke('huggingface-generate', {
+        body: {
+          prompt: prompt,
+          model: 'stabilityai/stable-diffusion-xl-base-1.0'
+        },
+        headers: session?.access_token ? {
+          Authorization: `Bearer ${session.access_token}`
+        } : {}
+      });
+
+      if (response.error) {
+        throw response.error;
+      }
+
+      if (response.data?.success && response.data?.image) {
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          content: `Generated image for: "${prompt}"`,
+          role: 'assistant',
+          timestamp: new Date(),
+          image: response.data.image
+        };
+
+        const updatedMessages = [...newMessages, assistantMessage];
+        setMessages(updatedMessages);
+
+        try {
+          await saveMessage(currentSessionId, `[IMAGE] ${assistantMessage.content}`, 'assistant');
+        } catch (error) {
+          setError('Failed to save assistant message');
+        }
+
+        toast({
+          title: "Success",
+          description: "Image generated successfully!",
+        });
+      } else {
+        throw new Error(response.data?.error || 'Image generation failed');
+      }
+
+    } catch (error: any) {
+      setError(`Failed to generate image: ${error.message}`);
+      
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        content: "I'm sorry, I'm having trouble generating the image right now. Please try again.",
+        role: 'assistant',
+        timestamp: new Date()
+      };
+      setMessages([...newMessages, errorMessage]);
+    }
+
+    setGeneratingImage(false);
   };
 
   const switchToSession = (session: ChatSession) => {
@@ -1336,6 +1430,15 @@ export const Chat = () => {
                   {msg.role === 'assistant' ? (
                     <div className="px-4 pb-4">
                       <ProfessionalMarkdown content={msg.content} />
+                      {msg.image && (
+                        <div className="mt-4">
+                          <img 
+                            src={msg.image} 
+                            alt="Generated image" 
+                            className="max-w-full h-auto rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm"
+                          />
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
@@ -1395,19 +1498,29 @@ export const Chat = () => {
                   value={message}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyPress}
-                  placeholder="Type your message... (max 1000 words)"
+                  placeholder={imageMode ? "Describe the image you want to generate..." : "Type your message... (max 1000 words)"}
                   className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none resize-none text-base text-slate-900 dark:text-white min-h-[40px] max-h-40"
                   rows={2}
                   maxLength={10000}
-                  disabled={isLoading || !isOnline}
+                  disabled={isLoading || generatingImage || !isOnline}
                 />
                 <div className="flex items-center space-x-1 ml-2">
+                  <Button
+                    onClick={() => setImageMode(!imageMode)}
+                    variant="outline"
+                    size="icon"
+                    className={`h-10 w-10 rounded-lg ${imageMode ? 'bg-purple-500 text-white' : ''}`}
+                    disabled={isLoading || generatingImage}
+                    title={imageMode ? 'Switch to chat mode' : 'Switch to image generation mode'}
+                  >
+                    <ImageIcon size={20} />
+                  </Button>
                   <Button
                     onClick={toggleVoiceInput}
                     variant="outline"
                     size="icon"
                     className={`h-10 w-10 rounded-lg ${isListening ? 'bg-red-500 text-white' : ''}`}
-                    disabled={isLoading}
+                    disabled={isLoading || generatingImage}
                   >
                     {isListening ? (
                       <span className="relative flex items-center justify-center">
@@ -1420,11 +1533,11 @@ export const Chat = () => {
                   </Button>
                   <Button
                     onClick={sendMessage}
-                    disabled={!message.trim() || isLoading || wordCount > 1000}
+                    disabled={!message.trim() || isLoading || generatingImage || wordCount > 1000}
                     className="h-10 w-10 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg hover:shadow-xl focus:ring-2 focus:ring-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     size="icon"
                   >
-                    {isLoading ? (
+                    {isLoading || generatingImage ? (
                       <div className="flex items-center justify-center">
                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                       </div>
@@ -1436,7 +1549,14 @@ export const Chat = () => {
               </div>
             </div>
             <div className="flex justify-between items-center mt-2 px-1 max-w-4xl mx-auto">
-              <span className={`text-xs ${wordCount > 1000 ? 'text-red-500' : 'text-slate-400 dark:text-slate-500'}`}>{wordCount}/1000 words</span>
+              <div className="flex items-center space-x-2">
+                <span className={`text-xs ${wordCount > 1000 ? 'text-red-500' : 'text-slate-400 dark:text-slate-500'}`}>{wordCount}/1000 words</span>
+                {imageMode && (
+                  <span className="text-xs px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-300 rounded-full">
+                    Image Mode
+                  </span>
+                )}
+              </div>
               {wordLimitError && <span className="text-xs text-red-500">{wordLimitError}</span>}
             </div>
           </div>
