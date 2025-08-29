@@ -342,8 +342,7 @@ export const Chat = () => {
         id: msg.id,
         content: msg.content,
         role: msg.role as 'user' | 'assistant',
-        timestamp: new Date(msg.created_at),
-        image: msg.image || undefined
+        timestamp: new Date(msg.created_at)
       }));
 
       setMessages(formattedMessages);
@@ -430,7 +429,7 @@ export const Chat = () => {
     }
   };
 
-  const saveMessage = async (sessionId: string, content: string, role: 'user' | 'assistant', imageUrl?: string) => {
+  const saveMessage = async (sessionId: string, content: string, role: 'user' | 'assistant') => {
     try {
       const { error } = await supabase
         .from('messages')
@@ -438,8 +437,7 @@ export const Chat = () => {
           session_id: sessionId,
           content,
           role,
-          user_id: user?.id || '',
-          image: imageUrl || null
+          user_id: user?.id || ''
         });
 
       if (error) throw error;
@@ -734,7 +732,7 @@ export const Chat = () => {
         setMessages(updatedMessages);
 
         try {
-          await saveMessage(currentSessionId, `[IMAGE] ${assistantMessage.content}`, 'assistant', assistantMessage.image);
+          await saveMessage(currentSessionId, `[IMAGE] ${assistantMessage.content}`, 'assistant');
         } catch (error) {
           setError('Failed to save assistant message');
         }
