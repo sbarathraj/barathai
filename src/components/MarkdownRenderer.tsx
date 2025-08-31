@@ -302,20 +302,44 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
 
           // Enhanced image rendering for AI-generated images
           img: ({ node, src, alt, ...props }) => {
-            // Check if this is a base64 image (AI-generated)
-            if (src?.startsWith('data:image')) {
+            // Check if this is a base64 image (AI-generated) or any image
+            const isGeneratedImage = src?.startsWith('data:image');
+            
+            if (isGeneratedImage) {
               return (
                 <div className="my-4 flex flex-col items-center">
                   <div className="relative group max-w-full">
                     <img
                       src={src}
                       alt={alt || "AI Generated Image"}
-                      className="max-w-full h-auto rounded-lg shadow-lg border border-slate-200 dark:border-slate-700"
+                      className="max-w-full h-auto rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 cursor-pointer"
+                      onError={(e) => {
+                        console.error('Generated image failed to load:', src?.substring(0, 50) + '...');
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        
+                        // Create fallback element
+                        const fallback = document.createElement('div');
+                        fallback.className = 'bg-slate-100 dark:bg-slate-700 rounded-lg p-6 text-center text-slate-500 border border-slate-200 dark:border-slate-600';
+                        fallback.innerHTML = `
+                          <div class="flex flex-col items-center space-y-2">
+                            <svg class="w-12 h-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            <span>[IMAGE] Generated image failed to load</span>
+                          </div>
+                        `;
+                        target.parentNode?.appendChild(fallback);
+                      }}
+                      onLoad={() => {
+                        console.log('Generated image loaded successfully');
+                      }}
                       {...props}
                     />
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
                       <Button
                         onClick={() => {
+                          if (!src) return;
                           const link = document.createElement('a');
                           link.href = src;
                           link.download = `barathai-generated-${Date.now()}.png`;
@@ -347,6 +371,11 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
                 src={src}
                 alt={alt}
                 className="max-w-full h-auto rounded-lg shadow-md border border-slate-200 dark:border-slate-700 my-4"
+                onError={(e) => {
+                  console.error('Regular image failed to load:', src);
+                  const target = e.target as HTMLImageElement;
+                  target.alt = `[IMAGE] ${alt || 'Image failed to load'}`;
+                }}
                 {...props}
               />
             );

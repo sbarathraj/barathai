@@ -356,6 +356,18 @@ export const Chat = () => {
         };
       });
 
+      console.log('Fetched messages:', formattedMessages.length, 'messages');
+      // Log any image messages for debugging
+      formattedMessages.forEach(msg => {
+        if (msg.content.includes('data:image')) {
+          console.log('Found image message:', {
+            id: msg.id,
+            hasImage: true,
+            contentPreview: msg.content.substring(0, 100) + '...'
+          });
+        }
+      });
+
       setMessages(formattedMessages);
     } catch (error) {
       setError('Failed to load messages');

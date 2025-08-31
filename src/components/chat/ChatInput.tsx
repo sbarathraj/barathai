@@ -105,9 +105,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       {/* Mode Indicator */}
       {isImageMode && (
         <div className="mb-3 flex items-center justify-center">
-          <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg">
+          <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg animate-pulse">
             <Image className="w-4 h-4 inline mr-2" />
-            AI Image Generation Mode Active
+            🎨 AI Image Generation Mode Active
           </div>
         </div>
       )}
