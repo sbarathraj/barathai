@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Mic, MicOff, Menu, X, Plus, Settings, LogOut, Moon, Sun, User, Search, Edit2, Trash2, WifiOff, Crown, Zap, Brain, Sparkles, Copy, Check, Lock, User as UserIcon, ImageIcon, Loader2, Eye, Download } from "lucide-react";
+import { Send, Mic, MicOff, Menu, X, Plus, Settings, LogOut, Moon, Sun, User, Search, Edit2, Trash2, WifiOff, Crown, Zap, Brain, Sparkles, Lock, User as UserIcon, ImageIcon, Loader2, Eye, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -12,6 +12,8 @@ import { Logo } from "@/components/Logo";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { ProfessionalImageViewer } from "@/components/ProfessionalImageViewer";
+import { ProfessionalImageGallery } from "@/components/ProfessionalImageGallery";
 
 interface Message {
   id: string;
@@ -72,7 +74,7 @@ export const Chat = () => {
   const [headerHeight, setHeaderHeight] = useState<number>(0);
   const inputRefContainer = useRef<HTMLDivElement>(null);
   const [inputHeight, setInputHeight] = useState<number>(0);
-  const [copiedMsgId, setCopiedMsgId] = useState<string | null>(null);
+
   const [profile, setProfile] = useState<{ full_name: string | null } | null>(null);
   const [isImageMode, setIsImageMode] = useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
@@ -313,9 +315,10 @@ export const Chat = () => {
     try {
       const { data, error } = await supabase
         .from('chat_sessions')
-        .select('*')
+        .select('id, title, created_at, updated_at, unique_url')
         .eq('user_id', userId)
-        .order('updated_at', { ascending: false });
+        .order('updated_at', { ascending: false })
+        .limit(50);
 
       if (error) throw error;
 
@@ -337,9 +340,10 @@ export const Chat = () => {
     try {
       const { data, error } = await supabase
         .from('messages')
-        .select('*')
+        .select('id, content, role, created_at')
         .eq('session_id', sessionId)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: true })
+        .limit(100);
 
       if (error) throw error;
 
@@ -1028,6 +1032,7 @@ export const Chat = () => {
                 <Plus className="mr-2" size={14} />
                 New Chat
               </Button>
+
               <div className="mt-3 relative">
                 <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-slate-400" size={14} />
                 <input
@@ -1217,6 +1222,7 @@ export const Chat = () => {
                   <Plus className="mr-2" size={14} />
                   New Chat
                 </Button>
+
                 <div className="mt-2 relative">
                   <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-slate-400" size={14} />
                   <input
@@ -1511,46 +1517,13 @@ export const Chat = () => {
                   
                   {recentImages.length > 0 && (
                     <div className="mt-8">
-                      <h4 className="text-lg font-semibold text-slate-800 dark:text-white mb-4 flex items-center">
-                        <ImageIcon className="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" />
-                        Your Recent Images
-                      </h4>
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                        {recentImages.map((img) => (
-                          <div 
-                            key={img.id} 
-                            className="group relative bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
-                            onClick={() => openImageViewer(img.image_url)}
-                          >
-                            <div className="aspect-square">
-                              <img 
-                                src={img.image_url} 
-                                alt={img.prompt} 
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.style.display = 'none';
-                                  target.nextElementSibling?.classList.remove('hidden');
-                                }}
-                              />
-                              <div className="hidden w-full h-full flex items-center justify-center bg-slate-100 dark:bg-slate-700">
-                                <ImageIcon className="w-8 h-8 text-slate-400" />
-                              </div>
-                            </div>
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                              <Eye className="w-6 h-6 text-white" />
-                            </div>
-                            <div className="p-2">
-                              <p className="text-xs text-slate-600 dark:text-slate-400 truncate" title={img.prompt}>
-                                {img.prompt}
-                              </p>
-                              <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
-                                {new Date(img.created_at).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                      <ProfessionalImageGallery
+                        images={recentImages}
+                        onImageClick={openImageViewer}
+                        title="Your Recent Images"
+                        showUserInfo={false}
+                        columns={5}
+                      />
                     </div>
                   )}
                 </div>
@@ -1602,9 +1575,9 @@ export const Chat = () => {
                         </div>
                       )}
                       {msg.image && (
-                        <div className="mt-4 relative">
+                        <div className="mt-4 relative group">
                           {imageLoadingByMessageId[msg.id] && (
-                            <div className="w-full max-w-[512px] aspect-square mx-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 animate-pulse flex items-center justify-center">
+                            <div className="w-full max-w-[512px] aspect-square mx-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 animate-pulse flex items-center justify-center">
                               <div className="flex flex-col items-center">
                                 <Loader2 className="w-8 h-8 animate-spin text-blue-600 dark:text-blue-400" />
                                 <span className="text-xs text-slate-500 dark:text-slate-400 mt-2">Loading image...</span>
@@ -1612,41 +1585,55 @@ export const Chat = () => {
                             </div>
                           )}
                           {!imageErrorByMessageId[msg.id] && (
-                            <div className="w-full max-w-[512px] mx-auto bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden">
-                              <img 
-                                src={msg.image} 
-                                alt="Generated image" 
-                                className="w-full h-auto object-contain"
-                                style={{ display: imageLoadingByMessageId[msg.id] ? 'none' : 'block' }}
-                                onLoad={() => setImageLoadingByMessageId(prev => ({ ...prev, [msg.id]: false }))}
-                                onError={() => {
-                                  setImageLoadingByMessageId(prev => ({ ...prev, [msg.id]: false }));
-                                  setImageErrorByMessageId(prev => ({ ...prev, [msg.id]: true }));
-                                }}
-                              />
+                            <div className="w-full max-w-[512px] mx-auto bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300">
+                              <div className="relative cursor-pointer" onClick={() => openImageViewer(msg.image!)}>
+                                <img 
+                                  src={msg.image} 
+                                  alt="Generated image" 
+                                  className="w-full h-auto object-contain transition-transform duration-300 hover:scale-105"
+                                  style={{ display: imageLoadingByMessageId[msg.id] ? 'none' : 'block' }}
+                                  onLoad={() => setImageLoadingByMessageId(prev => ({ ...prev, [msg.id]: false }))}
+                                  onError={() => {
+                                    setImageLoadingByMessageId(prev => ({ ...prev, [msg.id]: false }));
+                                    setImageErrorByMessageId(prev => ({ ...prev, [msg.id]: true }));
+                                  }}
+                                />
+                                
+                                {/* Hover Overlay */}
+                                <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors duration-300 flex items-center justify-center opacity-0 hover:opacity-100">
+                                  <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full p-3">
+                                    <Eye className="w-6 h-6 text-gray-700 dark:text-gray-300" />
+                                  </div>
+                                </div>
+                              </div>
+                              
                               {!imageLoadingByMessageId[msg.id] && (
-                                <div className="p-3 bg-slate-50 dark:bg-slate-700/50 border-t border-slate-200 dark:border-slate-600">
+                                <div className="p-4 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-700/50 dark:to-slate-800/50 border-t border-slate-200 dark:border-slate-600">
                                   <div className="flex items-center justify-between">
-                                    <span className="text-xs text-slate-500 dark:text-slate-400">Generated Image</span>
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                                      <span className="text-xs font-medium text-slate-600 dark:text-slate-300">Generated Image</span>
+                                    </div>
                                     <div className="flex gap-2">
                                       <Button
-                                        variant="ghost"
+                                        variant="outline"
                                         size="sm"
-                                        className="h-7 px-2 text-xs"
+                                        className="h-8 px-3 text-xs bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-800"
                                         onClick={() => openImageViewer(msg.image!)}
                                         title="View full size"
                                       >
                                         <Eye className="w-3 h-3 mr-1" /> View
                                       </Button>
                                       <Button
-                                        variant="ghost"
+                                        variant="outline"
                                         size="sm"
-                                        className="h-7 px-2 text-xs"
+                                        className="h-8 px-3 text-xs bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-800"
                                         onClick={() => downloadImage(msg.image!)}
                                         title="Download image"
                                       >
                                         <Download className="w-3 h-3 mr-1" /> Save
                                       </Button>
+
                                     </div>
                                   </div>
                                 </div>
@@ -1697,19 +1684,7 @@ export const Chat = () => {
                       <TextToSpeech text={msg.content} className="ml-2" />
                     )}
                   </div>
-                      {msg.role === 'assistant' && (
-                        <button
-                          className={`absolute top-2 right-2 z-10 p-1 rounded-md bg-white/80 dark:bg-slate-700/80 border border-slate-200 dark:border-slate-600 shadow hover:bg-slate-100 dark:hover:bg-slate-800 transition-opacity duration-200`}
-                          onClick={() => {
-                            navigator.clipboard.writeText(msg.content);
-                            setCopiedMsgId(msg.id);
-                            setTimeout(() => setCopiedMsgId(null), 1500);
-                          }}
-                          title="Copy"
-                        >
-                          {copiedMsgId === msg.id ? <Check size={18} className="text-green-500" /> : <Copy size={18} />}
-                        </button>
-                      )}
+
                 </div>
               </div>
             ))}
@@ -1811,20 +1786,14 @@ export const Chat = () => {
             </div>
           </div>
 
-          {/* Full-screen Image Viewer */}
-          <Dialog open={isImageViewerOpen} onOpenChange={setIsImageViewerOpen}>
-            <DialogContent className="max-w-[95vw] w-[95vw] h-[95vh] p-0 border-0 bg-transparent shadow-none">
-              <div className="w-full h-full flex items-center justify-center bg-black/80 rounded-lg">
-                {imageViewerSrc && (
-                  <img
-                    src={imageViewerSrc}
-                    alt="Full size"
-                    className="max-w-full max-h-full object-contain rounded-md"
-                  />
-                )}
-              </div>
-            </DialogContent>
-          </Dialog>
+          {/* Professional Image Viewer */}
+          <ProfessionalImageViewer
+            isOpen={isImageViewerOpen}
+            onClose={() => setIsImageViewerOpen(false)}
+            imageUrl={imageViewerSrc}
+            title="BarathAI Generated Image"
+            description="Professional AI-generated image with advanced viewing controls"
+          />
         </div>
       </div>
     </div>

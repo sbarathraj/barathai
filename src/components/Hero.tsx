@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, MessageCircle, Sparkles, Zap, Brain, ShieldCheck, Users } from "lucide-react";
+import { ArrowRight, MessageCircle, Sparkles, Zap, Brain, ShieldCheck, Users, ImageIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Logo } from "@/components/Logo";
 import { useEffect, useRef, useState } from "react";
@@ -56,6 +56,10 @@ export const Hero = () => {
             <ShieldCheck className="h-5 w-5 text-green-600" />
             <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Private & Secure</span>
           </div>
+          <div className="flex items-center space-x-2 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md px-4 py-2 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm">
+            <ImageIcon className="h-5 w-5 text-pink-600" />
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Image Generation</span>
+          </div>
         </div>
         {/* CTA buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in delay-700 px-4">
@@ -67,6 +71,7 @@ export const Hero = () => {
             <MessageCircle className="mr-2 h-5 w-5 group-hover:animate-pulse" />
             Start Chatting Now
           </Button>
+
           <Button 
             variant="outline" 
             size="lg"

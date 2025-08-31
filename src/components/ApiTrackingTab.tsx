@@ -4,11 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import * as XLSX from 'xlsx';
-import { WorkBook, WorkSheet } from 'xlsx';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFileExcel } from '@fortawesome/free-solid-svg-icons';
-import { Dialog, DialogContent, DrawerDialogContent } from './ui/dialog';
-import { useMediaQuery } from '@/hooks/use-mobile';
+import { faFileExcel, faChartBar } from '@fortawesome/free-solid-svg-icons';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 
 interface ApiTrackingTabProps {
   currentUser: any;
@@ -19,18 +17,24 @@ const ApiTrackingTab: React.FC<ApiTrackingTabProps> = ({ currentUser }) => {
   const [apiStats, setApiStats] = useState<any>({});
   const [loading, setLoading] = useState(true);
   const [filterUser, setFilterUser] = useState('');
-  const [filterDate, setFilterDate] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [filterApis, setFilterApis] = useState<string[]>(['OpenRouter_API_1', 'OpenRouter_API_2']);
   const [apiOptions, setApiOptions] = useState<string[]>([]);
   const [logDialogOpen, setLogDialogOpen] = useState(false);
   const [selectedLog, setSelectedLog] = useState<any>(null);
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20);
+  const [totalItems, setTotalItems] = useState(0);
 
   const isAdmin = currentUser?.email === 'jcibarathraj@gmail.com';
 
   // For checkboxes
   const openRouterApis = ['OpenRouter_API_1', 'OpenRouter_API_2'];
 
-  const isDesktop = useMediaQuery('(min-width: 768px)');
+
 
   // Calculate datewise count for each API based on all logs for the selected date (not just filtered logs)
   const [allLogsForDate, setAllLogsForDate] = useState<any[]>([]);
@@ -41,23 +45,27 @@ const ApiTrackingTab: React.FC<ApiTrackingTabProps> = ({ currentUser }) => {
       fetchApiStats();
       fetchApiOptions();
     }
-  }, [isAdmin, filterUser, filterDate, filterApis]);
+  }, [isAdmin, filterUser, startDate, endDate, filterApis, currentPage]);
 
   useEffect(() => {
-    // Fetch all logs for the selected date (no API filter)
+    // Fetch all logs for the selected date range (no API filter) - optimized
     const fetchAllLogsForDate = async () => {
       let query = supabase
         .from('api_usage_logs')
-        .select('*')
+        .select('api_name, created_at')
         .order('created_at', { ascending: false })
-        .limit(1000);
+        .limit(500);
       if (filterUser) {
         query = query.ilike('user_email', `%${filterUser}%`);
       }
-      if (filterDate) {
-        query = query.gte('created_at', filterDate);
+      if (startDate) {
+        query = query.gte('created_at', startDate);
       }
-      // DO NOT filter by filterApis here!
+      if (endDate) {
+        const endDateTime = new Date(endDate);
+        endDateTime.setHours(23, 59, 59, 999);
+        query = query.lte('created_at', endDateTime.toISOString());
+      }
       const { data, error } = await query;
       if (!error && data) {
         setAllLogsForDate(data);
@@ -66,22 +74,51 @@ const ApiTrackingTab: React.FC<ApiTrackingTabProps> = ({ currentUser }) => {
       }
     };
     fetchAllLogsForDate();
-    // Only depend on filterUser and filterDate, not filterApis
-  }, [filterUser, filterDate]);
+  }, [filterUser, startDate, endDate]);
 
   const fetchApiLogs = async () => {
     setLoading(true);
+    
+    // First get total count for pagination
+    let countQuery = supabase
+      .from('api_usage_logs')
+      .select('*', { count: 'exact', head: true });
+    
+    if (filterUser) {
+      countQuery = countQuery.ilike('user_email', `%${filterUser}%`);
+    }
+    if (startDate) {
+      countQuery = countQuery.gte('created_at', startDate);
+    }
+    if (endDate) {
+      const endDateTime = new Date(endDate);
+      endDateTime.setHours(23, 59, 59, 999);
+      countQuery = countQuery.lte('created_at', endDateTime.toISOString());
+    }
+    if (filterApis.length > 0) {
+      countQuery = countQuery.in('api_name', filterApis);
+    }
+    
+    const { count } = await countQuery;
+    setTotalItems(count || 0);
+    
+    // Then get paginated data
     let query = supabase
       .from('api_usage_logs')
-      .select('*')
+      .select('id, created_at, user_email, api_name, endpoint_hit, request_method, status_code, response_time, request_payload, response_payload')
       .order('created_at', { ascending: false })
-      .limit(100);
+      .range((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage - 1);
 
     if (filterUser) {
       query = query.ilike('user_email', `%${filterUser}%`);
     }
-    if (filterDate) {
-      query = query.gte('created_at', filterDate);
+    if (startDate) {
+      query = query.gte('created_at', startDate);
+    }
+    if (endDate) {
+      const endDateTime = new Date(endDate);
+      endDateTime.setHours(23, 59, 59, 999);
+      query = query.lte('created_at', endDateTime.toISOString());
     }
     if (filterApis.length > 0) {
       query = query.in('api_name', filterApis);
@@ -95,10 +132,12 @@ const ApiTrackingTab: React.FC<ApiTrackingTabProps> = ({ currentUser }) => {
   };
 
   const fetchApiStats = async () => {
+    // Regular query for API stats
     const { data, error } = await supabase
       .from('api_usage_logs')
       .select('api_name')
-      .not('api_name', 'is', null);
+      .not('api_name', 'is', null)
+      .limit(1000);
 
     if (!error && data) {
       const stats = data.reduce((acc: any, log: any) => {
@@ -122,18 +161,52 @@ const ApiTrackingTab: React.FC<ApiTrackingTabProps> = ({ currentUser }) => {
 
   const clearFilters = () => {
     setFilterUser('');
-    setFilterDate('');
+    setStartDate('');
+    setEndDate('');
     setFilterApis(['OpenRouter_API_1', 'OpenRouter_API_2']);
+    setCurrentPage(1);
   };
 
   const exportToExcel = async () => {
-    // Fetch the full database, not just filtered logs
-    const { data: allLogs, error } = await supabase.from('api_usage_logs').select('*');
+    // Fetch filtered data for export
+    let query = supabase.from('api_usage_logs').select('*').order('created_at', { ascending: false });
+    
+    if (filterUser) {
+      query = query.ilike('user_email', `%${filterUser}%`);
+    }
+    if (startDate) {
+      query = query.gte('created_at', startDate);
+    }
+    if (endDate) {
+      const endDateTime = new Date(endDate);
+      endDateTime.setHours(23, 59, 59, 999);
+      query = query.lte('created_at', endDateTime.toISOString());
+    }
+    if (filterApis.length > 0) {
+      query = query.in('api_name', filterApis);
+    }
+    
+    const { data: allLogs, error } = await query;
     if (error || !allLogs) return;
+    
+    const formatDateTime = (iso: string) => {
+      if (!iso) return '-';
+      const d = new Date(iso);
+      return d.toLocaleDateString('en-GB', { 
+        day: '2-digit', 
+        month: '2-digit', 
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      });
+    };
+    
     const data = allLogs.map(log => ({
       ID: log.id,
-      Timestamp: log.created_at,
-      User: log.user_email,
+      Timestamp: formatDateTime(log.created_at),
+      UserEmail: log.user_email,
       API: log.api_name,
       Endpoint: log.endpoint_hit,
       Method: log.request_method,
@@ -142,6 +215,7 @@ const ApiTrackingTab: React.FC<ApiTrackingTabProps> = ({ currentUser }) => {
       RequestPayload: typeof log.request_payload === 'object' ? JSON.stringify(log.request_payload) : log.request_payload,
       ResponsePayload: typeof log.response_payload === 'object' ? JSON.stringify(log.response_payload) : log.response_payload
     }));
+    
     const ws = XLSX.utils.json_to_sheet(data);
     // Add colored header row
     const range = XLSX.utils.decode_range(ws['!ref']);
@@ -160,7 +234,9 @@ const ApiTrackingTab: React.FC<ApiTrackingTabProps> = ({ currentUser }) => {
     ];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'API Logs');
-    XLSX.writeFile(wb, `api_logs_full_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.xlsx`);
+    
+    const dateRange = startDate || endDate ? `_${startDate || 'start'}_to_${endDate || 'end'}` : '';
+    XLSX.writeFile(wb, `api_logs${dateRange}_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.xlsx`);
   };
 
   // Calculate datewise count for each API based on all logs for the selected date (not just filtered logs)
@@ -177,7 +253,15 @@ const ApiTrackingTab: React.FC<ApiTrackingTabProps> = ({ currentUser }) => {
     <div className="space-y-6">
       {/* API Statistics Dashboard */}
       <div className="bg-white/90 dark:bg-slate-900/90 rounded-2xl p-4 sm:p-8 shadow-xl border border-white/30 dark:border-slate-800/40 backdrop-blur-xl">
-        <h3 className="text-xl font-bold mb-4 text-slate-800 dark:text-slate-100 bg-gradient-to-r from-blue-600 to-pink-500 bg-clip-text text-transparent">API Usage Statistics</h3>
+        <div className="flex items-center gap-4 mb-6">
+          <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg">
+            <FontAwesomeIcon icon={faChartBar} className="text-white text-lg" />
+          </div>
+          <div>
+            <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100">API Usage Analytics</h3>
+            <p className="text-slate-500 dark:text-slate-400 text-sm">Real-time monitoring and performance metrics</p>
+          </div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {openRouterApis.map(apiName => (
             <div key={apiName} className="bg-gradient-to-r from-blue-100 to-pink-100 dark:from-slate-700 dark:to-slate-800 p-4 rounded-xl border-2 border-blue-300 dark:border-pink-400 shadow flex flex-col items-center">
@@ -197,14 +281,27 @@ const ApiTrackingTab: React.FC<ApiTrackingTabProps> = ({ currentUser }) => {
         </div>
       </div>
       {/* Filters */}
-      <div className="bg-white/90 dark:bg-slate-900/90 rounded-2xl p-4 sm:p-8 shadow-xl border border-white/30 dark:border-slate-800/40 backdrop-blur-xl flex flex-col md:flex-row md:items-end gap-4 md:gap-8">
+      <div className="bg-white/90 dark:bg-slate-900/90 rounded-2xl p-4 sm:p-8 shadow-xl border border-white/30 dark:border-slate-800/40 backdrop-blur-xl">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.707A1 1 0 013 7V4z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Advanced Filters</h3>
+        </div>
+        <div className="flex flex-col md:flex-row md:items-end gap-4 md:gap-8">
         <div className="flex flex-col gap-2 w-full md:w-1/3">
           <label className="text-sm font-semibold text-slate-700 dark:text-slate-200">User Email</label>
           <input type="text" value={filterUser} onChange={e => setFilterUser(e.target.value)} placeholder="Filter by email" className="border border-blue-300 focus:border-blue-500 rounded px-3 py-2 text-sm outline-none bg-white/80 dark:bg-slate-800/80" />
         </div>
-        <div className="flex flex-col gap-2 w-full md:w-1/3">
-          <label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Date</label>
-          <input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)} className="border border-blue-300 focus:border-blue-500 rounded px-3 py-2 text-sm outline-none bg-white/80 dark:bg-slate-800/80" />
+        <div className="flex flex-col gap-2 w-full md:w-1/6">
+          <label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Start Date</label>
+          <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="border border-blue-300 focus:border-blue-500 rounded px-3 py-2 text-sm outline-none bg-white/80 dark:bg-slate-800/80" />
+        </div>
+        <div className="flex flex-col gap-2 w-full md:w-1/6">
+          <label className="text-sm font-semibold text-slate-700 dark:text-slate-200">End Date</label>
+          <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="border border-blue-300 focus:border-blue-500 rounded px-3 py-2 text-sm outline-none bg-white/80 dark:bg-slate-800/80" />
         </div>
         <div className="flex flex-col gap-2 w-full md:w-1/3">
           <label className="text-sm font-semibold text-slate-700 dark:text-slate-200">APIs</label>
@@ -231,12 +328,23 @@ const ApiTrackingTab: React.FC<ApiTrackingTabProps> = ({ currentUser }) => {
           </div>
         </div>
         <div className="flex items-end">
-          <Button onClick={clearFilters} variant="outline" className="w-full">Clear Filters</Button>
+          <Button onClick={clearFilters} variant="outline" className="w-full bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 hover:from-slate-200 hover:to-slate-300 dark:hover:from-slate-600 dark:hover:to-slate-700 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 font-semibold">Clear All Filters</Button>
+        </div>
         </div>
       </div>
       {/* API Logs Table */}
       <div className="bg-white/90 dark:bg-slate-900/90 rounded-2xl p-4 sm:p-8 shadow-xl border border-white/30 dark:border-slate-800/40 backdrop-blur-xl overflow-x-auto">
-        <h3 className="text-xl font-bold mb-4 text-slate-800 dark:text-slate-100 bg-gradient-to-r from-blue-600 to-pink-500 bg-clip-text text-transparent">Recent API Logs</h3>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-blue-500 rounded-lg flex items-center justify-center shadow-lg">
+              <FontAwesomeIcon icon={faChartBar} className="text-white text-sm" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">Recent API Logs</h3>
+              <p className="text-slate-500 dark:text-slate-400 text-sm">Detailed request and response tracking</p>
+            </div>
+          </div>
+        </div>
         {loading ? (
           <div className="flex justify-center items-center h-32 text-slate-500">Loading API logs...</div>
         ) : (
@@ -265,7 +373,17 @@ const ApiTrackingTab: React.FC<ApiTrackingTabProps> = ({ currentUser }) => {
                   {apiLogs.map((log) => (
                     <TableRow key={log.id} className="hover:bg-blue-50/40 dark:hover:bg-pink-900/10 transition-colors cursor-pointer" onClick={() => { setSelectedLog(log); setLogDialogOpen(true); }}>
                       <TableCell>
-                        <span className="text-sm text-slate-600 dark:text-slate-300">{new Date(log.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+                        <span className="text-sm text-slate-600 dark:text-slate-300 font-mono">
+                          {new Date(log.created_at).toLocaleDateString('en-GB', { 
+                            day: '2-digit', 
+                            month: '2-digit', 
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            hour12: false
+                          })}
+                        </span>
                       </TableCell>
                       <TableCell>
                         <span className="text-sm font-medium text-slate-800 dark:text-slate-100">{log.user_email || 'Anonymous'}</span>
@@ -295,25 +413,112 @@ const ApiTrackingTab: React.FC<ApiTrackingTabProps> = ({ currentUser }) => {
                 </TableBody>
               </Table>
             </div>
+            
+            {/* Pagination */}
+            {totalItems > itemsPerPage && (
+              <div className="mt-6 flex items-center justify-between">
+                <div className="text-sm text-slate-600 dark:text-slate-400">
+                  Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} logs
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    variant="outline"
+                    size="sm"
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-sm text-slate-600 dark:text-slate-400">
+                    Page {currentPage} of {Math.ceil(totalItems / itemsPerPage)}
+                  </span>
+                  <Button
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(totalItems / itemsPerPage)))}
+                    disabled={currentPage === Math.ceil(totalItems / itemsPerPage)}
+                    variant="outline"
+                    size="sm"
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
       {/* Log Details Dialog/Drawer for mobile/desktop */}
       <Dialog open={logDialogOpen} onOpenChange={setLogDialogOpen}>
-        <DialogContent className="max-w-4xl h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>API Log Details</DialogTitle>
+            <DialogDescription>
+              Complete details for the selected API log entry including request/response data.
+            </DialogDescription>
+          </DialogHeader>
           {selectedLog && (
-            <div className="p-6 w-full mx-auto bg-white dark:bg-slate-900 rounded-2xl shadow-xl flex flex-col gap-4">
-              <h2 className="text-xl font-bold mb-2 text-slate-800 dark:text-slate-100">API Log Details</h2>
-              <div className="flex flex-col gap-2">
-                <div><span className="font-semibold">Timestamp:</span> {new Date(selectedLog.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</div>
-                <div><span className="font-semibold">User:</span> {selectedLog.user_email || 'Anonymous'}</div>
-                <div><span className="font-semibold">API:</span> {selectedLog.api_name}</div>
-                <div><span className="font-semibold">Endpoint:</span> {selectedLog.endpoint_hit}</div>
-                <div><span className="font-semibold">Method:</span> {selectedLog.request_method}</div>
-                <div><span className="font-semibold">Status:</span> {selectedLog.status_code}</div>
-                <div><span className="font-semibold">Response Time:</span> {selectedLog.response_time}</div>
-                <div><span className="font-semibold">Request Payload:</span> <pre className="bg-slate-100 dark:bg-slate-800 rounded p-2 text-sm overflow-x-auto">{JSON.stringify(selectedLog.request_payload, null, 2)}</pre></div>
-                <div><span className="font-semibold">Response Payload:</span> <pre className="bg-slate-100 dark:bg-slate-800 rounded p-2 text-sm overflow-x-auto">{JSON.stringify(selectedLog.response_payload, null, 2)}</pre></div>
+            <div className="flex-1 overflow-y-auto pr-2 space-y-6">
+              {/* API Details Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                <div className="space-y-3">
+                  <div className="flex flex-col">
+                    <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Timestamp</span>
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{new Date(selectedLog.created_at).toLocaleString()}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">User Email</span>
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{selectedLog.user_email || 'Anonymous'}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">API Service</span>
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{selectedLog.api_name}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Endpoint</span>
+                    <span className="text-sm font-mono text-slate-700 dark:text-slate-300 break-all">{selectedLog.endpoint_hit}</span>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex flex-col">
+                    <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Method</span>
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{selectedLog.request_method}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Status Code</span>
+                    <span className={`text-sm font-bold ${selectedLog.status_code >= 200 && selectedLog.status_code < 300 ? 'text-green-600 dark:text-green-400' : selectedLog.status_code >= 400 ? 'text-red-600 dark:text-red-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
+                      {selectedLog.status_code}
+                    </span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Response Time</span>
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{selectedLog.response_time}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Request Payload */}
+              <div className="space-y-2">
+                <h4 className="text-lg font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                  <div className="w-4 h-4 bg-blue-500 rounded-sm"></div>
+                  Request Payload
+                </h4>
+                <div className="bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                  <pre className="p-4 text-sm overflow-auto max-h-64 text-slate-700 dark:text-slate-300 font-mono leading-relaxed">
+                    {JSON.stringify(selectedLog.request_payload, null, 2)}
+                  </pre>
+                </div>
+              </div>
+
+              {/* Response Payload */}
+              <div className="space-y-2">
+                <h4 className="text-lg font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                  <div className="w-4 h-4 bg-green-500 rounded-sm"></div>
+                  Response Payload
+                </h4>
+                <div className="bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                  <pre className="p-4 text-sm overflow-auto max-h-64 text-slate-700 dark:text-slate-300 font-mono leading-relaxed">
+                    {JSON.stringify(selectedLog.response_payload, null, 2)}
+                  </pre>
+                </div>
               </div>
               <div className="flex gap-2 mt-4">
                 <Button variant="outline" onClick={() => setLogDialogOpen(false)} className="flex-1">Close</Button>

@@ -1,11 +1,16 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { MessageSquare, Mic, Clock, Shield, Brain, Zap } from "lucide-react";
+import { MessageSquare, Mic, Clock, Shield, Brain, Zap, ImageIcon } from "lucide-react";
 
 const features = [
   {
     icon: Brain,
     title: "Advanced AI",
     description: "Powered by cutting-edge language models for intelligent, context-aware conversations."
+  },
+  {
+    icon: ImageIcon,
+    title: "AI Image Generation",
+    description: "Create stunning visuals from text descriptions with our advanced AI image generation studio."
   },
   {
     icon: Zap,
@@ -26,11 +31,6 @@ const features = [
     icon: Shield,
     title: "Privacy First",
     description: "Your conversations are encrypted and kept completely private and secure."
-  },
-  {
-    icon: MessageSquare,
-    title: "Natural Conversations",
-    description: "Experience human-like interactions with contextual understanding and memory."
   }
 ];
 

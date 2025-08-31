@@ -3,26 +3,24 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import * as XLSX from 'xlsx';
-import { WorkBook, WorkSheet } from 'xlsx';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUser, faFileExcel } from '@fortawesome/free-solid-svg-icons';
-import { Dialog, DialogContent } from './ui/dialog';
-import { useMediaQuery } from '@/hooks/use-mobile';
+// import { Dialog, DialogContent } from '@/components/ui/dialog';
 
-const getInitials = (name: string | null) => {
-  if (!name) return '?';
-  const parts = name.split(' ');
-  if (parts.length === 1) return parts[0][0].toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-};
-
-// Helper for date formatting (dd/mm/yyyy)
+// Helper for date formatting (dd/mm/yyyy hh:mm:ss)
 const formatDateTime = (iso: string) => {
   if (!iso) return '-';
   const d = new Date(iso);
-  return d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  return d.toLocaleDateString('en-GB', { 
+    day: '2-digit', 
+    month: '2-digit', 
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
 };
 
 interface UserManagementTabProps {
@@ -36,24 +34,44 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editStatus, setEditStatus] = useState('active');
-  // Add avatar_url state
   const [editAvatar, setEditAvatar] = useState('');
-  // Remove all role-related state and logic
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  
+  // Pagination and filtering states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const isAdmin = currentUser?.email === 'jcibarathraj@gmail.com';
-  const isDesktop = useMediaQuery('(min-width: 768px)');
 
   useEffect(() => {
     if (isAdmin) {
       fetchUsers();
     }
-  }, [isAdmin]);
+  }, [isAdmin, startDate, endDate, searchTerm]);
 
   const fetchUsers = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+    let query = supabase.from('profiles').select('*').order('created_at', { ascending: false });
+    
+    // Apply date filters
+    if (startDate) {
+      query = query.gte('created_at', startDate);
+    }
+    if (endDate) {
+      const endDateTime = new Date(endDate);
+      endDateTime.setHours(23, 59, 59, 999);
+      query = query.lte('created_at', endDateTime.toISOString());
+    }
+    
+    // Apply search filter
+    if (searchTerm) {
+      query = query.or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
+    }
+    
+    const { data, error } = await query;
     if (!error && data) setUsers(data);
     setLoading(false);
   };
@@ -64,7 +82,7 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
     setEditEmail(user.email || '');
     setEditStatus(user.account_status || 'active');
     setEditAvatar(user.avatar_url || '');
-    setEditDialogOpen(true);
+    // setEditDialogOpen(true);
     // No scrolling
   };
 
@@ -87,12 +105,12 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
       fetchUsers(); // Refresh the list
     }
     setEditingId(null);
-    setEditDialogOpen(false);
+    // setEditDialogOpen(false);
   };
 
   const cancelEdit = () => {
     setEditingId(null);
-    setEditDialogOpen(false);
+    // setEditDialogOpen(false);
   };
 
   const updateUserStatus = async (userId: string, newStatus: string) => {
@@ -110,17 +128,38 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
     }
   };
 
-  const exportToExcel = () => {
-    const data = users.map(u => ({
+  const exportToExcel = async () => {
+    // Fetch all users for export (not just current page)
+    let query = supabase.from('profiles').select('*').order('created_at', { ascending: false });
+    
+    // Apply same filters as display
+    if (startDate) {
+      query = query.gte('created_at', startDate);
+    }
+    if (endDate) {
+      const endDateTime = new Date(endDate);
+      endDateTime.setHours(23, 59, 59, 999);
+      query = query.lte('created_at', endDateTime.toISOString());
+    }
+    if (searchTerm) {
+      query = query.or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
+    }
+    
+    const { data: allUsers, error } = await query;
+    if (error || !allUsers) return;
+    
+    const data = allUsers.map(u => ({
       ID: u.id,
       Name: u.full_name,
       Email: u.email,
       Avatar: u.avatar_url,
       Status: u.account_status,
-      Created: u.created_at,
-      Updated: u.updated_at,
-      Modified: u.modified_at
+      'Last Login': u.last_login ? formatDateTime(u.last_login) : '-',
+      Created: u.created_at ? formatDateTime(u.created_at) : '-',
+      Updated: u.updated_at ? formatDateTime(u.updated_at) : '-',
+      Modified: u.modified_at ? formatDateTime(u.modified_at) : '-'
     }));
+    
     const ws = XLSX.utils.json_to_sheet(data);
     // Add colored header row
     const range = XLSX.utils.decode_range(ws['!ref']);
@@ -135,11 +174,13 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
       }
     }
     ws['!cols'] = [
-      { wch: 24 }, { wch: 24 }, { wch: 32 }, { wch: 32 }, { wch: 16 }, { wch: 24 }, { wch: 24 }, { wch: 24 }
+      { wch: 24 }, { wch: 24 }, { wch: 32 }, { wch: 32 }, { wch: 16 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }
     ];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Users');
-    XLSX.writeFile(wb, `users_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.xlsx`);
+    
+    const dateRange = startDate || endDate ? `_${startDate || 'start'}_to_${endDate || 'end'}` : '';
+    XLSX.writeFile(wb, `users${dateRange}_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.xlsx`);
   };
 
   useEffect(() => {
@@ -164,6 +205,55 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
           <div className="flex justify-center items-center h-32 text-slate-500">Loading users...</div>
         ) : (
           <div className="overflow-x-auto w-full">
+            {/* Filters */}
+            <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
+              <h4 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">Filters & Search</h4>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2 block">Search Users</label>
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search by name or email..."
+                    className="w-full border border-blue-300 focus:border-blue-500 rounded px-3 py-2 text-sm outline-none bg-white/80 dark:bg-slate-800/80"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2 block">Start Date</label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-full border border-blue-300 focus:border-blue-500 rounded px-3 py-2 text-sm outline-none bg-white/80 dark:bg-slate-800/80"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2 block">End Date</label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full border border-blue-300 focus:border-blue-500 rounded px-3 py-2 text-sm outline-none bg-white/80 dark:bg-slate-800/80"
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button
+                    onClick={() => {
+                      setSearchTerm('');
+                      setStartDate('');
+                      setEndDate('');
+                      setCurrentPage(1);
+                    }}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    Clear Filters
+                  </Button>
+                </div>
+              </div>
+            </div>
+
             <Button
               onClick={exportToExcel}
               className="mb-4 bg-gradient-to-r from-green-400 via-blue-400 to-green-600 text-white font-semibold px-6 py-2 rounded-full shadow-lg flex items-center gap-2 hover:from-green-500 hover:to-blue-500 transition-all duration-200 border-0 w-full sm:w-auto text-base sm:text-lg"
@@ -187,7 +277,9 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users.map((user) => (
+                  {users
+                    .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                    .map((user) => (
                     <TableRow key={user.id} className="hover:bg-blue-50/40 dark:hover:bg-pink-900/10 transition-colors">
                       <TableCell>
                         {user.avatar_url ? (
@@ -244,11 +336,41 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
                 </TableBody>
               </Table>
             </div>
+            
+            {/* Pagination */}
+            {users.length > itemsPerPage && (
+              <div className="mt-6 flex items-center justify-between">
+                <div className="text-sm text-slate-600 dark:text-slate-400">
+                  Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, users.length)} of {users.length} users
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    variant="outline"
+                    size="sm"
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-sm text-slate-600 dark:text-slate-400">
+                    Page {currentPage} of {Math.ceil(users.length / itemsPerPage)}
+                  </span>
+                  <Button
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(users.length / itemsPerPage)))}
+                    disabled={currentPage === Math.ceil(users.length / itemsPerPage)}
+                    variant="outline"
+                    size="sm"
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
-      {/* Edit Dialog/Drawer for mobile/desktop */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+      {/* Edit Dialog/Drawer for mobile/desktop - Temporarily disabled */}
+      {/* <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent>
           <div className="p-6 max-w-md w-full mx-auto bg-white dark:bg-slate-900 rounded-2xl shadow-xl flex flex-col gap-4">
             <h2 className="text-xl font-bold mb-2 text-slate-800 dark:text-slate-100">Edit User</h2>
@@ -271,7 +393,7 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
             </div>
           </div>
         </DialogContent>
-      </Dialog>
+      </Dialog> */}
     </div>
   );
 };

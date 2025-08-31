@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, Menu, X, MessageCircle, Settings, User, LogOut, User as UserIcon } from "lucide-react";
+import { Moon, Sun, Menu, X, MessageCircle, Settings, User, LogOut, User as UserIcon, ImageIcon } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Logo } from "@/components/Logo";
 import { supabase } from "@/integrations/supabase/client";
@@ -143,6 +143,7 @@ export const Navigation = () => {
                     <MessageCircle className="mr-2 h-4 w-4" />
                     Chat
                   </Button>
+
                   <Button
                     variant="ghost"
                     onClick={() => navigate('/settings')}
@@ -248,6 +249,7 @@ export const Navigation = () => {
                       <MessageCircle className="mr-2 h-4 w-4" />
                       Chat
                     </Button>
+
                     <Button
                       variant="ghost"
                       onClick={() => {
