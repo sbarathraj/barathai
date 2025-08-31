@@ -80,6 +80,7 @@ export const Chat = () => {
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
   const [imageViewerSrc, setImageViewerSrc] = useState<string | null>(null);
   const [imageErrorByMessageId, setImageErrorByMessageId] = useState<Record<string, boolean>>({});
+  const [recentImages, setRecentImages] = useState<Array<{id: string, image_url: string, prompt: string, created_at: string}>>([]);
 
   // API Configuration
   const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
@@ -203,6 +204,9 @@ export const Chat = () => {
         .eq('id', session.user.id)
         .single();
       setProfile(profileData);
+      
+      // Load recent images
+      await loadRecentImages();
       
       const urlParams = new URLSearchParams(window.location.search);
       const chatId = urlParams.get('chat');
@@ -341,11 +345,12 @@ export const Chat = () => {
 
       const formattedMessages: Message[] = (data || []).map((msg: any) => {
         let extractedImage: string | undefined = undefined;
-        if (typeof msg.content === 'string' && msg.content.startsWith('[IMAGE]')) {
-          // Try patterns: "[IMAGE]: <url>" or "[IMAGE] (<url>)"
+        if (typeof msg.content === 'string') {
+          // Try patterns: "[IMAGE]: <url>" or "[IMAGE] (<url>)" or content containing base64 image
           const colonMatch = msg.content.match(/\[IMAGE\]\s*:\s*(\S+)/);
           const parenMatch = msg.content.match(/\[IMAGE\]\s*\(([^)]+)\)/);
-          extractedImage = colonMatch?.[1] || parenMatch?.[1] || undefined;
+          const base64Match = msg.content.match(/(data:image\/[^;]+;base64,[A-Za-z0-9+/=]+)/);
+          extractedImage = colonMatch?.[1] || parenMatch?.[1] || base64Match?.[1] || undefined;
         }
         return {
           id: msg.id,
@@ -695,7 +700,7 @@ export const Chat = () => {
     const tempAssistantId = `img-${Date.now()}`;
     const pendingAssistant: Message = {
       id: tempAssistantId,
-      content: `[IMAGE]`,
+      content: `🎨 Generating your image: "${prompt.substring(0, 50)}${prompt.length > 50 ? '...' : ''}"`,
       role: 'assistant',
       timestamp: new Date()
     };
@@ -718,18 +723,19 @@ export const Chat = () => {
         throw response.error;
       }
 
-      if (response.data?.success && response.data?.image_url) {
-        const imageUrl = response.data.image_url as string;
+      if (response.data?.success && response.data?.image) {
+        const imageUrl = response.data.image as string;
+        const assistantContent = response.data.content || "✨ Here's your generated image:";
 
         // Update pending assistant message with the image
         setMessages(prev => prev.map(m => m.id === tempAssistantId ? {
           ...m,
-          content: `[IMAGE]: ${imageUrl}`,
+          content: `${assistantContent}\n[IMAGE]: ${imageUrl}`,
           image: imageUrl
         } : m));
 
         try {
-          await saveMessage(currentSessionId, `[IMAGE]: ${imageUrl}`, 'assistant');
+          await saveMessage(currentSessionId, `${assistantContent}\n[IMAGE]: ${imageUrl}`, 'assistant');
         } catch (error) {
           setError('Failed to save assistant message');
         }
@@ -738,6 +744,9 @@ export const Chat = () => {
           title: "Success",
           description: "Image generated successfully!",
         });
+
+        // Reload recent images to include the new one
+        await loadRecentImages();
       } else {
         throw new Error(response.data?.error || 'Image generation failed');
       }
@@ -747,9 +756,15 @@ export const Chat = () => {
       // Replace pending message with error text
       setMessages(prev => prev.map(m => m.id === tempAssistantId ? {
         ...m,
-        content: "I'm sorry, I'm having trouble generating the image right now. Please try again.",
+        content: "❌ I'm sorry, I'm having trouble generating the image right now. Please try again.",
         image: undefined
       } : m));
+      
+      try {
+        await saveMessage(currentSessionId, "❌ I'm sorry, I'm having trouble generating the image right now. Please try again.", 'assistant');
+      } catch (saveError) {
+        console.error('Failed to save error message');
+      }
     }
 
     setIsGeneratingImage(false);
@@ -931,6 +946,28 @@ export const Chat = () => {
       document.body.removeChild(link);
     } catch (e) {
       // no-op
+    }
+  };
+
+  const loadRecentImages = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('image_generation_logs')
+        .select('id, image_url, prompt, created_at')
+        .eq('user_id', user.id)
+        .eq('status', 'success')
+        .not('image_url', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+      
+      console.log('Loaded recent images:', data?.length || 0);
+      setRecentImages(data || []);
+    } catch (error) {
+      console.error('Failed to load recent images:', error);
     }
   };
 
@@ -1466,11 +1503,56 @@ export const Chat = () => {
                       <div className="text-xs text-slate-500 dark:text-slate-500">Creative & Technical</div>
                     </div>
                     <div className="p-4 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-                      <div className="text-2xl mb-2">🤔</div>
-                      <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Problem Solving</div>
-                      <div className="text-xs text-slate-500 dark:text-slate-500">Step-by-step</div>
+                      <div className="text-2xl mb-2">🎨</div>
+                      <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Image Generation</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-500">AI-Powered Art</div>
                     </div>
                   </div>
+                  
+                  {recentImages.length > 0 && (
+                    <div className="mt-8">
+                      <h4 className="text-lg font-semibold text-slate-800 dark:text-white mb-4 flex items-center">
+                        <ImageIcon className="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" />
+                        Your Recent Images
+                      </h4>
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                        {recentImages.map((img) => (
+                          <div 
+                            key={img.id} 
+                            className="group relative bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
+                            onClick={() => openImageViewer(img.image_url)}
+                          >
+                            <div className="aspect-square">
+                              <img 
+                                src={img.image_url} 
+                                alt={img.prompt} 
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                  target.nextElementSibling?.classList.remove('hidden');
+                                }}
+                              />
+                              <div className="hidden w-full h-full flex items-center justify-center bg-slate-100 dark:bg-slate-700">
+                                <ImageIcon className="w-8 h-8 text-slate-400" />
+                              </div>
+                            </div>
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                              <Eye className="w-6 h-6 text-white" />
+                            </div>
+                            <div className="p-2">
+                              <p className="text-xs text-slate-600 dark:text-slate-400 truncate" title={img.prompt}>
+                                {img.prompt}
+                              </p>
+                              <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
+                                {new Date(img.created_at).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1502,31 +1584,39 @@ export const Chat = () => {
                   )}
                   {msg.role === 'assistant' ? (
                     <div className="px-4 pb-4">
-                      {(!msg.content || !msg.content.startsWith('[IMAGE]')) && (
-                        <ProfessionalMarkdown content={msg.content} />
+                      {msg.content && (
+                        <ProfessionalMarkdown content={msg.content.replace(/\[IMAGE\]:\s*\S+/g, '').trim()} />
                       )}
-                      {!msg.image && msg.content && msg.content.startsWith('[IMAGE]') && (
+                      {!msg.image && msg.content && msg.content.includes('🎨 Generating') && (
                         <div className="mt-4">
-                          <div className="w-full max-w-[512px] aspect-square mx-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 animate-pulse flex items-center justify-center">
-                            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                            <span className="sr-only">Loading image…</span>
+                          <div className="w-full max-w-[512px] aspect-square mx-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 flex flex-col items-center justify-center p-8">
+                            <div className="relative">
+                              <div className="w-16 h-16 border-4 border-blue-200 dark:border-blue-800 rounded-full animate-spin border-t-blue-600 dark:border-t-blue-400"></div>
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <ImageIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                              </div>
+                            </div>
+                            <p className="mt-4 text-sm font-medium text-slate-600 dark:text-slate-400">Creating your image...</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">This may take a few moments</p>
                           </div>
                         </div>
                       )}
                       {msg.image && (
                         <div className="mt-4 relative">
                           {imageLoadingByMessageId[msg.id] && (
-                            <div className="w-full max-w-[512px] aspect-square mx-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 animate-pulse flex items-center justify-center">
-                              <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                              <span className="sr-only">Loading image…</span>
+                            <div className="w-full max-w-[512px] aspect-square mx-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 animate-pulse flex items-center justify-center">
+                              <div className="flex flex-col items-center">
+                                <Loader2 className="w-8 h-8 animate-spin text-blue-600 dark:text-blue-400" />
+                                <span className="text-xs text-slate-500 dark:text-slate-400 mt-2">Loading image...</span>
+                              </div>
                             </div>
                           )}
                           {!imageErrorByMessageId[msg.id] && (
-                            <div className="w-full max-w-[512px] aspect-square mx-auto">
+                            <div className="w-full max-w-[512px] mx-auto bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden">
                               <img 
                                 src={msg.image} 
                                 alt="Generated image" 
-                                className="w-full h-full object-contain rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm"
+                                className="w-full h-auto object-contain"
                                 style={{ display: imageLoadingByMessageId[msg.id] ? 'none' : 'block' }}
                                 onLoad={() => setImageLoadingByMessageId(prev => ({ ...prev, [msg.id]: false }))}
                                 onError={() => {
@@ -1534,47 +1624,63 @@ export const Chat = () => {
                                   setImageErrorByMessageId(prev => ({ ...prev, [msg.id]: true }));
                                 }}
                               />
+                              {!imageLoadingByMessageId[msg.id] && (
+                                <div className="p-3 bg-slate-50 dark:bg-slate-700/50 border-t border-slate-200 dark:border-slate-600">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-xs text-slate-500 dark:text-slate-400">Generated Image</span>
+                                    <div className="flex gap-2">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 px-2 text-xs"
+                                        onClick={() => openImageViewer(msg.image!)}
+                                        title="View full size"
+                                      >
+                                        <Eye className="w-3 h-3 mr-1" /> View
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 px-2 text-xs"
+                                        onClick={() => downloadImage(msg.image!)}
+                                        title="Download image"
+                                      >
+                                        <Download className="w-3 h-3 mr-1" /> Save
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           )}
                           {imageErrorByMessageId[msg.id] && (
-                            <div className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-4 flex flex-col items-center justify-center text-center">
-                              <div className="text-sm text-slate-600 dark:text-slate-400 mb-2">Unable to display the image.</div>
+                            <div className="w-full max-w-[512px] mx-auto rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-6 flex flex-col items-center justify-center text-center">
+                              <div className="w-12 h-12 bg-red-100 dark:bg-red-900/50 rounded-full flex items-center justify-center mb-3">
+                                <ImageIcon className="w-6 h-6 text-red-600 dark:text-red-400" />
+                              </div>
+                              <div className="text-sm font-medium text-red-800 dark:text-red-200 mb-2">Unable to display image</div>
+                              <div className="text-xs text-red-600 dark:text-red-400 mb-4">The image may be corrupted or in an unsupported format</div>
                               <div className="flex gap-2">
-                                <Button variant="outline" size="sm" className="h-8 px-2" onClick={() => {
-                                  setImageErrorByMessageId(prev => ({ ...prev, [msg.id]: false }));
-                                  setImageLoadingByMessageId(prev => ({ ...prev, [msg.id]: true }));
-                                }}>Retry</Button>
-                                <Button variant="secondary" size="sm" className="h-8 px-2" onClick={() => openImageViewer(msg.image!)}>
-                                  <Eye className="w-4 h-4 mr-1" /> View
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="h-8 px-3 text-xs border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/30" 
+                                  onClick={() => {
+                                    setImageErrorByMessageId(prev => ({ ...prev, [msg.id]: false }));
+                                    setImageLoadingByMessageId(prev => ({ ...prev, [msg.id]: true }));
+                                  }}
+                                >
+                                  Retry
                                 </Button>
-                                <Button variant="secondary" size="sm" className="h-8 px-2" onClick={() => downloadImage(msg.image!)}>
-                                  <Download className="w-4 h-4 mr-1" /> Download
+                                <Button 
+                                  variant="secondary" 
+                                  size="sm" 
+                                  className="h-8 px-3 text-xs" 
+                                  onClick={() => openImageViewer(msg.image!)}
+                                >
+                                  <Eye className="w-3 h-3 mr-1" /> View Raw
                                 </Button>
                               </div>
-                            </div>
-                          )}
-                          {!imageLoadingByMessageId[msg.id] && !imageErrorByMessageId[msg.id] && (
-                            <div className="flex items-center justify-end gap-2 mt-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-8 px-2"
-                                onClick={() => openImageViewer(msg.image!)}
-                                title="View"
-                                aria-label="View image in new tab"
-                              >
-                                <Eye className="w-4 h-4 mr-1" /> View
-                              </Button>
-                              <Button
-                                variant="secondary"
-                                size="sm"
-                                className="h-8 px-2"
-                                onClick={() => downloadImage(msg.image!)}
-                                title="Download"
-                                aria-label="Download image"
-                              >
-                                <Download className="w-4 h-4 mr-1" /> Download
-                              </Button>
                             </div>
                           )}
                         </div>
@@ -1649,11 +1755,15 @@ export const Chat = () => {
                     onClick={() => setIsImageMode(!isImageMode)}
                     variant="outline"
                     size="icon"
-                    className={`h-10 w-10 rounded-lg ${isImageMode ? 'bg-purple-500 text-white' : ''}`}
+                    className={`h-10 w-10 rounded-lg transition-all duration-200 ${
+                      isImageMode 
+                        ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white border-purple-400 shadow-lg' 
+                        : 'hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-300 dark:hover:border-purple-700'
+                    }`}
                     disabled={isLoading || isGeneratingImage}
                     title={isImageMode ? 'Switch to chat mode' : 'Switch to image generation mode'}
                   >
-                    <ImageIcon size={20} />
+                    <ImageIcon size={20} className={isImageMode ? 'animate-pulse' : ''} />
                   </Button>
                   <Button
                     onClick={toggleVoiceInput}
@@ -1692,8 +1802,8 @@ export const Chat = () => {
               <div className="flex items-center space-x-2">
                 <span className={`text-xs ${wordCount > 1000 ? 'text-red-500' : 'text-slate-400 dark:text-slate-500'}`}>{wordCount}/1000 words</span>
                 {isImageMode && (
-                  <span className="text-xs px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-300 rounded-full">
-                    Image Mode
+                  <span className="text-xs px-3 py-1 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 text-purple-700 dark:text-purple-300 rounded-full font-medium border border-purple-200 dark:border-purple-700 shadow-sm">
+                    🎨 Image Mode
                   </span>
                 )}
               </div>
