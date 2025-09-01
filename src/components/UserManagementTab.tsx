@@ -265,6 +265,7 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
               <Table className="min-w-[900px] text-xs sm:text-sm md:text-base">
                 <TableHeader className="sticky top-0 z-10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
                   <TableRow>
+                    <TableHead className="py-3">Sno</TableHead>
                     <TableHead className="py-3">Avatar</TableHead>
                     <TableHead className="py-3">User</TableHead>
                     <TableHead className="py-3">Email</TableHead>
@@ -279,8 +280,11 @@ const UserManagementTab: React.FC<UserManagementTabProps> = ({ currentUser }) =>
                 <TableBody>
                   {users
                     .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-                    .map((user) => (
+                    .map((user, index) => (
                     <TableRow key={user.id} className="hover:bg-blue-50/40 dark:hover:bg-pink-900/10 transition-colors">
+                      <TableCell>
+                        <span className="text-slate-600 dark:text-slate-300">{(currentPage - 1) * itemsPerPage + index + 1}</span>
+                      </TableCell>
                       <TableCell>
                         {user.avatar_url ? (
                           <img

@@ -77,7 +77,7 @@ export const ProfessionalImageViewer: React.FC<ProfessionalImageViewerProps> = (
         </DialogHeader>
         <div className="w-full h-full flex flex-col bg-white/98 dark:bg-gray-900/98 backdrop-blur-sm rounded-lg sm:rounded-2xl shadow-2xl">
           {/* Header Controls */}
-          <div className="flex items-center justify-between p-2 sm:p-4 border-b border-gray-200 dark:border-gray-700 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-t-lg sm:rounded-t-2xl">
+          <div className="flex items-center justify-between p-1 sm:p-4 border-b border-gray-200 dark:border-gray-700 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-t-lg sm:rounded-t-2xl">
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="hidden sm:flex items-center gap-2">
                 <div className="w-3 h-3 bg-red-500 rounded-full"></div>
@@ -90,17 +90,17 @@ export const ProfessionalImageViewer: React.FC<ProfessionalImageViewerProps> = (
             </div>
             
             <div className="flex items-center gap-1 sm:gap-2">
-              {/* Mobile: Simplified controls */}
+              {/* Mobile: Simplified controls with reduced height */}
               <div className="flex sm:hidden items-center gap-1">
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={handleZoomOut}
                   disabled={zoom <= 0.25}
-                  className="h-7 w-7 p-0"
+                  className="h-5 w-5 p-0"
                   title="Zoom Out"
                 >
-                  <ZoomOut className="w-3 h-3" />
+                  <ZoomOut className="w-2.5 h-2.5" />
                 </Button>
                 
                 <Button
@@ -108,30 +108,30 @@ export const ProfessionalImageViewer: React.FC<ProfessionalImageViewerProps> = (
                   variant="outline"
                   onClick={handleZoomIn}
                   disabled={zoom >= 3}
-                  className="h-7 w-7 p-0"
+                  className="h-5 w-5 p-0"
                   title="Zoom In"
                 >
-                  <ZoomIn className="w-3 h-3" />
+                  <ZoomIn className="w-2.5 h-2.5" />
                 </Button>
                 
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={downloadImage}
-                  className="h-7 w-7 p-0"
+                  className="h-5 w-5 p-0"
                   title="Download"
                 >
-                  <Download className="w-3 h-3" />
+                  <Download className="w-2.5 h-2.5" />
                 </Button>
                 
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={onClose}
-                  className="h-7 w-7 p-0"
+                  className="h-5 w-5 p-0"
                   title="Close"
                 >
-                  <X className="w-3 h-3" />
+                  <X className="w-2.5 h-2.5" />
                 </Button>
               </div>
 

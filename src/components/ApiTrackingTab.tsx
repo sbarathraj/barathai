@@ -360,6 +360,7 @@ const ApiTrackingTab: React.FC<ApiTrackingTabProps> = ({ currentUser }) => {
               <Table className="min-w-[900px] text-xs sm:text-sm md:text-base">
                 <TableHeader className="sticky top-0 z-10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
                   <TableRow>
+                    <TableHead className="py-3">Sno</TableHead>
                     <TableHead className="py-3">Timestamp</TableHead>
                     <TableHead className="py-3">User</TableHead>
                     <TableHead className="py-3">API</TableHead>
@@ -370,8 +371,13 @@ const ApiTrackingTab: React.FC<ApiTrackingTabProps> = ({ currentUser }) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {apiLogs.map((log) => (
+                  {apiLogs.map((log, index) => (
                     <TableRow key={log.id} className="hover:bg-blue-50/40 dark:hover:bg-pink-900/10 transition-colors cursor-pointer" onClick={() => { setSelectedLog(log); setLogDialogOpen(true); }}>
+                      <TableCell>
+                        <span className="text-sm text-slate-600 dark:text-slate-300">
+                          {(currentPage - 1) * itemsPerPage + index + 1}
+                        </span>
+                      </TableCell>
                       <TableCell>
                         <span className="text-sm text-slate-600 dark:text-slate-300 font-mono">
                           {new Date(log.created_at).toLocaleDateString('en-GB', { 

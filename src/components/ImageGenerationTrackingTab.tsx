@@ -546,11 +546,14 @@ const ImageGenerationTrackingTab: React.FC<{ currentUser: any }> = ({ currentUse
                   </p>
                 </div>
               ) : (
-                filteredLogs.map((log) => (
+                filteredLogs.map((log, index) => (
                   <div key={log.id} className="border border-gray-200 dark:border-gray-700 rounded-xl p-3 sm:p-4 lg:p-6 space-y-3 sm:space-y-4 hover:shadow-lg transition-shadow">
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
                       <div className="flex-1 space-y-2 sm:space-y-3">
                         <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
+                          <span className="text-xs font-medium bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">
+                            #{page * pageSize + index + 1}
+                          </span>
                           <Badge variant={getStatusBadgeVariant(log.status)} className="text-xs">
                             {log.status}
                           </Badge>
