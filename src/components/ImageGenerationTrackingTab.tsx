@@ -5,10 +5,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Download, Eye, Image as ImageIcon, RefreshCw, TrendingUp, Clock, Users, X } from 'lucide-react';
+import { Loader2, Download, Eye, Image as ImageIcon, RefreshCw, TrendingUp, Clock, Users, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { ProfessionalImageViewer } from '@/components/ProfessionalImageViewer';
 import { ProfessionalImageGallery } from '@/components/ProfessionalImageGallery';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ImageGenerationLog {
   id: string;
@@ -39,10 +41,10 @@ interface ImageGenerationLog {
 const ImageGenerationTrackingTab: React.FC<{ currentUser: any }> = ({ currentUser }) => {
   const [logs, setLogs] = useState<ImageGenerationLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [page, setPage] = useState(0);
-  const pageSize = 24;
-  const [hasMore, setHasMore] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const pageSize = 12;
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [modelFilter, setModelFilter] = useState('all');
@@ -52,37 +54,68 @@ const ImageGenerationTrackingTab: React.FC<{ currentUser: any }> = ({ currentUse
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedImageTitle, setSelectedImageTitle] = useState<string>('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const isMobile = useIsMobile();
 
   useEffect(() => {
-    // Reset and fetch first page when component mounts
-    fetchLogs(true);
+    fetchLogs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Refetch when filters change
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      fetchLogs(true);
+      setCurrentPage(1);
+      fetchLogs();
     }, 300); // Debounce search
 
     return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, statusFilter, modelFilter, taskFilter, startDate, endDate]);
 
-  const fetchLogs = async (reset: boolean = false) => {
-    if (reset) {
-      setLoading(true);
-      setPage(0);
-      setHasMore(true);
-    } else {
-      if (!hasMore) return;
-      setLoadingMore(true);
-    }
+  // Refetch when page changes
+  useEffect(() => {
+    fetchLogs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage]);
+
+  const fetchLogs = async () => {
+    setLoading(true);
 
     try {
-      const currentPage = reset ? 0 : page + 1;
-      const from = currentPage * pageSize;
+      const from = (currentPage - 1) * pageSize;
       const to = from + pageSize - 1;
+
+      // First get total count for pagination
+      let countQuery = supabase
+        .from('image_generation_logs')
+        .select('*', { count: 'exact', head: true });
+
+      // Apply filters to count query
+      if (statusFilter !== 'all') {
+        countQuery = countQuery.eq('status', statusFilter);
+      }
+      if (modelFilter !== 'all') {
+        countQuery = countQuery.eq('model_name', modelFilter);
+      }
+      if (taskFilter !== 'all') {
+        countQuery = countQuery.eq('task_type', taskFilter);
+      }
+      if (searchTerm) {
+        countQuery = countQuery.or(`prompt.ilike.%${searchTerm}%,user_email.ilike.%${searchTerm}%,model_name.ilike.%${searchTerm}%`);
+      }
+      if (startDate) {
+        countQuery = countQuery.gte('created_at', startDate);
+      }
+      if (endDate) {
+        const endDateTime = new Date(endDate);
+        endDateTime.setHours(23, 59, 59, 999);
+        countQuery = countQuery.lte('created_at', endDateTime.toISOString());
+      }
+
+      const { count } = await countQuery;
+      const total = count || 0;
+      setTotalItems(total);
+      setTotalPages(Math.ceil(total / pageSize));
 
       // Complete query with all API details
       let query = supabase
@@ -119,19 +152,12 @@ const ImageGenerationTrackingTab: React.FC<{ currentUser: any }> = ({ currentUse
       if (error) throw error;
 
       const fetched = data || [];
-      if (reset) {
-        setLogs(fetched);
-      } else {
-        setLogs(prev => [...prev, ...fetched]);
-      }
+      setLogs(fetched);
 
-      setPage(currentPage);
-      if (fetched.length < pageSize) setHasMore(false);
     } catch (error) {
       console.error('Error fetching image generation logs:', error);
     } finally {
       setLoading(false);
-      setLoadingMore(false);
     }
   };
 
@@ -282,12 +308,146 @@ const ImageGenerationTrackingTab: React.FC<{ currentUser: any }> = ({ currentUse
     XLSX.writeFile(wb, `image_generation_logs${dateRange}_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.xlsx`);
   };
 
-  if (loading) {
+  const PaginationControls = () => {
+    if (totalPages <= 1) return null;
+
+    if (isMobile) {
+      // Mobile: Simple prev/next with page indicator
+      return (
+        <div className="flex items-center justify-between mt-6" role="navigation" aria-label="Pagination">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+            className="flex items-center gap-2 min-h-[44px] min-w-[44px]"
+            aria-label="Go to previous page"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Previous
+          </Button>
+          
+          <div 
+            className="text-sm text-muted-foreground"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            Page {currentPage} of {totalPages}
+          </div>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+            className="flex items-center gap-2 min-h-[44px] min-w-[44px]"
+            aria-label="Go to next page"
+          >
+            Next
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
+      );
+    }
+
+    // Desktop: Numeric pagination
+    const getPageNumbers = () => {
+      const pages = [];
+      const maxVisible = 7;
+      
+      if (totalPages <= maxVisible) {
+        for (let i = 1; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        if (currentPage <= 4) {
+          for (let i = 1; i <= 5; i++) pages.push(i);
+          pages.push('...');
+          pages.push(totalPages);
+        } else if (currentPage >= totalPages - 3) {
+          pages.push(1);
+          pages.push('...');
+          for (let i = totalPages - 4; i <= totalPages; i++) pages.push(i);
+        } else {
+          pages.push(1);
+          pages.push('...');
+          for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
+          pages.push('...');
+          pages.push(totalPages);
+        }
+      }
+      
+      return pages;
+    };
+
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin" />
+      <div className="flex items-center justify-center gap-2 mt-6" role="navigation" aria-label="Pagination">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+          disabled={currentPage === 1}
+          aria-label="Go to previous page"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </Button>
+        
+        {getPageNumbers().map((page, index) => (
+          <React.Fragment key={index}>
+            {page === '...' ? (
+              <span className="px-3 py-2 text-muted-foreground">...</span>
+            ) : (
+              <Button
+                variant={currentPage === page ? "default" : "outline"}
+                size="sm"
+                onClick={() => setCurrentPage(page as number)}
+                className="min-w-[40px]"
+                aria-label={`Go to page ${page}`}
+                aria-current={currentPage === page ? "page" : undefined}
+              >
+                {page}
+              </Button>
+            )}
+          </React.Fragment>
+        ))}
+        
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+          disabled={currentPage === totalPages}
+          aria-label="Go to next page"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </Button>
+        
+        <div 
+          className="ml-4 text-sm text-muted-foreground"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalItems)} of {totalItems} images
+        </div>
       </div>
     );
+  };
+
+  const SkeletonLoader = () => (
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+      {Array.from({ length: pageSize }).map((_, index) => (
+        <div key={`skeleton-${index}`} className="space-y-3">
+          <Skeleton className="aspect-square w-full rounded-lg" />
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-3 w-3/4" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  if (loading) {
+    return <SkeletonLoader />;
   }
 
   return (
@@ -316,7 +476,7 @@ const ImageGenerationTrackingTab: React.FC<{ currentUser: any }> = ({ currentUse
             <span className="hidden sm:inline">{viewMode === 'grid' ? 'List View' : 'Grid View'}</span>
             <span className="sm:hidden">{viewMode === 'grid' ? 'List' : 'Grid'}</span>
           </Button>
-          <Button onClick={() => fetchLogs(true)} variant="outline" size="sm" className="text-xs sm:text-sm">
+          <Button onClick={() => fetchLogs()} variant="outline" size="sm" className="text-xs sm:text-sm">
             <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
             <span className="hidden sm:inline">Refresh</span>
           </Button>
@@ -518,8 +678,9 @@ const ImageGenerationTrackingTab: React.FC<{ currentUser: any }> = ({ currentUse
         <CardContent className="p-3 sm:p-4 lg:p-6">
           {viewMode === 'grid' ? (
             <ProfessionalImageGallery
-              images={filteredLogs.filter(log => log.image_url).map(log => ({
+              images={filteredLogs.filter(log => log.image_url).map((log, index) => ({
                 id: log.id,
+                key: `${log.id}-${currentPage}-${index}`, // Stable key for performance
                 image_url: log.image_url!,
                 prompt: log.prompt,
                 created_at: log.created_at,
@@ -531,7 +692,7 @@ const ImageGenerationTrackingTab: React.FC<{ currentUser: any }> = ({ currentUse
               onImageClick={handleImageClick}
               title=""
               showUserInfo={true}
-              columns={2} // Mobile responsive: 2 columns on mobile, will be overridden by gallery component
+              columns={isMobile ? 2 : 4}
             />
           ) : (
             <div className="space-y-3 sm:space-y-4">
@@ -552,7 +713,7 @@ const ImageGenerationTrackingTab: React.FC<{ currentUser: any }> = ({ currentUse
                       <div className="flex-1 space-y-2 sm:space-y-3">
                         <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
                           <span className="text-xs font-medium bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">
-                            #{page * pageSize + index + 1}
+                            #{(currentPage - 1) * pageSize + index + 1}
                           </span>
                           <Badge variant={getStatusBadgeVariant(log.status)} className="text-xs">
                             {log.status}
@@ -680,26 +841,11 @@ const ImageGenerationTrackingTab: React.FC<{ currentUser: any }> = ({ currentUse
                   </div>
                 ))
               )}
-              {hasMore && (
-                <div className="flex justify-center pt-3 sm:pt-4">
-                  <Button onClick={() => fetchLogs(false)} disabled={loadingMore} variant="outline" size="sm" className="text-xs sm:text-sm">
-                    {loadingMore ? (
-                      <>
-                        <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 animate-spin" />
-                        <span className="hidden sm:inline">Loading more images...</span>
-                        <span className="sm:hidden">Loading...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="hidden sm:inline">Load more images</span>
-                        <span className="sm:hidden">Load more</span>
-                      </>
-                    )}
-                  </Button>
-                </div>
-              )}
             </div>
           )}
+          
+          {/* Pagination Controls */}
+          <PaginationControls />
         </CardContent>
       </Card>
 

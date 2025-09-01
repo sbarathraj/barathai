@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 
 interface ImageItem {
   id: string;
+  key?: string;
   image_url: string;
   prompt: string;
   created_at: string;
@@ -112,7 +113,7 @@ export const ProfessionalImageGallery: React.FC<ProfessionalImageGalleryProps> =
       <div className={`grid ${getGridCols()} gap-2 sm:gap-3 lg:gap-4`}>
         {images.map((image) => (
           <div
-            key={image.id}
+            key={image.key || image.id}
             className="group relative bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer"
           >
             {/* Image Container */}
