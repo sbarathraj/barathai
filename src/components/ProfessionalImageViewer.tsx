@@ -72,7 +72,7 @@ export const ProfessionalImageViewer: React.FC<ProfessionalImageViewerProps> = (
       <DialogContent className={`p-0 border-0 bg-transparent shadow-none 
         ${isMobile 
           ? 'max-w-[90vw] w-[90vw] max-h-[80vh] h-auto mt-16 mx-auto' 
-          : 'max-w-[95vw] w-[95vw] max-h-[95vh] h-[95vh]'
+          : 'max-w-[90vw] w-[90vw] max-h-[90vh] h-[90vh] p-4'
         }`}>
         <DialogHeader className="sr-only">
           <DialogTitle>{title}</DialogTitle>
@@ -82,7 +82,7 @@ export const ProfessionalImageViewer: React.FC<ProfessionalImageViewerProps> = (
         </DialogHeader>
         
         <div className={`w-full flex flex-col bg-white dark:bg-gray-900 rounded-lg sm:rounded-2xl shadow-xl 
-          ${isMobile ? 'max-h-[80vh] overflow-hidden' : 'h-full'}`}>
+          ${isMobile ? 'max-h-[80vh] overflow-hidden' : 'h-full overflow-auto'}`}>
           {/* Clean Header - Removed Share/Copy buttons */}
           <div className={`flex items-center justify-between border-b border-gray-200 dark:border-gray-700 bg-white/90 dark:bg-gray-800/90 
             ${isMobile ? 'p-3 h-12 rounded-t-lg' : 'p-4 h-16 rounded-t-2xl'}`}>
@@ -257,7 +257,7 @@ export const ProfessionalImageViewer: React.FC<ProfessionalImageViewerProps> = (
                 src={imageUrl}
                 alt={title}
                 className={`object-contain rounded transition-transform duration-300 
-                  ${isMobile ? 'max-w-[85vw] max-h-[60vh]' : 'max-w-full max-h-full'}`}
+                  ${isMobile ? 'max-w-[85vw] max-h-[60vh]' : 'max-w-full max-h-[calc(90vh-8rem)]'}`}
                 style={{
                   transform: `scale(${zoom}) rotate(${rotation}deg)`,
                   display: imageLoaded && !imageError ? 'block' : 'none'
