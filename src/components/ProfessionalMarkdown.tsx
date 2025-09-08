@@ -214,16 +214,27 @@ export const ProfessionalMarkdown: React.FC<ProfessionalMarkdownProps> = ({
           code: ({ inline, className, children }: CodeRendererProps) => {
             const match = /language-(\w+)/.exec(className || "");
             const codeString = String(children).replace(/\n$/, "");
+            const language = match ? match[1] : 'text';
             codeBlockIndex++;
+            
             if (!inline) {
               // Language label logic
               let langLabel = 'Text';
+              let detectedLang = language;
+              
               if (match && match[1]) {
                 langLabel = match[1].charAt(0).toUpperCase() + match[1].slice(1);
+                detectedLang = match[1];
+              } else {
+                // Auto-detect language if not specified
+                detectedLang = detectLanguage(codeString);
+                langLabel = detectedLang.charAt(0).toUpperCase() + detectedLang.slice(1);
               }
               
+              const langInfo = getLanguageInfo(detectedLang);
+              
               // Special handling for text blocks (separators, plain content)
-              if (langLabel.toLowerCase() === 'text') {
+              if (detectedLang.toLowerCase() === 'text' || detectedLang.toLowerCase() === 'plaintext') {
                 return (
                   <div className="relative group mb-6 mt-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4">
                     <pre className="overflow-x-auto text-[15px] font-mono text-slate-700 dark:text-slate-300">
@@ -233,14 +244,17 @@ export const ProfessionalMarkdown: React.FC<ProfessionalMarkdownProps> = ({
                 );
               }
               
-              // Regular code blocks with header
+              // Regular code blocks with syntax highlighting
               return (
                 <div className="relative group mb-6 mt-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-md overflow-hidden">
                   {/* Header bar with language and copy button */}
                   <div className="flex items-center justify-between px-4 py-2 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-600">
-                    <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-                      {langLabel}
-                    </span>
+                    <div className="flex items-center space-x-2">
+                      <span className={langInfo.color}>{langInfo.icon}</span>
+                      <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+                        {langInfo.name}
+                      </span>
+                    </div>
                     <button
                       className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
                       onClick={() => copyToClipboard(codeString, codeBlockIndex)}
@@ -250,18 +264,29 @@ export const ProfessionalMarkdown: React.FC<ProfessionalMarkdownProps> = ({
                       {copiedIndex === codeBlockIndex ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
                     </button>
                   </div>
-                  {/* Code content */}
-                  <pre className={clsx(className, "bg-slate-100 dark:bg-slate-900 p-4 overflow-x-auto text-[15px] font-mono")}
-                    style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace' }}
+                  {/* Code content with syntax highlighting */}
+                  <SyntaxHighlighter
+                    language={detectedLang}
+                    style={isDarkMode ? oneDark : oneLight}
+                    customStyle={{
+                      margin: 0,
+                      padding: '1rem',
+                      fontSize: '15px',
+                      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace',
+                      background: 'transparent'
+                    }}
+                    wrapLines={true}
+                    wrapLongLines={true}
                   >
-                    <code>{children}</code>
-                  </pre>
+                    {codeString}
+                  </SyntaxHighlighter>
                 </div>
               );
             }
+            
+            // Inline code with subtle highlighting
             return (
-              <code className={clsx(className, "bg-slate-200 dark:bg-slate-800 rounded px-1.5 py-0.5 text-sm")}
-              >
+              <code className={clsx(className, "bg-slate-200 dark:bg-slate-800 rounded px-1.5 py-0.5 text-sm font-mono")}>
                 {children}
               </code>
             );
