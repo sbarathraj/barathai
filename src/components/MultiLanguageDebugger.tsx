@@ -568,20 +568,40 @@ export const MultiLanguageDebugger: React.FC = () => {
                           </h4>
                           <div className="space-y-2">
                             {session.trace.map((step, index) => (
-                              <Card key={index} className="p-3">
+                              <Card key={index} className="p-3 hover:bg-muted/30 transition-colors border-l-4 border-l-primary/20">
                                 <div className="flex justify-between items-center mb-2">
-                                  <Badge variant="outline">Line {step.line}</Badge>
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                                    <Badge variant="outline">Line {step.line}</Badge>
+                                    <Badge variant="secondary" className="text-xs">
+                                      Step {index + 1}
+                                    </Badge>
+                                  </div>
                                   <span className="text-xs text-muted-foreground">
-                                    {new Date(step.timestamp).toLocaleTimeString()}
+                                    {step.timestamp}ms
                                   </span>
                                 </div>
-                                <p className="text-sm font-mono mb-2">{step.action}</p>
+                                <div className="text-sm font-mono mb-2 bg-background/50 p-2 rounded border-l-2 border-primary/30">
+                                  {step.action}
+                                </div>
+                                {step.stackTrace && step.stackTrace.length > 0 && (
+                                  <div className="text-xs mb-2 text-muted-foreground">
+                                    <strong>Stack:</strong> {step.stackTrace.join(' → ')}
+                                  </div>
+                                )}
                                 {Object.keys(step.variables).length > 0 && (
-                                  <div className="text-xs">
+                                  <div className="text-xs bg-background/30 p-2 rounded">
                                     <strong>Variables:</strong>
-                                    <pre className="mt-1 bg-muted p-2 rounded">
-                                      {JSON.stringify(step.variables, null, 2)}
-                                    </pre>
+                                    <div className="mt-1 font-mono space-y-1">
+                                      {Object.entries(step.variables).map(([key, value]) => (
+                                        <div key={key} className="flex justify-between items-center">
+                                          <span className="text-blue-600 dark:text-blue-400">{key}:</span>
+                                          <span className="text-green-600 dark:text-green-400 bg-background/50 px-2 py-1 rounded">
+                                            {typeof value === 'string' ? `"${value}"` : String(value)}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
                                   </div>
                                 )}
                               </Card>
