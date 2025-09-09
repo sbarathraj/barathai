@@ -10,7 +10,8 @@ import ImageGenerationTrackingTab from '@/components/ImageGenerationTrackingTab'
 
 import { Button } from '@/components/ui/button';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUser, faTachometerAlt, faUsers, faChartBar, faImage } from '@fortawesome/free-solid-svg-icons';
+import { faUser, faTachometerAlt, faUsers, faChartBar, faImage, faCode } from '@fortawesome/free-solid-svg-icons';
+import { MultiLanguageDebugger } from '@/components/MultiLanguageDebugger';
 
 const Admin: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -47,7 +48,7 @@ const Admin: React.FC = () => {
     // Set tab from query param
     const params = new URLSearchParams(location.search);
     const t = params.get('tab');
-    if (t === 'users' || t === 'api' || t === 'images') setTab(t);
+    if (t === 'users' || t === 'api' || t === 'images' || t === 'debugger') setTab(t);
     else setTab('dashboard');
   }, [location.search]);
 
@@ -186,7 +187,7 @@ const Admin: React.FC = () => {
                     </div>
                     Quick Actions
                   </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <Button 
                       onClick={() => navigate('/admin?tab=users')}
                       className="h-16 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold rounded-xl shadow-lg transition-all hover:scale-105"
@@ -222,6 +223,19 @@ const Admin: React.FC = () => {
                         <div className="text-left">
                           <div className="text-sm font-bold">Image Analytics</div>
                           <div className="text-xs opacity-90">Track AI image generation</div>
+                        </div>
+                      </div>
+                    </Button>
+                    
+                    <Button 
+                      onClick={() => navigate('/admin?tab=debugger')}
+                      className="h-16 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold rounded-xl shadow-lg transition-all hover:scale-105"
+                    >
+                      <div className="flex items-center gap-3">
+                        <FontAwesomeIcon icon={faCode} size="lg" />
+                        <div className="text-left">
+                          <div className="text-sm font-bold">Code Debugger</div>
+                          <div className="text-xs opacity-90">Multi-language debugging</div>
                         </div>
                       </div>
                     </Button>
@@ -290,6 +304,11 @@ const Admin: React.FC = () => {
             {tab === 'users' && <UserManagementTab currentUser={currentUser} />}
             {tab === 'api' && <ApiTrackingTab currentUser={currentUser} />}
             {tab === 'images' && <ImageGenerationTrackingTab currentUser={currentUser} />}
+            {tab === 'debugger' && (
+              <div className="px-6 pb-6">
+                <MultiLanguageDebugger />
+              </div>
+            )}
           </div>
         </main>
         </div>

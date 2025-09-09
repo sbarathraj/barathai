@@ -112,8 +112,8 @@ export const useRealtimeUsage = (userId?: string): RealtimeUsageHook => {
       if (recentApiLogs && recentApiLogs.length > 0) {
         // Calculate average response time
         const responseTimes = recentApiLogs
-          .filter(log => log.response_time && !isNaN(parseInt(log.response_time)))
-          .map(log => parseInt(log.response_time));
+          .filter(log => log.response_time && !isNaN(Number(log.response_time)))
+          .map(log => Number(log.response_time));
         
         if (responseTimes.length > 0) {
           avgResponseTime = Math.round(
