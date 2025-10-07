@@ -89,7 +89,7 @@ export const Chat = () => {
   const OPENROUTER_API_KEY2 = import.meta.env.VITE_OPENROUTER_API_KEY2;
   const API_URL = "https://openrouter.ai/api/v1/chat/completions";
   const API_URL2 = import.meta.env.VITE_OPENROUTER_API_URL2 || API_URL;
-  const OPENROUTER_MODEL = "x-ai/grok-4-fast:free";
+  const OPENROUTER_MODEL = "z-ai/glm-4.5-air:free";
 
   // Clean up empty "New Chat" sessions (keep only the most recent one)
   const cleanupEmptyNewChats = async (userId: string) => {
