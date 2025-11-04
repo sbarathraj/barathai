@@ -177,7 +177,7 @@ serve(async (req) => {
         task_type: 'text-to-image',
         prompt: 'unknown',
         status: 'error',
-        error_message: error.message,
+        error_message: error instanceof Error ? error.message : String(error),
         success: false
       })
     } catch (logError) {
@@ -188,7 +188,7 @@ serve(async (req) => {
       JSON.stringify({ 
         success: false,
         error: 'Failed to generate content', 
-        details: error.message 
+        details: error instanceof Error ? error.message : String(error) 
       }),
       { 
         headers: { 
