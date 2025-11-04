@@ -11,6 +11,7 @@ import { ProfessionalImageViewer } from '@/components/ProfessionalImageViewer';
 import { ProfessionalImageGallery } from '@/components/ProfessionalImageGallery';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { ImageProviderToggle } from '@/components/ImageProviderToggle';
 
 interface ImageGenerationLog {
   id: string;
@@ -482,6 +483,9 @@ const ImageGenerationTrackingTab: React.FC<{ currentUser: any }> = ({ currentUse
           </Button>
         </div>
       </div>
+
+      {/* Image Provider Toggle */}
+      <ImageProviderToggle />
 
       {/* Filters */}
       <div className="bg-white/90 dark:bg-slate-900/90 rounded-2xl p-4 sm:p-6 shadow-xl border border-white/30 dark:border-slate-800/40 backdrop-blur-xl">
