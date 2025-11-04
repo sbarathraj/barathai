@@ -31,3 +31,9 @@ claims_json = '{"hello":"world"}'
 
 [functions.huggingface-generate]
 verify_jwt = false
+
+[functions.freepik-generate]
+verify_jwt = true
+
+[functions.openrouter-generate]
+verify_jwt = true

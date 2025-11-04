@@ -713,11 +713,25 @@ export const Chat = () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
-      const response = await supabase.functions.invoke('openrouter-generate', {
-        body: {
-          prompt: prompt,
-          model: 'google/gemini-2.5-flash-image-preview:free'
-        },
+      // Get the current image generation provider setting
+      const { data: settingData } = await supabase
+        .from('system_settings')
+        .select('setting_value')
+        .eq('setting_key', 'image_generation_provider')
+        .single();
+      
+      const provider = settingData?.setting_value || 'openrouter';
+      const functionName = provider === 'freepik' ? 'freepik-generate' : 'openrouter-generate';
+      
+      const requestBody: any = { prompt: prompt };
+      
+      // Only add model for openrouter
+      if (provider === 'openrouter') {
+        requestBody.model = 'google/gemini-2.5-flash-image-preview:free';
+      }
+      
+      const response = await supabase.functions.invoke(functionName, {
+        body: requestBody,
         headers: session?.access_token ? {
           Authorization: `Bearer ${session.access_token}`
         } : {}
@@ -727,9 +741,22 @@ export const Chat = () => {
         throw response.error;
       }
 
-      if (response.data?.success && response.data?.image) {
-        const imageUrl = response.data.image as string;
-        const assistantContent = response.data.content || "✨ Here's your generated image:";
+      // Handle response based on provider
+      let imageUrl: string | null = null;
+      let assistantContent = "✨ Here's your generated image:";
+
+      if (provider === 'freepik') {
+        if (response.data?.success && response.data?.imageUrl) {
+          imageUrl = response.data.imageUrl;
+        }
+      } else {
+        if (response.data?.success && response.data?.image) {
+          imageUrl = response.data.image;
+          assistantContent = response.data.content || assistantContent;
+        }
+      }
+
+      if (imageUrl) {
 
         // Update pending assistant message with the image
         setMessages(prev => prev.map(m => m.id === tempAssistantId ? {

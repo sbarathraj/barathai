@@ -7,10 +7,11 @@ import { Topbar } from '@/components/ui/topbar';
 import UserManagementTab from '@/components/UserManagementTab';
 import ApiTrackingTab from '@/components/ApiTrackingTab';
 import ImageGenerationTrackingTab from '@/components/ImageGenerationTrackingTab';
+import { ImageProviderToggle } from '@/components/ImageProviderToggle';
 
 import { Button } from '@/components/ui/button';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUser, faTachometerAlt, faUsers, faChartBar, faImage } from '@fortawesome/free-solid-svg-icons';
+import { faUser, faTachometerAlt, faUsers, faChartBar, faImage, faCog } from '@fortawesome/free-solid-svg-icons';
 
 const Admin: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -47,7 +48,7 @@ const Admin: React.FC = () => {
     // Set tab from query param
     const params = new URLSearchParams(location.search);
     const t = params.get('tab');
-    if (t === 'users' || t === 'api' || t === 'images') setTab(t);
+    if (t === 'users' || t === 'api' || t === 'images' || t === 'settings') setTab(t);
     else setTab('dashboard');
   }, [location.search]);
 
@@ -186,7 +187,7 @@ const Admin: React.FC = () => {
                     </div>
                     Quick Actions
                   </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <Button 
                       onClick={() => navigate('/admin?tab=users')}
                       className="h-16 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold rounded-xl shadow-lg transition-all hover:scale-105"
@@ -222,6 +223,19 @@ const Admin: React.FC = () => {
                         <div className="text-left">
                           <div className="text-sm font-bold">Image Analytics</div>
                           <div className="text-xs opacity-90">Track AI image generation</div>
+                        </div>
+                      </div>
+                    </Button>
+                    
+                    <Button 
+                      onClick={() => navigate('/admin?tab=settings')}
+                      className="h-16 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold rounded-xl shadow-lg transition-all hover:scale-105"
+                    >
+                      <div className="flex items-center gap-3">
+                        <FontAwesomeIcon icon={faCog} size="lg" />
+                        <div className="text-left">
+                          <div className="text-sm font-bold">Settings</div>
+                          <div className="text-xs opacity-90">Configure system options</div>
                         </div>
                       </div>
                     </Button>
@@ -290,6 +304,15 @@ const Admin: React.FC = () => {
             {tab === 'users' && <UserManagementTab currentUser={currentUser} />}
             {tab === 'api' && <ApiTrackingTab currentUser={currentUser} />}
             {tab === 'images' && <ImageGenerationTrackingTab currentUser={currentUser} />}
+            {tab === 'settings' && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-2">System Settings</h2>
+                  <p className="text-sm text-muted-foreground">Configure global system options</p>
+                </div>
+                <ImageProviderToggle />
+              </div>
+            )}
           </div>
         </main>
         </div>
