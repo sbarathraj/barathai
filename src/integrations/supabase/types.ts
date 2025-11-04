@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -21,7 +21,7 @@ export type Database = {
           endpoint_hit: string
           error_message: string | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           request_method: string | null
           request_payload: Json | null
           response_payload: Json | null
@@ -37,7 +37,7 @@ export type Database = {
           endpoint_hit: string
           error_message?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           request_method?: string | null
           request_payload?: Json | null
           response_payload?: Json | null
@@ -53,7 +53,7 @@ export type Database = {
           endpoint_hit?: string
           error_message?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           request_method?: string | null
           request_payload?: Json | null
           response_payload?: Json | null
@@ -253,58 +253,76 @@ export type Database = {
         }
         Relationships: []
       }
+      system_settings: {
+        Row: {
+          created_at: string
+          id: string
+          setting_key: string
+          setting_value: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          setting_key: string
+          setting_value: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          setting_key?: string
+          setting_value?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      generate_unique_url: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      generate_unique_url: { Args: never; Returns: string }
       get_api_usage_count: {
         Args: { request_type_filter?: string }
         Returns: number
       }
-      get_user_count: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      log_api_usage: {
-        Args:
-          | {
-              p_user_id: string
-              p_user_email: string
+      get_user_count: { Args: never; Returns: number }
+      log_api_usage:
+        | {
+            Args: {
               p_api_name: string
               p_endpoint_hit: string
-              p_request_method?: string
-              p_response_time?: number
-              p_status_code?: number
-              p_request_payload?: Json
-              p_response_payload?: Json
               p_error_message?: string
               p_ip_address?: unknown
+              p_request_method?: string
+              p_request_payload?: Json
+              p_response_payload?: Json
+              p_response_time?: number
+              p_status_code?: number
               p_user_agent?: string
-            }
-          | {
-              p_user_id: string
               p_user_email: string
+              p_user_id: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
               p_endpoint: string
+              p_metadata?: Json
               p_request_type: string
               p_response_time?: number
               p_status_code?: number
-              p_metadata?: Json
+              p_user_email: string
+              p_user_id: string
             }
-        Returns: string
-      }
+            Returns: string
+          }
       update_user_last_login: {
         Args: { p_user_id: string }
         Returns: undefined
       }
-      update_user_usage: {
-        Args: { p_user_id: string }
-        Returns: undefined
-      }
+      update_user_usage: { Args: { p_user_id: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
