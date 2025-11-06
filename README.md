@@ -1,299 +1,247 @@
-# 🤖 BarathAI - Complete Enterprise AI Platform
+# 🤖 BarathAI - Your Smartest AI Assistant
 
 <div align="center">
-  <img src="public/logo.svg" alt="BarathAI Logo" width="120" height="120">
+  <img src="https://ik.imagekit.io/barthraj/BarathAI%20Logo.jpeg?updatedAt=1751881581614" alt="BarathAI Logo" width="120" height="120">
   
   [![React](https://img.shields.io/badge/React-18.3.1-61DAFB.svg?style=for-the-badge&logo=react)](https://reactjs.org/)
-  [![TypeScript](https://img.shields.io/badge/TypeScript-5.6.2-3178C6.svg?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
-  [![Supabase](https://img.shields.io/badge/Supabase-Latest-3ECF8E.svg?style=for-the-badge&logo=supabase)](https://supabase.com/)
-  [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4.1-38B2AC.svg?style=for-the-badge&logo=tailwindcss)](https://tailwindcss.com/)
-  [![Vite](https://img.shields.io/badge/Vite-5.4.10-646CFF.svg?style=for-the-badge&logo=vite)](https://vitejs.dev/)
+  [![TypeScript](https://img.shields.io/badge/TypeScript-5.5.3-3178C6.svg?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
+  [![Supabase](https://img.shields.io/badge/Supabase-2.50.3-3ECF8E.svg?style=for-the-badge&logo=supabase)](https://supabase.com/)
+  [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4.11-38B2AC.svg?style=for-the-badge&logo=tailwindcss)](https://tailwindcss.com/)
+  [![Vite](https://img.shields.io/badge/Vite-5.4.19-646CFF.svg?style=for-the-badge&logo=vite)](https://vitejs.dev/)
 
-  **🏆 Complete Enterprise AI Solution | 🎨 Advanced Image Generation | 👥 Professional User Management | 🔐 Admin Dashboard**
+**🧠 AI Powered | ⚡ Lightning Fast | ✨ Intelligent | 🔒 Private & Secure | 🎨 Image Generation**
 
-  [🚀 Live Demo](https://barathAI.com) • [📖 Documentation](https://docs.barathAI.com) • [🐛 Report Bug](https://github.com/barathAI/issues) • [💡 Request Feature](https://github.com/barathAI/issues)
+[🚀 Live Demo](https://barathai.web.app) • [📖 Documentation](#-getting-started) • [🐛 Report Bug](https://github.com/sbarathraj/barathai/issues) • [💡 Request Feature](https://github.com/sbarathraj/barathai/issues)
 
 </div>
 
 ---
 
-## 🌟 **Complete Platform Overview**
+## 🌟 **Platform Overview**
 
-BarathAI is a **comprehensive, enterprise-grade AI platform** that provides everything needed for professional AI interactions. From advanced conversational AI to sophisticated image generation, complete user management, and detailed analytics - BarathAI is the ultimate solution for businesses and power users.
+BarathAI is your **smartest AI assistant** designed to boost productivity and unlock creativity. Built with modern web technologies, it provides an intuitive interface for AI conversations, image generation, and intelligent assistance - all while maintaining privacy and security.
 
-### 🎯 **What Makes BarathAI Complete**
+### 🎯 **What Makes BarathAI Special**
 
-- **🧠 Multi-Model AI Integration** - Access to 50+ AI models (GPT, Claude, Gemini) through OpenRouter
-- **🎨 Professional Image Generation** - Advanced AI image creation with professional gallery management
-- **👥 Complete User Management** - Enterprise admin controls with password management and user oversight
-- **🔒 Enterprise Security** - Role-based access, encrypted data, audit trails, and admin-only features
-- **📊 Real-Time Analytics** - Live usage monitoring, performance metrics, and comprehensive reporting
-- **🌙 Professional Dark Mode** - Smooth animated transitions with page-wide theme management
-- **📱 Mobile-First Design** - Fully responsive with touch-optimized controls across all devices
-- **⚙️ Professional Settings** - Complete user preferences with admin-restricted features
-- **🔐 Advanced Admin Dashboard** - User management, analytics, and system monitoring
+- **🧠 Multi-Model AI Integration** - Access to leading AI models (GPT, Claude, Gemini) through OpenRouter
+- **🎨 Advanced Image Generation** - Create stunning visuals with AI-powered image generation
+- **👥 User Management System** - Secure authentication and user profiles with admin controls
+- **🔒 Privacy & Security** - Role-based access control with encrypted data storage
+- **📊 Usage Analytics** - Real-time monitoring and performance metrics (admin-only)
+- **🌙 Beautiful Dark Mode** - Smooth animated theme transitions across the entire platform
+- **📱 Responsive Design** - Optimized for desktop, tablet, and mobile devices
+- **⚙️ Customizable Settings** - Personalized preferences and admin dashboard
+- **� Ldightning Fast** - Built with Vite and modern React for optimal performance
 
-## ✨ **Complete Feature Set**
+## ✨ **Key Features**
 
-### 🤖 **Advanced AI Conversation System**
-- **Multi-Model Support** - GPT-4, Claude, Gemini, and 50+ AI models via OpenRouter
-- **Intelligent Context Management** - Maintains conversation flow across sessions
-- **Real-Time Streaming** - Live AI responses with typing indicators
-- **Voice Integration** - Speech-to-text for hands-free interaction
-- **Rich Formatting** - Markdown support with syntax highlighting
-- **Session Persistence** - Cloud-synchronized chat history with search
+### 🤖 **AI Conversation Engine**
+
+- **Multi-Model Support** - Access to GPT-4, Claude, Gemini, and other leading AI models via OpenRouter
+- **Real-Time Streaming** - Live AI responses with professional typing indicators
+- **Context Management** - Maintains conversation flow and context across sessions
+- **Rich Formatting** - Full Markdown support with syntax highlighting for code
+- **Session Persistence** - Cloud-synchronized chat history with search functionality
 - **Export Options** - Download conversations in multiple formats
+- **Message Reactions** - Interactive feedback system for AI responses
 
-### 🎨 **Professional Image Generation Studio**
-- **Multiple AI Models** - DALL-E, Midjourney, Stable Diffusion integration
-- **Advanced Gallery** - Professional image management with filtering and sorting
-- **Batch Generation** - Create multiple variations efficiently
-- **High Resolution** - Support for various sizes and formats (up to 4K)
-- **Prompt Library** - Save and reuse successful prompts with categories
-- **Download & Export** - Multiple format options (PNG, JPG, WebP)
-- **Image Analytics** - Track generation history and usage statistics
+### 🎨 **Image Generation Studio**
 
-### 👥 **Enterprise User Management (Admin Only)**
-- **Complete User Overview** - View all registered users with detailed information
-- **Password Management** - Admin can view password status (encrypted display)
-- **User Activity Tracking** - Last login, creation date, update timestamps
-- **Account Status** - Active/inactive user monitoring
-- **User Statistics** - Total users, active users, admin count
-- **Real-Time Updates** - Live user data with refresh capabilities
-- **Security Controls** - Admin-only access with role-based restrictions
+- **AI-Powered Creation** - Generate stunning images using advanced AI models
+- **Professional Gallery** - Organized image management with filtering and sorting
+- **Multiple Formats** - Support for various image sizes and formats
+- **Batch Processing** - Create multiple variations efficiently
+- **Download & Export** - Save images in PNG, JPG, WebP formats
+- **Generation History** - Track and revisit previous creations
 
-### 🔐 **Advanced Admin Dashboard**
-- **User Management Tab** - Complete user oversight and management
-- **API Tracking** - Real-time API usage monitoring and analytics
-- **Image Generation Tracking** - Detailed image creation statistics
-- **Performance Metrics** - Response times, success rates, error tracking
-- **System Health** - Live monitoring of platform performance
-- **Usage Analytics** - Comprehensive reporting and data export
+### 👥 **User Management & Authentication**
 
-### ⚙️ **Professional Settings System**
-- **Profile Management** - Complete user profile customization
-- **Security Controls** - Password change with current password verification
-- **Theme Management** - Professional dark mode with smooth animations
-- **Notification Preferences** - Granular notification controls
-- **App Preferences** - Auto-save, compact mode, and customization options
-- **Admin Features** - Usage statistics and analytics (admin-only)
+- **Secure Authentication** - Powered by Supabase Auth with social login options
+- **User Profiles** - Customizable profiles with avatar support
+- **Admin Dashboard** - Comprehensive user management (admin-only)
+- **Password Security** - Secure password management with verification
+- **Activity Tracking** - Monitor user engagement and login patterns
+- **Role-Based Access** - Different permission levels for users and admins
+
+### 📊 **Analytics & Monitoring** _(Admin Only)_
+
+- **Real-Time Metrics** - Live API usage and performance monitoring
+- **User Analytics** - Detailed insights into user behavior and engagement
+- **System Health** - Performance metrics and error tracking
+- **Usage Statistics** - Comprehensive reporting with export capabilities
+- **API Tracking** - Monitor all API calls and response times
+- **Image Generation Logs** - Track image creation and usage patterns
+
+### ⚙️ **Settings & Customization**
+
+- **Theme Management** - Beautiful dark/light mode with smooth transitions
+- **Profile Settings** - Complete user profile customization
+- **Notification Controls** - Granular notification preferences
+- **Security Settings** - Password management and security controls
+- **Admin Features** - Advanced settings and analytics (admin-only)
 - **Quick Actions** - Direct access to key platform features
 
-### 📊 **Real-Time Analytics & Monitoring**
-- **Live Usage Statistics** - Real-time API calls and image generation tracking
-- **Performance Monitoring** - Response times, success rates, error analysis
-- **User Analytics** - Session duration, engagement metrics, activity patterns
-- **Business Intelligence** - Revenue tracking, usage trends, growth metrics
-- **Export Capabilities** - Excel export for detailed analysis
-- **Custom Dashboards** - Personalized analytics views
+### 🔒 **Security & Privacy**
 
-### 🔒 **Enterprise Security & Access Control**
-- **Role-Based Access Control** - Admin (jcibarathraj@gmail.com) vs Regular Users
-- **Secure Authentication** - Supabase Auth with JWT tokens
-- **Password Security** - Current password verification before updates
-- **Data Encryption** - End-to-end encryption for sensitive data
+- **End-to-End Encryption** - All data encrypted in transit and at rest
+- **JWT Authentication** - Secure token-based authentication system
+- **Role-Based Access Control** - Granular permissions for different user types
+- **Data Privacy** - GDPR compliant with user data controls
 - **Audit Trails** - Complete logging of all user actions
-- **Admin-Only Features** - Restricted access to sensitive functionality
-- **Session Management** - Automatic timeout and secure session handling
+- **Secure API Keys** - Protected storage and rotation of sensitive credentials
 
 ## 🏗️ **Technical Architecture**
 
 ### **Frontend Stack**
-- **React 18.3.1** - Modern UI with hooks, concurrent features, and Suspense
-- **TypeScript 5.6.2** - Full type safety with advanced type inference
-- **Vite 5.4.10** - Lightning-fast build tool with HMR
-- **Tailwind CSS 3.4.1** - Utility-first CSS with custom design system
+
+- **React 18.3.1** - Modern UI library with hooks, concurrent features, and Suspense
+- **TypeScript 5.5.3** - Full type safety with advanced type inference and IDE support
+- **Vite 5.4.19** - Lightning-fast build tool with Hot Module Replacement (HMR)
+- **Tailwind CSS 3.4.11** - Utility-first CSS framework with custom design system
 - **Radix UI** - Accessible, unstyled components with full keyboard navigation
-- **Lucide React** - Beautiful, consistent iconography
-- **Framer Motion** - Smooth animations and micro-interactions
+- **Lucide React** - Beautiful, consistent iconography with 400+ icons
+- **React Router DOM** - Client-side routing with nested routes and lazy loading
 
 ### **Backend & Database**
-- **Supabase** - PostgreSQL with real-time subscriptions
+
+- **Supabase 2.50.3** - PostgreSQL database with real-time subscriptions
 - **Supabase Auth** - Complete authentication system with social providers
 - **Supabase Edge Functions** - Serverless functions for AI integrations
 - **Row Level Security (RLS)** - Database-level security policies
 - **Real-Time Subscriptions** - Live data updates across all clients
 
 ### **AI & API Integration**
-- **OpenRouter API** - Access to 50+ AI models (GPT, Claude, Gemini)
-- **Image Generation APIs** - Multiple providers for image creation
-- **Fallback System** - Multiple API keys for high availability
-- **Rate Limiting** - Intelligent request management and retry logic
-- **Streaming Responses** - Real-time AI response streaming
 
-### **Security & Performance**
-- **JWT Authentication** - Secure token-based authentication
-- **API Key Management** - Secure storage and rotation
-- **Caching Strategy** - Redis for frequently accessed data
-- **CDN Integration** - Global content delivery
-- **Error Tracking** - Comprehensive error monitoring and alerts
-
-## 👑 **Admin Features & User Management**
-
-### **Admin Dashboard (`/admin`)**
-The comprehensive admin dashboard provides complete platform oversight and management capabilities.
-
-#### **User Management Tab**
-- **Complete User Directory** - View all registered users with detailed profiles
-- **User Information Display**:
-  - Full name and email address
-  - User avatar (auto-generated from initials)
-  - Account status (Active/Inactive)
-  - Admin badge for administrative users
-- **Password Management**:
-  - Click-to-show password information
-  - Encrypted password display (••••••••••••)
-  - Security message explaining encryption
-  - Admin-only visibility controls
-- **Detailed Timestamps**:
-  - **Created**: Account creation date and time
-  - **Updated**: Last profile update timestamp
-  - **Last Login**: Most recent sign-in activity
-  - **Email Confirmed**: Email verification timestamp
-  - Relative time display (e.g., "2h ago", "3d ago")
-  - Full datetime on hover for precision
-- **User Statistics**:
-  - Total registered users
-  - Active users (with recent login)
-  - Admin user count
-- **Real-Time Updates** - Live refresh capabilities
-
-#### **API Tracking Tab**
-- **Real-Time API Monitoring** - Live API call tracking
-- **Performance Metrics** - Response times and success rates
-- **Usage Analytics** - Detailed API usage patterns
-- **Error Tracking** - Failed requests and error analysis
-
-#### **Image Generation Tracking Tab**
-- **Image Creation Monitoring** - Track all generated images
-- **Model Usage Statistics** - Which AI models are most popular
-- **Generation Analytics** - Success rates and performance metrics
-- **Storage Management** - Image storage and bandwidth usage
-
-### **Admin Access Control**
-
-#### **Restricted Features (Admin Only)**
-The following features are exclusively available to `jcibarathraj@gmail.com`:
-
-1. **Settings Page Admin Features**:
-   - Usage Statistics section with real-time data
-   - "View Analytics" button (links to admin dashboard)
-   - "Documentation" button (external documentation access)
-
-2. **Admin Dashboard Access**:
-   - Complete user management capabilities
-   - System-wide analytics and monitoring
-   - Performance metrics and reporting
-
-3. **User Management Capabilities**:
-   - View all user accounts and details
-   - Monitor user activity and login patterns
-   - Access password management information
-
-#### **Security Implementation**
-```typescript
-// Admin detection system
-const adminEmail = 'jcibarathraj@gmail.com';
-const isAdmin = session.user.email === adminEmail;
-
-// Conditional feature rendering
-{isAdmin && <AdminOnlyFeatures />}
-
-// Conditional data fetching
-if (isAdmin) {
-  await fetchAdminData();
-}
-```
-
-### **User Experience for Different Roles**
-
-#### **Regular Users**
-- Clean, focused interface without admin clutter
-- Essential features: Profile, Theme, Notifications, Security
-- Password change with current password verification
-- Quick actions for core platform features
-
-#### **Admin User (jcibarathraj@gmail.com)**
-- All regular user features plus admin capabilities
-- Complete user management and oversight
-- Real-time analytics and monitoring
-- System administration tools
-- Advanced security controls
-
-## 🎨 **Professional UI/UX Design**
-
-### **Design System**
-- **Glass Morphism** - Backdrop blur effects with transparency
-- **Gradient Backgrounds** - Professional color schemes throughout
-- **Smooth Animations** - 300ms transitions with cubic-bezier easing
-- **Responsive Grid** - CSS Grid with mobile-first approach
-- **Professional Typography** - Clear hierarchy with excellent readability
-
-### **Theme System**
-- **Professional Dark Mode** - Smooth page-wide animated transitions
-- **System Detection** - Automatic OS theme preference detection
-- **Animated Toggle** - Beautiful sun/moon icon transitions with ripple effects
-- **Persistent Storage** - Theme preferences saved across sessions
-
-### **Mobile Optimization**
-- **Touch-Friendly** - Large touch targets (minimum 44px)
-- **Responsive Layout** - Adapts from mobile (320px) to desktop (1920px+)
-- **Performance** - Optimized for mobile devices with efficient rendering
-- **Accessibility** - Full keyboard navigation and screen reader support
-
-### 👥 **Enterprise User Management** *(Admin Only)*
-- **Complete User Oversight** - View all registered users and their details
-- **Password Management** - Secure password visibility controls
-- **Detailed Timestamps** - Created, Updated, Last Login, Email Confirmed
-- **User Activity Tracking** - Login patterns and engagement metrics
-- **Role Management** - Admin privileges and access controls
-- **Real-Time User Stats** - Active users, total registrations, admin count
-
-### 📊 **Advanced Analytics & Monitoring** *(Admin Only)*
-- **Real-Time Dashboards** - Live API usage and performance metrics
-- **Usage Tracking** - Detailed logs of all API interactions and image generations
-- **Performance Monitoring** - Response times, success rates, and error tracking
-- **Business Intelligence** - User engagement patterns and usage trends
-- **Export Capabilities** - Comprehensive data export for analysis
-- **Alert System** - Automated monitoring and notifications
-
-### 🔒 **Enterprise Security & Privacy**
-- **Role-Based Access Control** - Granular permissions system
-- **Multi-Factor Authentication** - Enhanced security for admin accounts
-- **End-to-End Encryption** - All data encrypted in transit and at rest
-- **Audit Trails** - Complete logging of all user actions
-- **Password Security** - Advanced password policies and verification
-- **Data Privacy** - GDPR compliant with user data controls
-
-### 🌙 **Professional User Experience**
-- **Animated Dark Mode** - Smooth page-wide theme transitions
-- **Responsive Design** - Optimized for desktop, tablet, and mobile
-- **Professional Animations** - Micro-interactions and smooth transitions
-- **Accessibility** - WCAG 2.1 AA compliant with keyboard navigation
-- **Touch Optimized** - Mobile-first design with gesture support
-- **Performance** - Optimized loading and efficient rendering
-
-## 🏗️ Architecture
-
-### Frontend Stack
-- **React 18.3.1** - Modern UI library with hooks and concurrent features
-- **TypeScript 5.6.2** - Type-safe development with enhanced IDE support
-- **Vite 5.4.10** - Lightning-fast build tool and development server
-- **Tailwind CSS 3.4.1** - Utility-first CSS framework for rapid styling
-- **Radix UI** - Accessible, unstyled UI components
-- **Lucide React** - Beautiful, customizable icons
-
-### Backend & Database
-- **Supabase** - PostgreSQL database with real-time subscriptions
-- **Supabase Auth** - Authentication and user management
-- **Supabase Edge Functions** - Serverless functions for API integrations
-- **Row Level Security (RLS)** - Database-level security policies
-
-### AI & API Integration
 - **OpenRouter API** - Access to multiple AI models (GPT, Claude, Gemini)
 - **Image Generation APIs** - Integration with leading image AI services
 - **Fallback System** - Multiple API keys for high availability
 - **Rate Limiting** - Intelligent request management and retry logic
+- **Streaming Responses** - Real-time AI response streaming with typing indicators
+
+### **UI/UX & Design**
+
+- **Responsive Design** - Mobile-first approach with breakpoint optimization
+- **Dark/Light Theme** - System preference detection with smooth transitions
+- **Glass Morphism** - Modern design with backdrop blur effects
+- **Micro-interactions** - Smooth animations and hover effects
+- **Accessibility** - WCAG 2.1 AA compliant with screen reader support
+- **Touch Optimized** - Mobile-friendly touch targets and gestures
+
+### **Development & Build Tools**
+
+- **ESLint** - Code linting with TypeScript and React rules
+- **Prettier** - Code formatting with consistent style
+- **Husky** - Git hooks for pre-commit quality checks
+- **Vitest** - Fast unit testing with coverage reports
+- **Docker** - Containerized deployment with Nginx
+- **Vercel/Firebase** - Production deployment and hosting
+
+## 👑 **Admin Features & User Management**
+
+### **Admin Dashboard** (`/admin`)
+
+The admin dashboard provides comprehensive platform oversight and management capabilities for authorized administrators.
+
+#### **User Management**
+
+- **User Directory** - View all registered users with detailed profiles
+- **User Information**:
+  - Full name, email address, and avatar
+  - Account status (Active/Inactive)
+  - Admin badge for administrative users
+  - Registration and last login timestamps
+- **Activity Monitoring**:
+  - User engagement metrics
+  - Login patterns and frequency
+  - Session duration tracking
+- **User Statistics**:
+  - Total registered users
+  - Active users count
+  - Admin user count
+
+#### **Analytics & Monitoring**
+
+- **API Usage Tracking** - Real-time API call monitoring and analytics
+- **Performance Metrics** - Response times, success rates, and error tracking
+- **Image Generation Logs** - Track all image creation activities
+- **System Health** - Monitor platform performance and uptime
+- **Usage Patterns** - Detailed insights into user behavior
+
+#### **Security & Access Control**
+
+- **Role-Based Permissions** - Granular access control for different user types
+- **Admin-Only Features** - Restricted access to sensitive functionality
+- **Audit Trails** - Complete logging of all administrative actions
+- **Security Monitoring** - Track suspicious activities and login attempts
+
+### **Admin Access Control**
+
+#### **Restricted Features** (Admin Only)
+
+Certain features are exclusively available to authorized administrators:
+
+1. **Settings Page Admin Section**:
+   - Usage statistics with real-time data
+   - Analytics dashboard access
+   - System documentation links
+
+2. **Admin Dashboard Access**:
+   - Complete user management capabilities
+   - System-wide analytics and reporting
+   - Performance monitoring tools
+
+3. **Advanced User Management**:
+   - View detailed user information
+   - Monitor user activity patterns
+   - Access system-level controls
+
+### **User Experience by Role**
+
+#### **Regular Users**
+
+- Clean, intuitive interface focused on core functionality
+- Essential features: Chat, Image Generation, Profile Settings
+- Personal analytics and usage statistics
+- Secure password management
+
+#### **Admin Users**
+
+- All regular user features plus administrative capabilities
+- Complete platform oversight and management tools
+- Real-time system monitoring and analytics
+- Advanced security and user management controls
+
+## 🎨 **Design & User Experience**
+
+### **Modern Design System**
+
+- **Glass Morphism** - Elegant backdrop blur effects with transparency
+- **Gradient Backgrounds** - Beautiful color schemes with smooth transitions
+- **Micro-interactions** - Subtle animations that enhance user experience
+- **Responsive Grid** - CSS Grid with mobile-first approach
+- **Typography** - Clear hierarchy with excellent readability across devices
+
+### **Theme System**
+
+- **Animated Dark/Light Mode** - Smooth page-wide theme transitions
+- **System Preference Detection** - Automatic OS theme preference detection
+- **Persistent Storage** - Theme preferences saved across sessions
+- **Beautiful Toggle** - Animated sun/moon icon with smooth transitions
+
+### **Responsive Design**
+
+- **Mobile-First** - Optimized for mobile devices with touch-friendly interfaces
+- **Adaptive Layout** - Seamlessly adapts from mobile (320px) to desktop (1920px+)
+- **Touch Optimization** - Large touch targets and gesture support
+- **Performance** - Efficient rendering and optimized loading times
+
+### **Accessibility & Usability**
+
+- **WCAG 2.1 AA Compliant** - Full accessibility support
+- **Keyboard Navigation** - Complete keyboard accessibility
+- **Screen Reader Support** - Proper ARIA labels and semantic HTML
+- **High Contrast** - Excellent color contrast ratios
+- **Focus Management** - Clear focus indicators and logical tab order
 
 ## 📁 **Project Architecture**
 
@@ -341,40 +289,55 @@ barathAI/
 ### 🏗️ **Component Architecture**
 
 #### **Core Components**
+
 - **ThemeProvider** - Global theme state management with smooth animations
 - **Navigation** - Responsive navigation with user authentication
-- **AnimatedThemeToggle** - Professional theme switcher with transitions
+- **Hero** - Landing page with animated elements and call-to-action
+- **Logo** - Scalable logo component with consistent branding
 
-#### **Admin Components** *(Restricted Access)*
+#### **Chat Components**
+
+- **MessageBubble** - Individual chat message display with formatting
+- **ChatExport** - Export conversations in multiple formats
+- **ChatSearch** - Search through chat history and messages
+- **MessageReactions** - Interactive feedback system for AI responses
+- **ProfessionalTypingIndicator** - Animated typing indicator for AI responses
+
+#### **UI Components** (shadcn/ui)
+
+- **Button, Input, Dialog** - Consistent, accessible form components
+- **Badge, Checkbox, Tabs** - Interactive UI elements
+- **Toast** - Notification system for user feedback
+- **Avatar, Card, Separator** - Layout and display components
+
+#### **Admin Components** _(Restricted Access)_
+
 - **UserManagementTab** - Complete user oversight and management
-- **UsageAnalytics** - Real-time usage statistics and monitoring
 - **ApiTrackingTab** - Detailed API usage logs and analytics
 - **ImageGenerationTrackingTab** - Image generation monitoring
+- **UsageAnalytics** - Real-time usage statistics and monitoring
 
-#### **User Interface Components**
-- **ProfessionalImageGallery** - Advanced image management system
-- **ProfessionalImageViewer** - High-quality image viewing experience
-- **Hero & Features** - Marketing and feature presentation
+## 🚀 **Getting Started**
 
-## 🚀 Getting Started
-
-### Prerequisites
+### **Prerequisites**
 
 - **Node.js** (v18 or higher)
-- **npm** or **yarn** or **bun**
+- **npm**, **yarn**, or **bun** package manager
 - **Supabase Account** (for backend services)
 - **OpenRouter API Key** (for AI functionality)
 - **Docker** (optional, for containerized deployment)
 
-### Installation
+### **Quick Start**
 
 1. **Clone the repository**
+
    ```bash
-   git clone https://github.com/yourusername/barathAI.git
-   cd barathAI
+   git clone https://github.com/sbarathraj/barathai.git
+   cd barathai
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    # or
@@ -384,16 +347,18 @@ barathAI/
    ```
 
 3. **Environment Setup**
+
    ```bash
    cp .env.example .env
    ```
 
 4. **Configure environment variables**
+
    ```env
    # Supabase Configuration
    VITE_SUPABASE_URL=your_supabase_project_url
    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-   
+
    # OpenRouter API Configuration
    VITE_OPENROUTER_API_KEY=your_openrouter_api_key
    VITE_OPENROUTER_API_KEY2=your_backup_api_key
@@ -401,317 +366,386 @@ barathAI/
    ```
 
 5. **Database Setup**
+
    ```bash
-   # Initialize Supabase locally (optional)
-   npx supabase init
-   npx supabase start
-   
-   # Or use your hosted Supabase instance
-   npx supabase db push
+   # Push database schema to Supabase
+   npm run db:push
+
+   # Generate TypeScript types
+   npm run db:generate
    ```
 
 6. **Start development server**
+
    ```bash
    npm run dev
-   # or
-   yarn dev
-   # or
-   bun dev
    ```
 
 7. **Open your browser**
    Navigate to `http://localhost:5173`
 
-## 🔧 Configuration
+### **Environment Variables**
 
-### Supabase Setup
+Create a `.env` file in the root directory with the following variables:
 
-1. **Create a new Supabase project**
-2. **Set up authentication providers** (Email, Google, GitHub, etc.)
-3. **Configure RLS policies** for secure data access
-4. **Deploy edge functions** for AI integrations
+```env
+# Supabase Configuration
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
-### Database Schema
+# OpenRouter API Configuration
+VITE_OPENROUTER_API_KEY=your_openrouter_api_key
+VITE_OPENROUTER_API_KEY2=your_backup_api_key
+VITE_OPENROUTER_API_URL2=backup_api_url
+
+# Optional: Additional API Keys
+VITE_IMAGE_GENERATION_API_KEY=your_image_api_key
+```
+
+## 🔧 **Configuration**
+
+### **Supabase Setup**
+
+1. **Create a new Supabase project** at [supabase.com](https://supabase.com)
+2. **Configure authentication providers**:
+   - Email/Password authentication
+   - Social providers (Google, GitHub, etc.)
+   - Email confirmation settings
+3. **Set up Row Level Security (RLS)** policies for secure data access
+4. **Deploy edge functions** for AI integrations (optional)
+
+### **Database Schema**
 
 The application uses the following main tables:
 
-- `profiles` - User profile information
-- `chat_sessions` - Chat session management
-- `messages` - Chat message storage
-- `api_usage_logs` - API usage tracking
-- `image_generation_logs` - Image generation history
+- **`profiles`** - User profile information and preferences
+- **`chat_sessions`** - Chat session management and metadata
+- **`messages`** - Individual chat messages and AI responses
+- **`api_usage_logs`** - API usage tracking and analytics
+- **`image_generation_logs`** - Image generation history and metadata
 
-### API Integration
+### **API Integration**
 
 Configure your AI service providers:
 
-1. **OpenRouter** - For text generation and chat
-2. **Image Generation APIs** - For AI image creation
-3. **Fallback APIs** - For high availability
+1. **OpenRouter** - Primary AI model access (GPT, Claude, Gemini)
+2. **Image Generation APIs** - AI image creation services
+3. **Fallback Systems** - Multiple API keys for high availability
+4. **Rate Limiting** - Configure request limits and retry logic
 
-## 🎯 **Comprehensive Feature Breakdown**
+## 🎯 **Detailed Feature Overview**
 
-### 💬 **AI Conversation Engine**
-- **🔄 Multi-Session Management** - Create, rename, organize unlimited chat sessions
-- **⚡ Real-Time Streaming** - Live AI responses with professional typing indicators
-- **💾 Cloud Persistence** - All conversations automatically saved and synchronized
-- **🎙️ Voice Integration** - Speech-to-text for hands-free AI interaction
-- **📝 Rich Formatting** - Full Markdown support with syntax highlighting
-- **📤 Export Options** - Download conversations in multiple formats (PDF, TXT, JSON)
-- **🔍 Search & Filter** - Find specific conversations and messages instantly
-- **🏷️ Conversation Tags** - Organize chats with custom labels and categories
+### 💬 **AI Conversation System**
 
-### 🎨 **Professional Image Generation Studio**
-- **🤖 Multi-Model Support** - DALL-E 3, Midjourney, Stable Diffusion, and more
-- **🖼️ Advanced Gallery** - Professional grid/list views with smart filtering
-- **📁 Image Organization** - Folders, tags, and collections for easy management
-- **💫 Batch Generation** - Create multiple variations with single prompts
-- **📐 Resolution Control** - Support for various sizes (512x512 to 2048x2048)
-- **💾 Cloud Storage** - Secure image hosting with CDN delivery
-- **📤 Export Options** - Download in PNG, JPG, WebP formats
-- **� Pnrompt Library** - Save, organize, and reuse successful prompts
+- **Multi-Session Management** - Create, organize, and manage unlimited chat sessions
+- **Real-Time Streaming** - Live AI responses with professional typing indicators
+- **Cloud Persistence** - All conversations automatically saved and synchronized
+- **Rich Formatting** - Full Markdown support with syntax highlighting for code
+- **Export Options** - Download conversations in multiple formats (PDF, TXT, JSON)
+- **Search Functionality** - Find specific conversations and messages instantly
+- **Message Reactions** - Interactive feedback system for AI responses
 
-### 👥 **Enterprise User Management** *(Admin Only)*
-- **📊 User Dashboard** - Complete overview of all registered users
-- **🔐 Password Management** - Secure visibility controls with show/hide functionality
-- **⏰ Detailed Timestamps** - Precise tracking of user activities:
-  - **📅 Account Created** - Registration date and time
-  - **🔄 Last Updated** - Profile modification timestamps
-  - **🚪 Last Login** - Most recent authentication with relative time
-  - **✅ Email Confirmed** - Verification status and confirmation time
-- **📈 User Analytics** - Activity patterns, engagement metrics, login frequency
-- **🏷️ Role Management** - Admin privileges and access level controls
-- **🔍 User Search** - Find users by email, name, or registration date
-- **📊 Summary Statistics** - Total users, active users, admin count
+### 🎨 **Image Generation Studio**
 
-### 📊 **Advanced Analytics & Business Intelligence** *(Admin Only)*
-- **📈 Real-Time Dashboards** - Live metrics with auto-refresh capabilities
-- **🔢 Usage Statistics** - Comprehensive API call and image generation tracking
-- **⚡ Performance Monitoring** - Response times, success rates, error analysis
-- **📅 Historical Data** - Daily, weekly, monthly usage trends
-- **📊 Visual Charts** - Interactive graphs and data visualizations
-- **📤 Data Export** - Excel, CSV, JSON export for external analysis
-- **🚨 Alert System** - Automated notifications for unusual activity
-- **💰 Usage Billing** - Cost tracking and resource utilization reports
+- **AI-Powered Creation** - Generate stunning images using advanced AI models
+- **Professional Gallery** - Organized image management with filtering and sorting
+- **Multiple Formats** - Support for various image sizes and formats
+- **Batch Processing** - Create multiple variations efficiently
+- **Cloud Storage** - Secure image hosting with fast delivery
+- **Export Options** - Download in PNG, JPG, WebP formats
 
-## � *S*Enterprise Security & Compliance**
+### � **pUser Management System**
 
-### **Multi-Layer Security Architecture**
-- **🛡️ Role-Based Access Control (RBAC)** - Granular permissions for users and admins
-- **🔐 Multi-Factor Authentication** - Enhanced security for administrative accounts
-- **🔑 JWT Token Management** - Secure, stateless authentication system
-- **🏦 End-to-End Encryption** - All data encrypted in transit and at rest
-- **📋 Comprehensive Audit Trails** - Complete logging of all user actions and system events
+- **Secure Authentication** - Powered by Supabase Auth with social login options
+- **User Profiles** - Customizable profiles with avatar support
+- **Admin Dashboard** - Comprehensive user management (admin-only)
+- **Activity Tracking** - Monitor user engagement and login patterns
+- **Role-Based Access** - Different permission levels for users and admins
 
-### **Admin Security Features** *(jcibarathraj@gmail.com)*
-- **👥 User Management Dashboard** - Complete oversight of all registered users
-- **🔍 Password Visibility Controls** - Secure password management with show/hide functionality
-- **📊 Real-Time Monitoring** - Live user activity and system performance tracking
-- **⏰ Detailed Timestamps** - Created, Updated, Last Login, Email Confirmed with precise timing
-- **🚨 Security Alerts** - Automated notifications for suspicious activities
+### 📊 **Analytics & Monitoring** _(Admin Only)_
 
-### **Data Protection & Privacy**
-- **🌍 GDPR Compliance** - Full compliance with European data protection regulations
-- **🔒 Data Encryption** - AES-256 encryption for sensitive user information
-- **🗑️ Right to Deletion** - Users can request complete data removal
-- **📤 Data Export** - Comprehensive data portability options
-- **🔐 Secure Password Policies** - Advanced password requirements and verification
+- **Real-Time Dashboards** - Live metrics with auto-refresh capabilities
+- **Usage Statistics** - Comprehensive API call and image generation tracking
+- **Performance Monitoring** - Response times, success rates, error analysis
+- **User Analytics** - Activity patterns, engagement metrics, login frequency
+- **Data Export** - Excel, CSV, JSON export for external analysis
+
+### 🔒 **Security & Privacy**
+
+- **Role-Based Access Control** - Granular permissions for users and admins
+- **JWT Authentication** - Secure, stateless authentication system
+- **End-to-End Encryption** - All data encrypted in transit and at rest
+- **Audit Trails** - Complete logging of all user actions
+- **GDPR Compliance** - Full compliance with data protection regulations
 
 ### **Access Control Matrix**
 
-| Feature | Regular Users | Admin (jcibarathraj@gmail.com) |
-|---------|---------------|--------------------------------|
-| **Profile Management** | ✅ Full Access | ✅ Full Access |
-| **AI Chat & Image Generation** | ✅ Full Access | ✅ Full Access |
-| **Theme & Preferences** | ✅ Full Access | ✅ Full Access |
-| **Password Management** | ✅ Change Own Password | ✅ View All User Passwords |
-| **Usage Statistics** | ❌ Hidden | ✅ **Admin Only** |
-| **User Management** | ❌ Hidden | ✅ **Admin Only** |
-| **Analytics Dashboard** | ❌ Hidden | ✅ **Admin Only** |
-| **System Documentation** | ❌ Hidden | ✅ **Admin Only** |
+| Feature                        | Regular Users    | Admin Users       |
+| ------------------------------ | ---------------- | ----------------- |
+| **Profile Management**         | ✅ Full Access   | ✅ Full Access    |
+| **AI Chat & Image Generation** | ✅ Full Access   | ✅ Full Access    |
+| **Theme & Preferences**        | ✅ Full Access   | ✅ Full Access    |
+| **Usage Statistics**           | ❌ Not Available | ✅ **Admin Only** |
+| **User Management**            | ❌ Not Available | ✅ **Admin Only** |
+| **Analytics Dashboard**        | ❌ Not Available | ✅ **Admin Only** |
+| **System Monitoring**          | ❌ Not Available | ✅ **Admin Only** |
 
-## 🛠️ Development
+## 🛠️ **Development**
 
-### Available Scripts
+### **Available Scripts**
 
 ```bash
 # Development
-npm run dev          # Start development server
-npm run build        # Build for production
-npm run preview      # Preview production build
-npm run lint         # Run ESLint
-npm run type-check   # TypeScript type checking
+npm run dev              # Start development server with HMR
+npm run build            # Build for production
+npm run build:dev        # Build in development mode
+npm run build:analyze    # Build and analyze bundle size
+npm run preview          # Preview production build locally
+
+# Code Quality
+npm run lint             # Run ESLint
+npm run lint:fix         # Fix ESLint issues automatically
+npm run type-check       # TypeScript type checking
+npm run format           # Format code with Prettier
+npm run format:check     # Check code formatting
 
 # Testing
-npm run test         # Run test suite
-npm run test:watch   # Run tests in watch mode
-npm run test:coverage # Generate coverage report
+npm run test             # Run test suite
+npm run test:ui          # Run tests with UI
+npm run test:run         # Run tests once
+npm run test:coverage    # Generate coverage report
 
 # Database
-npm run db:generate  # Generate database types
-npm run db:push      # Push schema changes
-npm run db:reset     # Reset database
+npm run db:generate      # Generate TypeScript types from Supabase
+npm run db:push          # Push schema changes to Supabase
+npm run db:reset         # Reset database
+npm run db:migrate       # Run database migrations
+
+# Deployment
+npm run deploy:vercel    # Deploy to Vercel
+npm run docker:build     # Build Docker image
+npm run docker:run       # Run Docker container
 ```
 
-### Code Quality
+### **Code Quality Tools**
 
-- **ESLint** - Code linting and formatting
-- **Prettier** - Code formatting
-- **TypeScript** - Type safety and IDE support
-- **Husky** - Git hooks for quality checks
-- **Conventional Commits** - Standardized commit messages
+- **ESLint** - Code linting with TypeScript and React rules
+- **Prettier** - Consistent code formatting
+- **TypeScript** - Type safety and enhanced IDE support
+- **Husky** - Git hooks for pre-commit quality checks
+- **Lint-staged** - Run linters on staged files only
 
-### Testing Strategy
+### **Development Workflow**
 
-- **Unit Tests** - Component and utility function testing
-- **Integration Tests** - API and database integration testing
-- **E2E Tests** - Full user journey testing
-- **Performance Tests** - Load and stress testing
+1. **Feature Development** - Create feature branches from main
+2. **Code Quality** - ESLint and Prettier checks on commit
+3. **Type Safety** - TypeScript compilation and type checking
+4. **Testing** - Unit and integration tests with Vitest
+5. **Build Verification** - Production build testing before deployment
 
-## 🚀 Deployment
+## 🚀 **Deployment**
 
-### Production Build
+### **Production Build**
 
 ```bash
 npm run build
 ```
 
-### Deployment Options
+### **Deployment Options**
 
-1. **Vercel** (Recommended)
-   ```bash
-   npm install -g vercel
-   vercel --prod
-   ```
+#### **1. Vercel** (Recommended)
 
-2. **Netlify**
-   ```bash
-   npm install -g netlify-cli
-   netlify deploy --prod
-   ```
+```bash
+npm install -g vercel
+vercel --prod
+```
 
-3. **Firebase Hosting**
-   ```bash
-   npm install -g firebase-tools
-   firebase deploy
-   ```
+#### **2. Firebase Hosting**
 
-4. **Docker**
-   ```dockerfile
-   FROM node:18-alpine
-   WORKDIR /app
-   COPY package*.json ./
-   RUN npm ci --only=production
-   COPY . .
-   RUN npm run build
-   EXPOSE 3000
-   CMD ["npm", "run", "preview"]
-   ```
+```bash
+npm install -g firebase-tools
+firebase deploy
+```
 
-### Environment Variables
+#### **3. Netlify**
+
+```bash
+npm install -g netlify-cli
+netlify deploy --prod
+```
+
+#### **4. Docker Deployment**
+
+```dockerfile
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+RUN npm run build
+EXPOSE 80
+CMD ["npm", "run", "preview"]
+```
+
+Build and run:
+
+```bash
+npm run docker:build
+npm run docker:run
+```
+
+### **Environment Variables for Production**
 
 Ensure all production environment variables are configured:
 
-- Database URLs and keys
-- API keys and secrets
-- Authentication providers
-- Analytics and monitoring tools
+```env
+# Supabase (Production)
+VITE_SUPABASE_URL=your_production_supabase_url
+VITE_SUPABASE_ANON_KEY=your_production_supabase_key
 
-## 📈 Performance Optimization
+# OpenRouter API (Production)
+VITE_OPENROUTER_API_KEY=your_production_api_key
+VITE_OPENROUTER_API_KEY2=your_backup_api_key
 
-### Frontend Optimizations
+# Optional: Analytics and Monitoring
+VITE_ANALYTICS_ID=your_analytics_id
+```
 
-- **Code Splitting** - Lazy loading of components and routes
-- **Bundle Analysis** - Webpack bundle analyzer integration
-- **Image Optimization** - WebP format and lazy loading
-- **Caching Strategy** - Service worker and browser caching
-- **CDN Integration** - Static asset delivery optimization
+### **Deployment Checklist**
 
-### Backend Optimizations
+- [ ] Environment variables configured
+- [ ] Database schema deployed
+- [ ] API keys and secrets secured
+- [ ] Authentication providers configured
+- [ ] Domain and SSL certificates set up
+- [ ] Performance monitoring enabled
 
-- **Database Indexing** - Optimized queries and indexes
-- **Connection Pooling** - Efficient database connections
-- **Caching Layer** - Redis for frequently accessed data
-- **API Rate Limiting** - Intelligent request throttling
-- **Edge Functions** - Serverless compute at the edge
+## 📈 **Performance & Optimization**
 
-## 🔍 Monitoring & Analytics
+### **Frontend Optimizations**
 
-### Application Monitoring
+- **Code Splitting** - Lazy loading of components and routes with React.lazy()
+- **Bundle Analysis** - Vite bundle analyzer for size optimization
+- **Image Optimization** - WebP format support and lazy loading
+- **Caching Strategy** - Browser caching and service worker implementation
+- **Tree Shaking** - Automatic removal of unused code
+
+### **Backend Optimizations**
+
+- **Database Indexing** - Optimized queries with proper indexes
+- **Connection Pooling** - Efficient Supabase connection management
+- **Edge Functions** - Serverless compute at the edge for AI integrations
+- **API Rate Limiting** - Intelligent request throttling and retry logic
+- **Real-time Subscriptions** - Efficient WebSocket connections
+
+### **Performance Metrics**
+
+- **Core Web Vitals** - LCP, FID, CLS optimization
+- **Bundle Size** - Optimized JavaScript and CSS bundles
+- **Load Times** - Fast initial page load and navigation
+- **Mobile Performance** - Optimized for mobile devices and networks
+
+## 🔍 **Monitoring & Analytics**
+
+### **Application Monitoring**
 
 - **Error Tracking** - Real-time error monitoring and alerts
-- **Performance Monitoring** - Core web vitals and user experience
-- **Uptime Monitoring** - Service availability tracking
-- **User Analytics** - Behavior analysis and insights
+- **Performance Monitoring** - Core web vitals and user experience metrics
+- **Uptime Monitoring** - Service availability and response time tracking
+- **User Analytics** - Behavior analysis and engagement insights
 
-### Business Intelligence
+### **Admin Analytics** _(Admin Only)_
 
-- **Usage Dashboards** - Real-time usage statistics
-- **Revenue Tracking** - API usage and billing analytics
-- **User Engagement** - Session analysis and retention metrics
-- **Performance KPIs** - Key performance indicators
+- **Usage Dashboards** - Real-time usage statistics and trends
+- **API Analytics** - Request tracking, response times, and error rates
+- **User Engagement** - Session analysis, retention metrics, and activity patterns
+- **System Health** - Performance KPIs and resource utilization
 
-## 🤝 Contributing
+## 🤝 **Contributing**
 
-We welcome contributions from the community! Please read our [Contributing Guidelines](CONTRIBUTING.md) for details on:
+We welcome contributions from the community! Here's how you can help improve BarathAI:
 
-- Code of Conduct
-- Development Process
-- Pull Request Process
-- Issue Reporting
-- Feature Requests
+### **How to Contribute**
 
-### Development Workflow
+1. **Fork the repository** and create your feature branch
+2. **Make your changes** with clear, descriptive commit messages
+3. **Add tests** for new functionality
+4. **Ensure all tests pass** and code follows our style guidelines
+5. **Submit a pull request** with a detailed description
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Ensure all tests pass
-6. Submit a pull request
+### **Development Guidelines**
 
-## 📄 License
+- **Code Style** - Follow ESLint and Prettier configurations
+- **TypeScript** - Maintain type safety throughout the codebase
+- **Testing** - Add unit tests for new components and functions
+- **Documentation** - Update README and inline comments as needed
+- **Accessibility** - Ensure all UI components are accessible
+
+### **Areas for Contribution**
+
+- 🐛 **Bug Fixes** - Help identify and fix issues
+- ✨ **New Features** - Implement new functionality
+- 📚 **Documentation** - Improve documentation and examples
+- 🎨 **UI/UX** - Enhance user interface and experience
+- 🔧 **Performance** - Optimize code and improve performance
+- 🧪 **Testing** - Add more comprehensive test coverage
+
+## 📄 **License**
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## 🙏 **Acknowledgments**
 
 - **OpenRouter** - For providing access to multiple AI models
 - **Supabase** - For the excellent backend-as-a-service platform
 - **Vercel** - For hosting and deployment infrastructure
-- **Radix UI** - For accessible UI components
+- **Radix UI** - For accessible, unstyled UI components
 - **Tailwind CSS** - For the utility-first CSS framework
+- **Lucide React** - For beautiful, consistent iconography
 
-## 📞 Support
+## 📞 **Support & Contact**
 
-- **Documentation**: [docs.barathAI.com](https://docs.barathAI.com)
-- **Community**: [Discord Server](https://discord.gg/barathAI)
-- **Issues**: [GitHub Issues](https://github.com/yourusername/barathAI/issues)
-- **Email**: support@barathAI.com
+- **Live Demo**: [barathai.web.app](https://barathai.web.app)
+- **Issues**: [GitHub Issues](https://github.com/sbarathraj/barathai/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/sbarathraj/barathai/discussions)
+- **Email**: support@barathai.com
 
-## 🗺️ Roadmap
+## 🌟 **Show Your Support**
 
-### Upcoming Features
+If you find BarathAI helpful, please consider:
 
-- [ ] **Multi-language Support** - Internationalization (i18n)
-- [ ] **Plugin System** - Extensible architecture for third-party integrations
-- [ ] **Advanced Analytics** - Machine learning insights and predictions
+- ⭐ **Starring the repository** on GitHub
+- 🐛 **Reporting bugs** and suggesting improvements
+- 🤝 **Contributing** to the project
+- 📢 **Sharing** with others who might find it useful
+
+## 🗺️ **Roadmap**
+
+### **Upcoming Features**
+
+- [ ] **Multi-language Support** - Internationalization (i18n) for global users
+- [ ] **Voice Integration** - Speech-to-text and text-to-speech capabilities
+- [ ] **Advanced Search** - Enhanced search across chats and images
 - [ ] **Mobile Apps** - Native iOS and Android applications
+- [ ] **Plugin System** - Extensible architecture for third-party integrations
+- [ ] **Collaboration Tools** - Team workspaces and shared conversations
+- [ ] **Advanced Analytics** - Machine learning insights and predictions
 - [ ] **API Marketplace** - Integration with more AI service providers
-- [ ] **Collaboration Tools** - Team workspaces and sharing features
-- [ ] **Advanced Security** - Two-factor authentication and SSO
-- [ ] **Performance Enhancements** - Further optimization and caching
 
-### Long-term Vision
+### **Long-term Vision**
 
 - **Enterprise Features** - Advanced admin controls and enterprise security
-- **AI Model Training** - Custom model fine-tuning capabilities
+- **Custom AI Models** - Fine-tuning capabilities for specific use cases
 - **Marketplace** - User-generated content and template sharing
 - **Advanced Integrations** - CRM, productivity tools, and workflow automation
+- **Multi-tenant Architecture** - Support for multiple organizations
+- **Advanced Security** - Two-factor authentication and SSO integration
 
 ---
 
 <div align="center">
   <p>Built with ❤️ by the BarathAI Team</p>
   <p>© 2024 BarathAI. All rights reserved.</p>
+  
+  **Converse with AI. Boost productivity. Unlock creativity.**
 </div>
