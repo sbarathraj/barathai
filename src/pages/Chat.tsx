@@ -14,14 +14,9 @@ import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ProfessionalImageViewer } from "@/components/ProfessionalImageViewer";
 import { ProfessionalImageGallery } from "@/components/ProfessionalImageGallery";
-
-interface Message {
-  id: string;
-  content: string;
-  role: 'user' | 'assistant';
-  timestamp: Date;
-  image?: string;
-}
+import { ReasoningDisplay } from "@/components/ReasoningDisplay";
+import { ApiResponseParser } from "@/lib/apiResponseParser";
+import type { Message, MessageReasoning } from "@/types/message";
 
 interface ChatSession {
   id: string;
@@ -83,6 +78,10 @@ export const Chat = () => {
   const [imageViewerSrc, setImageViewerSrc] = useState<string | null>(null);
   const [imageErrorByMessageId, setImageErrorByMessageId] = useState<Record<string, boolean>>({});
   const [recentImages, setRecentImages] = useState<Array<{id: string, image_url: string, prompt: string, created_at: string}>>([]);
+  const [reasoningEnabled, setReasoningEnabled] = useState(() => {
+    const saved = localStorage.getItem('barathAI-reasoning-enabled');
+    return saved ? JSON.parse(saved) : true;
+  });
 
   // API Configuration
   const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
@@ -340,7 +339,7 @@ export const Chat = () => {
     try {
       const { data, error } = await supabase
         .from('messages')
-        .select('id, content, role, created_at')
+        .select('id, content, role, created_at, reasoning, model, usage')
         .eq('session_id', sessionId)
         .order('created_at', { ascending: true })
         .limit(100);
@@ -356,18 +355,33 @@ export const Chat = () => {
           const base64Match = msg.content.match(/(data:image\/[^;]+;base64,[A-Za-z0-9+/=]+)/);
           extractedImage = colonMatch?.[1] || parenMatch?.[1] || base64Match?.[1] || undefined;
         }
+
+        // Parse reasoning data from database
+        const reasoning = ApiResponseParser.parseReasoningFromStorage(msg.reasoning);
+
         return {
           id: msg.id,
           content: msg.content,
           role: msg.role as 'user' | 'assistant',
           timestamp: new Date(msg.created_at),
-          image: extractedImage
+          image: extractedImage,
+          reasoning,
+          model: msg.model,
+          usage: msg.usage
         };
       });
 
       console.log('Fetched messages:', formattedMessages.length, 'messages');
-      // Log any image messages for debugging
+      // Log any reasoning messages for debugging
       formattedMessages.forEach(msg => {
+        if (msg.reasoning) {
+          console.log('Found message with reasoning:', {
+            id: msg.id,
+            hasReasoning: true,
+            reasoningSteps: ApiResponseParser.getReasoningStepCount(msg.reasoning),
+            model: msg.model
+          });
+        }
         if (msg.content.includes('data:image')) {
           console.log('Found image message:', {
             id: msg.id,
@@ -441,6 +455,33 @@ export const Chat = () => {
       if (error) throw error;
     } catch (error) {
       setError('Failed to save message');
+    }
+  };
+
+  const saveMessageWithReasoning = async (
+    sessionId: string, 
+    content: string, 
+    role: 'user' | 'assistant',
+    reasoning?: MessageReasoning,
+    model?: string,
+    usage?: any
+  ) => {
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .insert({
+          session_id: sessionId,
+          content,
+          role,
+          user_id: user?.id || '',
+          reasoning: reasoning ? ApiResponseParser.formatReasoningForStorage(reasoning) : null,
+          model: model || null,
+          usage: usage || null
+        });
+
+      if (error) throw error;
+    } catch (error) {
+      setError('Failed to save message with reasoning');
     }
   };
 
@@ -634,25 +675,40 @@ export const Chat = () => {
       }
       }
       
-      if (!apiResponseData || !apiResponseData.choices || !apiResponseData.choices[0] || !apiResponseData.choices[0].message) {
+      // Validate and parse API response
+      if (!ApiResponseParser.validateResponse(apiResponseData)) {
         setError('Invalid response format from API');
         setIsLoading(false);
         setIsBarathAITyping(false);
         return;
       }
 
+      // Parse response with reasoning support
+      const parsedResponse = ApiResponseParser.parseOpenRouterResponse(apiResponseData);
+
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: apiResponseData.choices[0].message.content,
+        content: parsedResponse.content,
         role: 'assistant',
-        timestamp: new Date()
+        timestamp: new Date(),
+        reasoning: parsedResponse.reasoning,
+        model: parsedResponse.model,
+        usage: parsedResponse.usage
       };
 
       const updatedMessages = [...newMessages, assistantMessage];
       setMessages(updatedMessages);
 
       try {
-        await saveMessage(currentSessionId, assistantMessage.content, 'assistant');
+        // Save message with reasoning data
+        await saveMessageWithReasoning(
+          currentSessionId, 
+          assistantMessage.content, 
+          'assistant',
+          parsedResponse.reasoning,
+          parsedResponse.model,
+          parsedResponse.usage
+        );
       } catch (error) {
         setError('Failed to save assistant message');
       }
@@ -1584,6 +1640,14 @@ export const Chat = () => {
                   )}
                   {msg.role === 'assistant' ? (
                     <div className="px-4 pb-4">
+                      {/* Display reasoning if available and enabled */}
+                      {reasoningEnabled && msg.reasoning && (
+                        <ReasoningDisplay 
+                          reasoning={msg.reasoning.reasoning}
+                          reasoningDetails={msg.reasoning.reasoning_details}
+                          className="mb-4"
+                        />
+                      )}
                       {msg.content && (
                         <ProfessionalMarkdown content={msg.content.replace(/\[IMAGE\]:\s*\S+/g, '').trim()} />
                       )}

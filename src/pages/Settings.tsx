@@ -34,6 +34,7 @@ import {
   Calendar,
   UserCheck
 } from 'lucide-react';
+import { ReasoningToggle } from '@/components/ReasoningToggle';
 
 interface UserProfile {
   id: string;
@@ -619,6 +620,9 @@ const Settings: React.FC = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* AI Reasoning Display */}
+            <ReasoningToggle />
 
 
           </div>

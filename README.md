@@ -364,6 +364,7 @@ barathAI/
 - **npm** or **yarn** or **bun**
 - **Supabase Account** (for backend services)
 - **OpenRouter API Key** (for AI functionality)
+- **Docker** (optional, for containerized deployment)
 
 ### Installation
 

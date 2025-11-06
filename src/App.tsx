@@ -7,6 +7,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { useEffect } from "react";
 import Index from "./pages/Index";
+import { setupGlobalErrorHandling } from "@/lib/monitoring";
+import { initializeSecurity } from "@/lib/security";
 import { Auth } from "./pages/Auth";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
@@ -53,13 +55,20 @@ const InactivityHandler = () => {
   return null;
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider defaultTheme="system" storageKey="barathAI-theme">
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
+const App = () => {
+  useEffect(() => {
+    // Initialize professional monitoring and security
+    setupGlobalErrorHandling();
+    initializeSecurity();
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="system" storageKey="barathAI-theme">
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
         <InactivityHandler />
         <div className="min-h-screen w-full bg-gradient-to-br from-rose-200/80 via-rose-100/70 to-pink-200/80 dark:from-rose-900/80 dark:via-rose-800/70 dark:to-pink-900/80 backdrop-blur-2xl flex flex-col items-center justify-center border border-white/30 dark:border-slate-800/40 shadow-2xl">
           <div className="flex-1 w-full">
@@ -79,9 +88,10 @@ const App = () => (
           </div>
         </div>
       </BrowserRouter>
-      </TooltipProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
-);
+        </TooltipProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
