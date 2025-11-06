@@ -27,6 +27,7 @@ import {
   Loader2,
   Eye,
   Download,
+  MoreHorizontal,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +39,13 @@ import { Logo } from "@/components/Logo";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { User as SupabaseUser, Session } from "@supabase/supabase-js";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ProfessionalImageViewer } from "@/components/ProfessionalImageViewer";
 import { ProfessionalImageGallery } from "@/components/ProfessionalImageGallery";
 import { ReasoningDisplay } from "@/components/ReasoningDisplay";
@@ -168,8 +176,7 @@ export const Chat = () => {
   const chatScrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<SpeechRecognitionType | null>(null);
-  const [wordCount, setWordCount] = useState(0);
-  const [wordLimitError, setWordLimitError] = useState("");
+
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const headerRef = useRef<HTMLDivElement>(null);
   const [headerHeight, setHeaderHeight] = useState<number>(0);
@@ -511,8 +518,8 @@ export const Chat = () => {
           content: string;
           role: string;
           created_at: string;
-          reasoning?: string;
-          model?: string;
+          reasoning?: string | null;
+          model?: string | null;
           usage?: { total_tokens?: number } | null;
         }) => {
           let extractedImage: string | undefined = undefined;
@@ -694,11 +701,6 @@ export const Chat = () => {
       setError(
         "No internet connection. Please check your network and try again.",
       );
-      return;
-    }
-
-    if (wordCount > 1000) {
-      setWordLimitError("Message cannot exceed 1000 words.");
       return;
     }
 
@@ -1334,33 +1336,144 @@ export const Chat = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
-    const words = value.trim().split(/\s+/).filter(Boolean);
-    setWordCount(words.length);
-    if (words.length > 1000) {
-      setWordLimitError("Message cannot exceed 1000 words.");
-    } else {
-      setWordLimitError("");
-    }
     setMessage(value);
   };
 
   useLayoutEffect(() => {
-    if (headerRef.current) {
-      setHeaderHeight(headerRef.current.offsetHeight);
-    }
-    if (inputRefContainer.current) {
-      setInputHeight(inputRefContainer.current.offsetHeight);
-    }
-    const handleResize = () => {
+    const updateHeights = () => {
       if (headerRef.current) {
-        setHeaderHeight(headerRef.current.offsetHeight);
+        const height = headerRef.current.offsetHeight;
+        setHeaderHeight(height);
       }
       if (inputRefContainer.current) {
-        setInputHeight(inputRefContainer.current.offsetHeight);
+        const height = inputRefContainer.current.offsetHeight;
+        setInputHeight(height);
       }
     };
+
+    // Initial measurement with delay for mobile
+    const measureHeights = () => {
+      updateHeights();
+      // Double-check after a short delay for mobile browsers
+      if (isMobile) {
+        setTimeout(updateHeights, 100);
+      }
+    };
+
+    measureHeights();
+
+    // Use ResizeObserver for more accurate measurements
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver(() => {
+        updateHeights();
+      });
+
+      if (headerRef.current) {
+        resizeObserver.observe(headerRef.current);
+      }
+      if (inputRefContainer.current) {
+        resizeObserver.observe(inputRefContainer.current);
+      }
+    }
+
+    // Fallback event listeners
+    const handleResize = () => {
+      updateHeights();
+    };
+
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    window.addEventListener("orientationchange", handleResize);
+
+    // Additional mobile-specific events
+    if (isMobile) {
+      document.addEventListener("visibilitychange", updateHeights);
+      // Handle virtual keyboard on mobile
+      window.addEventListener("focusin", updateHeights);
+      window.addEventListener("focusout", updateHeights);
+    }
+
+    return () => {
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("orientationchange", handleResize);
+      if (isMobile) {
+        document.removeEventListener("visibilitychange", updateHeights);
+        window.removeEventListener("focusin", updateHeights);
+        window.removeEventListener("focusout", updateHeights);
+      }
+    };
+  }, [isMobile]);
+
+  // Handle mobile virtual keyboard
+  useEffect(() => {
+    if (!isMobile) return;
+
+    const handleVisualViewportChange = () => {
+      if (window.visualViewport) {
+        const viewport = window.visualViewport;
+        const isKeyboardOpen = viewport.height < window.innerHeight * 0.75;
+
+        if (isKeyboardOpen) {
+          // Keyboard is open - adjust layout
+          document.documentElement.style.setProperty(
+            "--keyboard-height",
+            `${window.innerHeight - viewport.height}px`,
+          );
+          document.body.classList.add("keyboard-open");
+        } else {
+          // Keyboard is closed
+          document.documentElement.style.removeProperty("--keyboard-height");
+          document.body.classList.remove("keyboard-open");
+        }
+
+        // Force height recalculation
+        setTimeout(() => {
+          if (inputRefContainer.current) {
+            setInputHeight(inputRefContainer.current.offsetHeight);
+          }
+        }, 100);
+      }
+    };
+
+    // Handle iOS Safari viewport changes
+    const handleResize = () => {
+      if (window.visualViewport) {
+        handleVisualViewportChange();
+      } else {
+        // Fallback for browsers without visualViewport
+        const heightDiff =
+          window.innerHeight - document.documentElement.clientHeight;
+        if (heightDiff > 150) {
+          document.body.classList.add("keyboard-open");
+        } else {
+          document.body.classList.remove("keyboard-open");
+        }
+      }
+    };
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener(
+        "resize",
+        handleVisualViewportChange,
+      );
+    }
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener(
+          "resize",
+          handleVisualViewportChange,
+        );
+      }
+      window.removeEventListener("resize", handleResize);
+      document.body.classList.remove("keyboard-open");
+      document.documentElement.style.removeProperty("--keyboard-height");
+    };
   }, [isMobile]);
 
   // Initialize image loading state for messages that have images but no recorded state yet
@@ -1464,9 +1577,15 @@ export const Chat = () => {
 
   return (
     <div
-      className={`flex flex-col h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 transition-colors duration-300 text-slate-900 dark:text-white`}
+      className={`flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 transition-colors duration-300 text-slate-900 dark:text-white no-horizontal-scroll ${
+        isMobile ? "h-screen-mobile" : "h-screen"
+      }`}
     >
-      <div className="flex w-full bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-blue-900/20 dark:to-purple-900/20 text-slate-900 dark:text-white transition-all duration-300 min-h-screen">
+      <div
+        className={`flex w-full bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-blue-900/20 dark:to-purple-900/20 text-slate-900 dark:text-white transition-all duration-300 ${
+          isMobile ? "min-h-screen-mobile" : "min-h-screen"
+        }`}
+      >
         {!isOnline && (
           <div className="fixed top-0 left-0 right-0 z-50 bg-red-600 text-white text-center py-2 text-sm flex items-center justify-center">
             <WifiOff size={16} className="mr-2" />
@@ -1667,27 +1786,23 @@ export const Chat = () => {
           </div>
         </div>
 
-        {/* Mobile Sidebar Overlay */}
+        {/* Enhanced Mobile Sidebar Overlay */}
         {sidebarOpen && isMobile && (
           <>
             <div
-              className="fixed inset-0 bg-black/30 z-40 transition-opacity duration-300"
+              className="fixed inset-0 bg-black/50 z-40 transition-opacity duration-300"
               onClick={() => setSidebarOpen(false)}
               aria-label="Close sidebar overlay"
               tabIndex={-1}
             />
-            <div className="fixed top-0 left-0 h-full w-80 bg-white/95 dark:bg-slate-800/95 backdrop-blur-lg border-r border-slate-200 dark:border-slate-700 z-50 flex flex-col shadow-xl transition-transform duration-300">
-              <div className="p-3 border-b border-slate-200 dark:border-slate-700 flex-shrink-0 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    {isMobile ? (
-                      <div className="w-10 h-10 min-w-[40px] min-h-[40px] flex-shrink-0 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
-                        <Logo size={32} />
-                      </div>
-                    ) : (
-                      <Logo size={32} />
-                    )}
-                    <h2 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-0 mt-0">
+            <div className="fixed top-0 left-0 h-full w-80 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 z-50 flex flex-col shadow-2xl transition-transform duration-300 transform translate-x-0">
+              <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 min-w-[40px] min-h-[40px] flex-shrink-0 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600 shadow-md">
+                      <Logo size={28} />
+                    </div>
+                    <h2 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                       BarathAI
                     </h2>
                   </div>
@@ -1695,10 +1810,10 @@ export const Chat = () => {
                     variant="ghost"
                     size="icon"
                     onClick={() => setSidebarOpen(false)}
-                    className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white"
+                    className="h-10 w-10 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all duration-200"
                     aria-label="Close sidebar"
                   >
-                    <X size={18} />
+                    <X size={20} />
                   </Button>
                 </div>
                 <Button
@@ -1706,9 +1821,9 @@ export const Chat = () => {
                     createNewSession();
                     setSidebarOpen(false);
                   }}
-                  className="w-full mt-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-emerald-500 text-white rounded-lg transition-all duration-200 text-sm py-2"
+                  className="w-full h-11 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-emerald-500 text-white rounded-xl transition-all duration-200 text-sm font-medium shadow-md hover:shadow-lg"
                 >
-                  <Plus className="mr-2" size={14} />
+                  <Plus className="mr-2" size={16} />
                   New Chat
                 </Button>
 
@@ -1727,8 +1842,8 @@ export const Chat = () => {
                 </div>
               </div>
 
-              <div className="p-3 border-b border-slate-200 dark:border-slate-700 flex-shrink-0 bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-700/50 dark:to-blue-900/10">
-                <div className="flex items-center space-x-2 p-2 bg-white/80 dark:bg-slate-800/80 rounded-lg">
+              <div className="p-3 border-b border-slate-200 dark:border-slate-700 flex-shrink-0 bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-700 dark:to-blue-900/20">
+                <div className="flex items-center space-x-2 p-2 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
                   <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
                     <User size={16} className="text-white" />
                   </div>
@@ -1743,7 +1858,7 @@ export const Chat = () => {
                 </div>
 
                 <div className="grid grid-cols-2 gap-1 mt-1">
-                  <div className="text-center p-1 bg-white/70 dark:bg-slate-800/70 rounded">
+                  <div className="text-center p-1 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
                     <div className="text-xs font-bold text-blue-600 dark:text-blue-400">
                       {chatSessions.length}
                     </div>
@@ -1751,7 +1866,7 @@ export const Chat = () => {
                       Chats
                     </div>
                   </div>
-                  <div className="text-center p-1 bg-white/70 dark:bg-slate-800/70 rounded">
+                  <div className="text-center p-1 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
                     <div className="text-xs font-bold text-purple-600 dark:text-purple-400">
                       {messages.length}
                     </div>
@@ -1892,91 +2007,173 @@ export const Chat = () => {
         >
           <header
             ref={headerRef}
-            className={`fixed top-0 right-0 z-40 flex items-center justify-between p-4 bg-white/90 dark:bg-slate-800/90 backdrop-blur-lg border-b border-slate-200 dark:border-slate-700 transition-colors duration-300 shadow-sm ${!isMobile ? "left-80" : "left-0"}`}
+            className={`fixed top-0 right-0 z-40 flex items-center justify-between transition-colors duration-300 shadow-sm ${
+              !isMobile ? "left-80 p-4" : "left-0"
+            } ${
+              isMobile
+                ? "p-3 pt-safe bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-700/80 min-h-[60px]"
+                : "bg-white/90 dark:bg-slate-800/90 backdrop-blur-lg border-b border-slate-200 dark:border-slate-700"
+            }`}
+            style={
+              isMobile
+                ? {
+                    paddingTop: "max(12px, env(safe-area-inset-top))",
+                    width: "100vw",
+                    left: 0,
+                  }
+                : {}
+            }
           >
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setSidebarOpen(true)}
-                className={`text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white ${!isMobile ? "hidden" : ""}`}
+                className={`${
+                  isMobile
+                    ? "h-10 w-10 text-slate-600 hover:text-slate-800 dark:text-slate-300 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all duration-200"
+                    : "hidden"
+                }`}
               >
-                <Menu size={20} />
+                <Menu size={22} />
               </Button>
               <div className="flex items-center space-x-2">
                 {isMobile ? (
-                  <div className="w-10 h-10 min-w-[40px] min-h-[40px] flex-shrink-0 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
-                    <Logo size={32} />
+                  <div className="w-9 h-9 min-w-[36px] min-h-[36px] flex-shrink-0 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600 shadow-md">
+                    <Logo size={28} />
                   </div>
                 ) : (
                   <Logo size={24} />
                 )}
-                <span className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                <span
+                  className={`font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent ${
+                    isMobile ? "text-base" : "text-lg"
+                  }`}
+                >
                   BarathAI
                 </span>
               </div>
             </div>
 
-            <div className="flex items-center space-x-2">
+            <div
+              className={`flex items-center ${isMobile ? "space-x-1" : "space-x-2"}`}
+            >
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowSearch(!showSearch)}
-                className={`transition-colors duration-200 ${
+                className={`${isMobile ? "h-10 w-10" : "h-9 w-9"} rounded-xl transition-all duration-200 ${
                   showSearch
                     ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20"
-                    : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white"
+                    : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
                 }`}
                 title="Search messages"
               >
-                <Search size={20} />
+                <Search size={isMobile ? 20 : 18} />
               </Button>
 
-              <ChatExport
-                messages={messages}
-                sessionTitle={
-                  chatSessions.find((s) => s.id === currentSessionId)?.title ||
-                  "Chat"
-                }
-              />
+              {!isMobile && (
+                <>
+                  <ChatExport
+                    messages={messages}
+                    sessionTitle={
+                      chatSessions.find((s) => s.id === currentSessionId)
+                        ?.title || "Chat"
+                    }
+                  />
 
-              <ChatFeatureShowcase />
+                  <ChatFeatureShowcase />
+                </>
+              )}
 
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setDarkMode(!darkMode)}
-                className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white transition-colors duration-200"
+                className={`${isMobile ? "h-10 w-10" : "h-9 w-9"} rounded-xl text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200`}
               >
-                {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+                {darkMode ? (
+                  <Sun size={isMobile ? 20 : 18} />
+                ) : (
+                  <Moon size={isMobile ? 20 : 18} />
+                )}
               </Button>
-              {user && user.email === "jcibarathraj@gmail.com" && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => navigate("/admin")}
-                  className="text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                  title="Admin Panel"
-                >
-                  <UserIcon className="h-5 w-5" />
-                </Button>
+              {isMobile ? (
+                // Mobile dropdown menu for additional actions
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-10 w-10 rounded-xl text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200"
+                    >
+                      <MoreHorizontal size={20} />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={() => navigate("/settings")}>
+                      <Settings className="mr-2 h-4 w-4" />
+                      Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        const sessionTitle =
+                          chatSessions.find((s) => s.id === currentSessionId)
+                            ?.title || "Chat";
+                        // Trigger export functionality
+                      }}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Export Chat
+                    </DropdownMenuItem>
+                    {user && user.email === "jcibarathraj@gmail.com" && (
+                      <DropdownMenuItem onClick={() => navigate("/admin")}>
+                        <UserIcon className="mr-2 h-4 w-4" />
+                        Admin Panel
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={handleLogout}
+                      className="text-red-600 dark:text-red-400"
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                // Desktop buttons
+                <>
+                  {user && user.email === "jcibarathraj@gmail.com" && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => navigate("/admin")}
+                      className="h-9 w-9 rounded-xl text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200"
+                      title="Admin Panel"
+                    >
+                      <UserIcon className="h-4 w-4" />
+                    </Button>
+                  )}
+                  <Button
+                    onClick={() => navigate("/settings")}
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200"
+                  >
+                    <Settings size={18} />
+                  </Button>
+                  <Button
+                    onClick={handleLogout}
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 rounded-xl text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200"
+                  >
+                    <LogOut size={18} />
+                  </Button>
+                </>
               )}
-              <Button
-                onClick={() => navigate("/settings")}
-                variant="ghost"
-                size="icon"
-                className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
-              >
-                <Settings size={20} />
-              </Button>
-              <Button
-                onClick={handleLogout}
-                variant="ghost"
-                size="icon"
-                className="text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
-              >
-                <LogOut size={20} />
-              </Button>
             </div>
           </header>
 
@@ -2002,12 +2199,23 @@ export const Chat = () => {
           {/* Messages Area */}
           <div
             ref={chatScrollAreaRef}
-            className={`flex-1 overflow-y-auto flex flex-col ${isMobile ? "p-2 space-y-4 bg-gradient-to-b from-slate-50 to-slate-200 dark:from-slate-900 dark:to-slate-800 pt-4 pb-4" : "p-6 space-y-4 bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pt-8 pb-8"}`}
-            style={{
-              paddingTop:
-                headerHeight + (showSearch ? 120 : 0) + (isMobile ? 16 : 32),
-              paddingBottom: inputHeight + (isMobile ? 16 : 32),
-            }}
+            className={`flex-1 overflow-y-auto flex flex-col ${
+              isMobile
+                ? "px-3 space-y-3 bg-gradient-to-b from-slate-50/80 to-slate-100/80 dark:from-slate-900/80 dark:to-slate-800/80 scroll-smooth-mobile overscroll-contain touch-manipulation"
+                : "p-6 space-y-4 bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pt-8 pb-8"
+            }`}
+            style={
+              isMobile
+                ? {
+                    paddingTop: `max(${headerHeight + (showSearch ? 120 : 0) + 16}px, calc(env(safe-area-inset-top) + 76px))`,
+                    paddingBottom: `max(${inputHeight + 16}px, calc(env(safe-area-inset-bottom) + ${inputHeight + 16}px))`,
+                    minHeight: "100dvh", // Dynamic viewport height for mobile
+                  }
+                : {
+                    paddingTop: headerHeight + (showSearch ? 120 : 0) + 32,
+                    paddingBottom: inputHeight + 32,
+                  }
+            }
           >
             {error && (
               <ErrorBanner
@@ -2128,15 +2336,19 @@ export const Chat = () => {
                     >
                       <div
                         className={`
-                        ${isMobile ? "max-w-[90vw]" : "max-w-[60%]"}
+                        ${isMobile ? "max-w-[85vw] mx-2" : "max-w-[70%]"}
                         rounded-xl transition-all duration-200
                         break-words whitespace-pre-wrap
                         ${
                           msg.role === "user"
-                            ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 shadow-lg"
-                            : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 shadow-lg"
+                            ? `bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg ${
+                                isMobile ? "p-3" : "p-4"
+                              }`
+                            : `bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-lg ${
+                                isMobile ? "p-3" : "p-4"
+                              }`
                         }
-                        text-base sm:text-base
+                        ${isMobile ? "text-sm" : "text-base"}
                         relative
                       `}
                       >
@@ -2404,14 +2616,33 @@ export const Chat = () => {
             )}
           </div>
 
-          {/* Input Area */}
+          {/* Input Area - Enhanced Mobile Responsive with Safe Area */}
           <div
             ref={inputRefContainer}
-            className={`fixed bottom-0 right-0 z-40 p-2 sm:p-3 bg-gradient-to-t from-white/95 via-white/98 to-white/90 dark:from-slate-800/95 dark:via-slate-900/98 dark:to-slate-900/90 backdrop-blur-lg border-t border-slate-200 dark:border-slate-700 transition-colors duration-300 shadow-2xl ${!isMobile ? "left-80" : "left-0"}`}
-            style={{ maxWidth: "100vw" }}
+            className={`fixed bottom-0 right-0 z-40 transition-all duration-300 shadow-2xl ${
+              !isMobile ? "left-80" : "left-0"
+            } ${
+              isMobile
+                ? "p-3 pb-safe bg-gradient-to-t from-white/98 via-white/99 to-white/95 dark:from-slate-900/98 dark:via-slate-900/99 dark:to-slate-900/95 backdrop-blur-xl border-t border-slate-200/80 dark:border-slate-700/80"
+                : "p-3 bg-gradient-to-t from-white/95 via-white/98 to-white/90 dark:from-slate-800/95 dark:via-slate-900/98 dark:to-slate-900/90 backdrop-blur-lg border-t border-slate-200 dark:border-slate-700"
+            }`}
+            style={
+              isMobile
+                ? {
+                    maxWidth: "100vw",
+                    width: "100vw",
+                    left: 0,
+                    paddingBottom: "max(12px, env(safe-area-inset-bottom))",
+                  }
+                : { maxWidth: "100vw" }
+            }
           >
             <div className="flex justify-center w-full max-w-4xl mx-auto">
-              <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl shadow-md px-2 py-1 w-full">
+              <div
+                className={`flex items-center bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 shadow-md w-full ${
+                  isMobile ? "rounded-2xl px-3 py-2" : "rounded-xl px-2 py-1"
+                }`}
+              >
                 <Textarea
                   ref={inputRef}
                   value={message}
@@ -2420,19 +2651,24 @@ export const Chat = () => {
                   placeholder={
                     isImageMode
                       ? "Describe the image you want to generate..."
-                      : "Type your message... (max 1000 words)"
+                      : "Type your message..."
                   }
-                  className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none resize-none text-base text-slate-900 dark:text-white min-h-[40px] max-h-40"
-                  rows={2}
-                  maxLength={10000}
+                  className={`flex-1 bg-transparent border-none focus:ring-0 focus:outline-none resize-none text-slate-900 dark:text-white max-h-40 ${
+                    isMobile
+                      ? "text-base min-h-[44px] leading-relaxed"
+                      : "text-base min-h-[40px]"
+                  }`}
+                  rows={isMobile ? 1 : 2}
                   disabled={isLoading || isGeneratingImage || !isOnline}
                 />
-                <div className="flex items-center space-x-1 ml-2">
+                <div
+                  className={`flex items-center ml-2 ${isMobile ? "space-x-2" : "space-x-1"}`}
+                >
                   <Button
                     onClick={() => setIsImageMode(!isImageMode)}
                     variant="outline"
                     size="icon"
-                    className={`h-10 w-10 rounded-lg transition-all duration-200 ${
+                    className={`${isMobile ? "h-11 w-11" : "h-10 w-10"} rounded-xl transition-all duration-200 ${
                       isImageMode
                         ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white border-purple-400 shadow-lg"
                         : "hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-300 dark:hover:border-purple-700"
@@ -2445,7 +2681,7 @@ export const Chat = () => {
                     }
                   >
                     <ImageIcon
-                      size={20}
+                      size={isMobile ? 22 : 20}
                       className={isImageMode ? "animate-pulse" : ""}
                     />
                   </Button>
@@ -2453,59 +2689,62 @@ export const Chat = () => {
                     onClick={toggleVoiceInput}
                     variant="outline"
                     size="icon"
-                    className={`h-10 w-10 rounded-lg ${isListening ? "bg-red-500 text-white" : ""}`}
+                    className={`${isMobile ? "h-11 w-11" : "h-10 w-10"} rounded-xl transition-all duration-200 ${
+                      isListening
+                        ? "bg-red-500 text-white border-red-400 shadow-lg"
+                        : "hover:bg-slate-50 dark:hover:bg-slate-800"
+                    }`}
                     disabled={isLoading || isGeneratingImage}
                   >
                     {isListening ? (
                       <span className="relative flex items-center justify-center">
                         <span className="absolute inline-flex h-8 w-8 rounded-full bg-red-400 opacity-75 animate-ping"></span>
                         <Mic
-                          size={20}
+                          size={isMobile ? 22 : 20}
                           className="relative z-10 animate-pulse"
                         />
                       </span>
                     ) : (
-                      <Mic size={20} />
+                      <Mic size={isMobile ? 22 : 20} />
                     )}
                   </Button>
                   <Button
                     onClick={sendMessage}
-                    disabled={
-                      !message.trim() ||
-                      isLoading ||
-                      isGeneratingImage ||
-                      wordCount > 1000
-                    }
-                    className="h-10 w-10 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg hover:shadow-xl focus:ring-2 focus:ring-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={!message.trim() || isLoading || isGeneratingImage}
+                    className={`${isMobile ? "h-11 w-11" : "h-10 w-10"} rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg hover:shadow-xl focus:ring-2 focus:ring-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95`}
                     size="icon"
                   >
                     {isLoading || isGeneratingImage ? (
                       <div className="flex items-center justify-center">
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <div
+                          className={`${isMobile ? "w-5 h-5" : "w-4 h-4"} border-2 border-white border-t-transparent rounded-full animate-spin`}
+                        />
                       </div>
                     ) : (
-                      <Send size={20} />
+                      <Send size={isMobile ? 22 : 20} />
                     )}
                   </Button>
                 </div>
               </div>
             </div>
-            <div className="flex justify-between items-center mt-2 px-1 max-w-4xl mx-auto">
-              <div className="flex items-center space-x-2">
-                <span
-                  className={`text-xs ${wordCount > 1000 ? "text-red-500" : "text-slate-400 dark:text-slate-500"}`}
-                >
-                  {wordCount}/1000 words
-                </span>
+            <div
+              className={`flex justify-between items-center max-w-4xl mx-auto ${
+                isMobile ? "mt-2 px-2" : "mt-2 px-1"
+              }`}
+            >
+              <div
+                className={`flex items-center ${isMobile ? "space-x-3" : "space-x-2"}`}
+              >
                 {isImageMode && (
-                  <span className="text-xs px-3 py-1 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 text-purple-700 dark:text-purple-300 rounded-full font-medium border border-purple-200 dark:border-purple-700 shadow-sm">
+                  <span
+                    className={`text-xs font-medium bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 text-purple-700 dark:text-purple-300 rounded-full border border-purple-200 dark:border-purple-700 shadow-sm ${
+                      isMobile ? "px-3 py-1.5" : "px-3 py-1"
+                    }`}
+                  >
                     🎨 Image Mode
                   </span>
                 )}
               </div>
-              {wordLimitError && (
-                <span className="text-xs text-red-500">{wordLimitError}</span>
-              )}
             </div>
           </div>
 
