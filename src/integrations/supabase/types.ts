@@ -184,24 +184,33 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          model: string | null
+          reasoning: string | null
           role: string
           session_id: string
+          usage: Json | null
           user_id: string
         }
         Insert: {
           content: string
           created_at?: string
           id?: string
+          model?: string | null
+          reasoning?: string | null
           role: string
           session_id: string
+          usage?: Json | null
           user_id: string
         }
         Update: {
           content?: string
           created_at?: string
           id?: string
+          model?: string | null
+          reasoning?: string | null
           role?: string
           session_id?: string
+          usage?: Json | null
           user_id?: string
         }
         Relationships: [

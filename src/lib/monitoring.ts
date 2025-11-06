@@ -44,7 +44,7 @@ export class MonitoringService {
     });
   }
 
-  private logPerformance(operation: string, duration: number) {
+  logPerformance(operation: string, duration: number) {
     if (duration > 1000) { // Log slow operations
       console.warn(`Slow operation detected: ${operation} took ${duration.toFixed(2)}ms`);
     }

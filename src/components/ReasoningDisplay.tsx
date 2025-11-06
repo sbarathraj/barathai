@@ -102,9 +102,6 @@ export const ReasoningDisplay: React.FC<ReasoningDisplayProps> = ({
             {/* Detailed reasoning steps */}
             {reasoningDetails && reasoningDetails.length > 0 && (
               <div className="space-y-2">
-                <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
-                  Detailed Analysis:
-                </p>
                 {reasoningDetails.map((detail, index) => (
                   <div
                     key={index}
