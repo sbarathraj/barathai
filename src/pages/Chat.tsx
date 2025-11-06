@@ -215,7 +215,7 @@ export const Chat = () => {
     new Set(),
   );
   const [typingVariant, setTypingVariant] = useState<
-    "default" | "thinking" | "generating" | "processing"
+    "default" | "thinking" | "generating"
   >("default");
 
   // API Configuration
@@ -757,7 +757,7 @@ export const Chat = () => {
         presence_penalty: 0.1,
       };
 
-      setTypingVariant("processing");
+      setTypingVariant("thinking");
 
       let usedApiKey = OPENROUTER_API_KEY;
       let usedApiUrl = API_URL;
