@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, Brain, Lightbulb, Target } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import React, { useState } from "react";
+import { ChevronDown, ChevronRight, Brain } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 interface ReasoningDetail {
   text: string;
@@ -20,7 +19,7 @@ interface ReasoningDisplayProps {
 export const ReasoningDisplay: React.FC<ReasoningDisplayProps> = ({
   reasoning,
   reasoningDetails,
-  className = ""
+  className = "",
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -29,30 +28,10 @@ export const ReasoningDisplay: React.FC<ReasoningDisplayProps> = ({
     return null;
   }
 
-  const getReasoningIcon = (type?: string) => {
-    switch (type) {
-      case 'reasoning.text':
-        return <Brain className="w-4 h-4 text-blue-500" />;
-      case 'analysis':
-        return <Target className="w-4 h-4 text-green-500" />;
-      default:
-        return <Lightbulb className="w-4 h-4 text-amber-500" />;
-    }
-  };
-
-  const getTypeColor = (type?: string) => {
-    switch (type) {
-      case 'reasoning.text':
-        return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800';
-      case 'analysis':
-        return 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800';
-      default:
-        return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800';
-    }
-  };
-
   return (
-    <Card className={`mb-4 border-l-4 border-l-blue-500 bg-gradient-to-r from-blue-50/50 to-transparent dark:from-blue-900/20 dark:to-transparent ${className}`}>
+    <Card
+      className={`mb-4 border-l-4 border-l-blue-500 bg-gradient-to-r from-blue-50/50 to-transparent dark:from-blue-900/20 dark:to-transparent ${className}`}
+    >
       <CardContent className="p-4">
         <Button
           variant="ghost"
@@ -67,9 +46,6 @@ export const ReasoningDisplay: React.FC<ReasoningDisplayProps> = ({
                 🧠 AI Reasoning
               </span>
             </div>
-            <Badge variant="secondary" className="text-xs">
-              {reasoningDetails?.length || 1} step{(reasoningDetails?.length || 1) > 1 ? 's' : ''}
-            </Badge>
           </div>
           {isExpanded ? (
             <ChevronDown className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -96,47 +72,6 @@ export const ReasoningDisplay: React.FC<ReasoningDisplayProps> = ({
                     </p>
                   </div>
                 </div>
-              </div>
-            )}
-
-            {/* Detailed reasoning steps */}
-            {reasoningDetails && reasoningDetails.length > 0 && (
-              <div className="space-y-2">
-                {reasoningDetails.map((detail, index) => (
-                  <div
-                    key={index}
-                    className="p-3 bg-white/60 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700/50 backdrop-blur-sm"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5 flex-shrink-0">
-                        {getReasoningIcon(detail.type)}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                            Step {detail.index + 1}
-                          </span>
-                          {detail.type && (
-                            <Badge 
-                              variant="outline" 
-                              className={`text-xs px-2 py-0.5 ${getTypeColor(detail.type)}`}
-                            >
-                              {detail.type.replace('reasoning.', '')}
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-                          {detail.text}
-                        </p>
-                        {detail.format && detail.format !== 'unknown' && (
-                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                            Format: {detail.format}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
               </div>
             )}
 

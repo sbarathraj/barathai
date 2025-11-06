@@ -1,73 +1,133 @@
-import React, { useState } from 'react';
-import ReactMarkdown from 'react-markdown';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import atomOneDark from 'react-syntax-highlighter/dist/esm/styles/hljs/atom-one-dark';
-import atomOneLight from 'react-syntax-highlighter/dist/esm/styles/hljs/atom-one-light';
-import remarkGfm from 'remark-gfm';
-import { Copy, Check, Play, Terminal, Code, FileText, Lightbulb, AlertCircle, Download } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React, { useState } from "react";
+import ReactMarkdown from "react-markdown";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import atomOneDark from "react-syntax-highlighter/dist/esm/styles/hljs/atom-one-dark";
+import atomOneLight from "react-syntax-highlighter/dist/esm/styles/hljs/atom-one-light";
+import remarkGfm from "remark-gfm";
+import {
+  Copy,
+  Check,
+  Play,
+  Terminal,
+  Code,
+  FileText,
+  Lightbulb,
+  AlertCircle,
+  Download,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface MarkdownRendererProps {
   content: string;
   className?: string;
 }
 
-export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, className = "" }) => {
+export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
+  content,
+  className = "",
+}) => {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     // Default to light mode unless user has chosen dark
-    return document.documentElement.classList.contains('dark');
+    return document.documentElement.classList.contains("dark");
   });
 
   // Listen for theme changes
   React.useEffect(() => {
     const observer = new MutationObserver(() => {
-      setIsDarkMode(document.documentElement.classList.contains('dark'));
+      setIsDarkMode(document.documentElement.classList.contains("dark"));
     });
-    
+
     observer.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ['class']
+      attributeFilter: ["class"],
     });
-    
+
     return () => observer.disconnect();
   }, []);
 
   // Enhanced preprocessing to handle API response patterns
   const preprocessContent = (text: string) => {
     let processedText = text;
-    
+
     // Handle escaped newlines from API responses
-    processedText = processedText.replace(/\\n/g, '\n');
-    
+    processedText = processedText.replace(/\\n/g, "\n");
+
+    // CRITICAL: Handle ALL single quote patterns BEFORE any other processing
+    // This ensures single quotes NEVER trigger code block styling
+
+    // 1. Handle backtick-wrapped single quotes: `'text'` -> plain text
+    processedText = processedText.replace(
+      /`'([^']*)'`/g,
+      "___SINGLEQUOTE_START___$1___SINGLEQUOTE_END___",
+    );
+
+    // 2. Handle standalone single quotes in various contexts
+    // - At start of line: 'text'
+    // - After whitespace: (space)'text'
+    // - After punctuation: ,'text' or .'text' or ('text'
+    // - In lists: - 'text' or * 'text'
+    processedText = processedText.replace(
+      /(^|\s|[,.()[\]!?;:])'([^']*?)'/gm,
+      "$1___SINGLEQUOTE_START___$2___SINGLEQUOTE_END___",
+    );
+
+    // 3. Handle single quotes in parentheses or brackets
+    processedText = processedText.replace(
+      /([(])'([^']*?)'([)])/g,
+      "$1___SINGLEQUOTE_START___$2___SINGLEQUOTE_END___$3",
+    );
+    processedText = processedText.replace(
+      /([[])'([^']*?)'([\]])/g,
+      "$1___SINGLEQUOTE_START___$2___SINGLEQUOTE_END___$3",
+    );
+
+    // 4. Handle single quotes with surrounding text (e.g., "methods ('size', 'contains')")
+    processedText = processedText.replace(
+      /'([^']*?)'/g,
+      "___SINGLEQUOTE_START___$1___SINGLEQUOTE_END___",
+    );
+
     // Handle custom tags with various cases
     const customTagPatterns = [
-      { pattern: /<BOLDTAG>(.*?)<\/BOLDTAG>/gs, replacement: '**$1**' },
-      { pattern: /<ITALICTAG>(.*?)<\/ITALICTAG>/gs, replacement: '*$1*' },
-      { pattern: /<INLINECODETAG>(.*?)<\/INLINECODETAG>/gs, replacement: '`$1`' },
-      { pattern: /<CODETAG>(.*?)<\/CODETAG>/gs, replacement: '`$1`' },
-      { pattern: /<BOLD>(.*?)<\/BOLD>/gs, replacement: '**$1**' },
-      { pattern: /<ITALIC>(.*?)<\/ITALIC>/gs, replacement: '*$1*' },
-      { pattern: /<INLINECODE>(.*?)<\/INLINECODE>/gs, replacement: '`$1`' },
-      { pattern: /<CODE>(.*?)<\/CODE>/gs, replacement: '`$1`' },
-      
+      { pattern: /<BOLDTAG>(.*?)<\/BOLDTAG>/gs, replacement: "**$1**" },
+      { pattern: /<ITALICTAG>(.*?)<\/ITALICTAG>/gs, replacement: "*$1*" },
+      {
+        pattern: /<INLINECODETAG>(.*?)<\/INLINECODETAG>/gs,
+        replacement: "`$1`",
+      },
+      { pattern: /<CODETAG>(.*?)<\/CODETAG>/gs, replacement: "`$1`" },
+      { pattern: /<BOLD>(.*?)<\/BOLD>/gs, replacement: "**$1**" },
+      { pattern: /<ITALIC>(.*?)<\/ITALIC>/gs, replacement: "*$1*" },
+      { pattern: /<INLINECODE>(.*?)<\/INLINECODE>/gs, replacement: "`$1`" },
+      { pattern: /<CODE>(.*?)<\/CODE>/gs, replacement: "`$1`" },
+
       // Handle nested and malformed tags
-      { pattern: /<INLINE<ITALIC>CODE>(.*?)<\/INLINE<\/ITALIC>CODE>/gs, replacement: '`$1`' },
-      { pattern: /<boldtag>(.*?)<\/boldtag>/gs, replacement: '**$1**' },
-      { pattern: /<italictag>(.*?)<\/italictag>/gs, replacement: '*$1*' },
-      { pattern: /<inlinecodetag>(.*?)<\/inlinecodetag>/gs, replacement: '`$1`' },
-      { pattern: /<codetag>(.*?)<\/codetag>/gs, replacement: '`$1`' },
-      
+      {
+        pattern: /<INLINE<ITALIC>CODE>(.*?)<\/INLINE<\/ITALIC>CODE>/gs,
+        replacement: "`$1`",
+      },
+      { pattern: /<boldtag>(.*?)<\/boldtag>/gs, replacement: "**$1**" },
+      { pattern: /<italictag>(.*?)<\/italictag>/gs, replacement: "*$1*" },
+      {
+        pattern: /<inlinecodetag>(.*?)<\/inlinecodetag>/gs,
+        replacement: "`$1`",
+      },
+      { pattern: /<codetag>(.*?)<\/codetag>/gs, replacement: "`$1`" },
+
       // Handle various case combinations
-      { pattern: /<BoldTag>(.*?)<\/BoldTag>/gs, replacement: '**$1**' },
-      { pattern: /<ItalicTag>(.*?)<\/ItalicTag>/gs, replacement: '*$1*' },
-      { pattern: /<InlineCodeTag>(.*?)<\/InlineCodeTag>/gs, replacement: '`$1`' },
-      { pattern: /<CodeTag>(.*?)<\/CodeTag>/gs, replacement: '`$1`' },
-      
+      { pattern: /<BoldTag>(.*?)<\/BoldTag>/gs, replacement: "**$1**" },
+      { pattern: /<ItalicTag>(.*?)<\/ItalicTag>/gs, replacement: "*$1*" },
+      {
+        pattern: /<InlineCodeTag>(.*?)<\/InlineCodeTag>/gs,
+        replacement: "`$1`",
+      },
+      { pattern: /<CodeTag>(.*?)<\/CodeTag>/gs, replacement: "`$1`" },
+
       // Handle attributes in tags
-      { pattern: /<BOLD[^>]*>(.*?)<\/BOLD[^>]*>/gs, replacement: '**$1**' },
-      { pattern: /<ITALIC[^>]*>(.*?)<\/ITALIC[^>]*>/gs, replacement: '*$1*' },
-      { pattern: /<CODE[^>]*>(.*?)<\/CODE[^>]*>/gs, replacement: '`$1`' },
+      { pattern: /<BOLD[^>]*>(.*?)<\/BOLD[^>]*>/gs, replacement: "**$1**" },
+      { pattern: /<ITALIC[^>]*>(.*?)<\/ITALIC[^>]*>/gs, replacement: "*$1*" },
+      { pattern: /<CODE[^>]*>(.*?)<\/CODE[^>]*>/gs, replacement: "`$1`" },
     ];
 
     customTagPatterns.forEach(({ pattern, replacement }) => {
@@ -77,14 +137,11 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
     // Enhance instructional sections with icons
     processedText = processedText.replace(
       /^(How to Run|Output|Example|Note|Important|Steps|Instructions?):\s*$/gm,
-      '### 💡 $1\n'
+      "### 💡 $1\n",
     );
 
     // Add visual separators between major sections
-    processedText = processedText.replace(
-      /^(#{1,3}\s+.*?)$/gm,
-      '\n---\n\n$1'
-    );
+    processedText = processedText.replace(/^(#{1,3}\s+.*?)$/gm, "\n---\n\n$1");
 
     return processedText;
   };
@@ -97,106 +154,167 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
       setCopiedIndex(index);
       setTimeout(() => setCopiedIndex(null), 2000);
     } catch (err) {
-      console.error('Failed to copy text: ', err);
+      console.error("Failed to copy text: ", err);
     }
+  };
+
+  // Universal function to process single quote markers in any text content
+  const processSingleQuoteMarkers = (
+    children: React.ReactNode,
+  ): React.ReactNode => {
+    if (typeof children === "string") {
+      // Replace single quote markers with styled spans
+      const parts = children.split(
+        /___SINGLEQUOTE_START___(.*?)___SINGLEQUOTE_END___/g,
+      );
+      return parts.map((part, index) => {
+        if (index % 2 === 1) {
+          // This is content that was inside single quotes - render as plain text
+          return (
+            <span
+              key={index}
+              className="text-inherit font-inherit text-[1em] align-baseline"
+            >
+              '{part}'
+            </span>
+          );
+        }
+        return part;
+      });
+    }
+    if (Array.isArray(children)) {
+      return children.map((child, index) =>
+        typeof child === "string" ? processSingleQuoteMarkers(child) : child,
+      );
+    }
+    return children;
   };
 
   const getLanguageIcon = (language: string) => {
     const icons: { [key: string]: string } = {
-      java: '☕',
-      javascript: '🟨',
-      typescript: '🔷',
-      python: '🐍',
-      cpp: '⚡',
-      c: '🔧',
-      html: '🌐',
-      css: '🎨',
-      sql: '🗃️',
-      bash: '💻',
-      shell: '💻',
-      json: '📋',
-      xml: '📄',
-      yaml: '⚙️',
+      java: "☕",
+      javascript: "🟨",
+      typescript: "🔷",
+      python: "🐍",
+      cpp: "⚡",
+      c: "🔧",
+      html: "🌐",
+      css: "🎨",
+      sql: "🗃️",
+      bash: "💻",
+      shell: "💻",
+      json: "📋",
+      xml: "📄",
+      yaml: "⚙️",
     };
-    return icons[language.toLowerCase()] || '📝';
+    return icons[language.toLowerCase()] || "📝";
   };
 
   const getLanguageDisplayName = (language: string) => {
     const names: { [key: string]: string } = {
-      java: 'Java',
-      javascript: 'JavaScript',
-      typescript: 'TypeScript',
-      python: 'Python',
-      cpp: 'C++',
-      c: 'C',
-      html: 'HTML',
-      css: 'CSS',
-      sql: 'SQL',
-      bash: 'Bash',
-      shell: 'Shell',
-      json: 'JSON',
-      xml: 'XML',
-      yaml: 'YAML',
+      java: "Java",
+      javascript: "JavaScript",
+      typescript: "TypeScript",
+      python: "Python",
+      cpp: "C++",
+      c: "C",
+      html: "HTML",
+      css: "CSS",
+      sql: "SQL",
+      bash: "Bash",
+      shell: "Shell",
+      json: "JSON",
+      xml: "XML",
+      yaml: "YAML",
     };
     return names[language.toLowerCase()] || language.toUpperCase();
   };
 
   return (
-    <div className={`prose prose-slate dark:prose-invert max-w-none ${className}`}>
+    <div
+      className={`prose prose-slate dark:prose-invert max-w-none ${className}`}
+    >
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
           // Enhanced heading rendering with better styling and icons
           h1: ({ node, ...props }) => (
             <div className="mb-2 mt-2">
-              <h1 className="text-3xl font-bold text-slate-900 dark:text-white border-b-2 border-gradient-to-r from-blue-500 to-purple-500 pb-1 mb-2 flex items-center" {...props}>
+              <h1
+                className="text-3xl font-bold text-slate-900 dark:text-white border-b-2 border-gradient-to-r from-blue-500 to-purple-500 pb-1 mb-2 flex items-center"
+                {...props}
+              >
                 <span className="mr-3 text-blue-500">🚀</span>
-                {props.children}
+                {processSingleQuoteMarkers(props.children)}
               </h1>
             </div>
           ),
           h2: ({ node, ...props }) => (
             <div className="mb-2 mt-2">
-              <h2 className="text-2xl font-semibold text-slate-900 dark:text-white border-b border-slate-300 dark:border-slate-600 pb-1 mb-2 flex items-center" {...props}>
+              <h2
+                className="text-2xl font-semibold text-slate-900 dark:text-white border-b border-slate-300 dark:border-slate-600 pb-1 mb-2 flex items-center"
+                {...props}
+              >
                 <span className="mr-2 text-purple-500">📋</span>
-                {props.children}
+                {processSingleQuoteMarkers(props.children)}
               </h2>
             </div>
           ),
           h3: ({ node, ...props }) => (
             <div className="mb-2 mt-2">
-              <h3 className="text-xl font-semibold text-slate-900 dark:text-white flex items-center mb-1" {...props}>
+              <h3
+                className="text-xl font-semibold text-slate-900 dark:text-white flex items-center mb-1"
+                {...props}
+              >
                 <span className="mr-2 text-green-500">✨</span>
-                {props.children}
+                {processSingleQuoteMarkers(props.children)}
               </h3>
             </div>
           ),
           h4: ({ node, ...props }) => (
-            <h4 className="text-lg font-semibold text-slate-900 dark:text-white mt-1 mb-1 flex items-center" {...props}>
+            <h4
+              className="text-lg font-semibold text-slate-900 dark:text-white mt-1 mb-1 flex items-center"
+              {...props}
+            >
               <span className="mr-2 text-orange-500">🔸</span>
-              {props.children}
+              {processSingleQuoteMarkers(props.children)}
             </h4>
           ),
 
           // Enhanced text formatting
           strong: ({ node, ...props }) => (
-            <strong className="font-bold text-slate-900 dark:text-white bg-yellow-100 dark:bg-yellow-900/30 px-1 py-0.5 rounded-md" {...props} />
+            <strong
+              className="font-bold text-slate-900 dark:text-white bg-yellow-100 dark:bg-yellow-900/30 px-1 py-0.5 rounded-md"
+              {...props}
+            />
           ),
           em: ({ node, ...props }) => (
-            <em className="italic text-blue-600 dark:text-blue-400 font-medium" {...props} />
+            <em
+              className="italic text-blue-600 dark:text-blue-400 font-medium"
+              {...props}
+            />
           ),
 
           // Enhanced inline code and code blocks
-          code: ({ node, className, children, ...props }: any) => {
-            const match = /language-(\w+)/.exec(className || '');
-            const language = match ? match[1] : 'text';
-            const codeString = String(children).replace(/\n$/, '');
+          code: ({
+            node,
+            className,
+            children,
+            ...props
+          }: React.ComponentProps<"code"> & {
+            node?: unknown;
+            className?: string;
+          }) => {
+            const match = /language-(\w+)/.exec(className || "");
+            const language = match ? match[1] : "text";
+            const codeString = String(children).replace(/\n$/, "");
             const isInline = !match;
 
             if (isInline) {
+              // Natural inline code - exactly like ChatGPT/GitHub
               return (
-                <code 
-                  className="px-2 py-1 bg-slate-100 dark:bg-slate-800 text-blue-600 dark:text-blue-400 rounded-md text-sm font-mono border border-slate-200 dark:border-slate-700 shadow-sm" 
+                <code
+                  className="inline font-mono text-[0.95em] align-baseline whitespace-normal m-0 px-1 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded"
                   {...props}
                 >
                   {children}
@@ -235,13 +353,19 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
                     language={language}
                     PreTag="div"
                     className="!m-0 !bg-transparent text-sm"
-                    customStyle={{ borderRadius: 0, fontSize: '0.95rem', padding: '1.5em 1em 1em 1em', background: 'inherit', margin: 0 }}
-                    showLineNumbers={codeString.split('\n').length > 5}
+                    customStyle={{
+                      borderRadius: 0,
+                      fontSize: "0.95rem",
+                      padding: "1.5em 1em 1em 1em",
+                      background: "inherit",
+                      margin: 0,
+                    }}
+                    showLineNumbers={codeString.split("\n").length > 5}
                     lineNumberStyle={{
-                      minWidth: '3em',
-                      paddingRight: '1em',
-                      color: isDarkMode ? '#6b7280' : '#9ca3af',
-                      fontSize: '0.75rem',
+                      minWidth: "3em",
+                      paddingRight: "1em",
+                      color: isDarkMode ? "#6b7280" : "#9ca3af",
+                      fontSize: "0.75rem",
                     }}
                     {...props}
                   >
@@ -259,10 +383,16 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
           ol: ({ node, ...props }) => (
             <ol className="list-none my-1 pl-0 space-y-0" {...props} />
           ),
-          li: ({ node, ...props }: any) => {
-            const isOrderedList = node?.tagName === 'ol';
+          li: ({
+            node,
+            ...props
+          }: React.ComponentProps<"li"> & { node?: { tagName?: string } }) => {
+            const isOrderedList = node?.tagName === "ol";
             return (
-              <li className="flex items-start space-x-3 text-slate-800 dark:text-slate-200" {...props}>
+              <li
+                className="flex items-start space-x-3 text-slate-800 dark:text-slate-200"
+                {...props}
+              >
                 {isOrderedList ? (
                   <span className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white text-xs font-bold rounded-full flex items-center justify-center mt-0.5">
                     •
@@ -270,7 +400,9 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
                 ) : (
                   <span className="flex-shrink-0 w-2 h-2 bg-blue-500 rounded-full mt-2"></span>
                 )}
-                <span className="flex-1">{props.children}</span>
+                <span className="flex-1">
+                  {processSingleQuoteMarkers(props.children)}
+                </span>
               </li>
             );
           },
@@ -280,31 +412,36 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
             <div className="my-2 p-2 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 dark:border-blue-500 rounded-r-lg">
               <div className="flex items-start space-x-3">
                 <Lightbulb className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
-                <blockquote className="text-slate-700 dark:text-slate-300 italic m-0" {...props} />
+                <blockquote
+                  className="text-slate-700 dark:text-slate-300 italic m-0"
+                  {...props}
+                />
               </div>
             </div>
           ),
 
-          // Enhanced paragraph with better spacing
+          // Enhanced paragraph with better spacing and single quote handling
           p: ({ node, ...props }) => (
-            <p className="my-0 leading-normal text-slate-900 dark:text-slate-100 text-base" {...props} />
+            <p className="my-0 leading-normal text-slate-900 dark:text-slate-100 text-base">
+              {processSingleQuoteMarkers(props.children)}
+            </p>
           ),
 
           // Enhanced links with better styling
           a: ({ node, ...props }) => (
-            <a 
-              className="text-blue-600 dark:text-blue-400 underline hover:text-blue-800 dark:hover:text-blue-300 transition-colors font-medium" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              {...props} 
+            <a
+              className="text-blue-600 dark:text-blue-400 underline hover:text-blue-800 dark:hover:text-blue-300 transition-colors font-medium"
+              target="_blank"
+              rel="noopener noreferrer"
+              {...props}
             />
           ),
 
           // Enhanced image rendering for AI-generated images
           img: ({ node, src, alt, ...props }) => {
             // Check if this is a base64 image (AI-generated) or any image
-            const isGeneratedImage = src?.startsWith('data:image');
-            
+            const isGeneratedImage = src?.startsWith("data:image");
+
             if (isGeneratedImage) {
               return (
                 <div className="my-4 flex flex-col items-center">
@@ -314,13 +451,17 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
                       alt={alt || "AI Generated Image"}
                       className="max-w-full h-auto rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 cursor-pointer"
                       onError={(e) => {
-                        console.error('Generated image failed to load:', src?.substring(0, 50) + '...');
+                        console.error(
+                          "Generated image failed to load:",
+                          src?.substring(0, 50) + "...",
+                        );
                         const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        
+                        target.style.display = "none";
+
                         // Create fallback element
-                        const fallback = document.createElement('div');
-                        fallback.className = 'bg-slate-100 dark:bg-slate-700 rounded-lg p-6 text-center text-slate-500 border border-slate-200 dark:border-slate-600';
+                        const fallback = document.createElement("div");
+                        fallback.className =
+                          "bg-slate-100 dark:bg-slate-700 rounded-lg p-6 text-center text-slate-500 border border-slate-200 dark:border-slate-600";
                         fallback.innerHTML = `
                           <div class="flex flex-col items-center space-y-2">
                             <svg class="w-12 h-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -332,7 +473,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
                         target.parentNode?.appendChild(fallback);
                       }}
                       onLoad={() => {
-                        console.log('Generated image loaded successfully');
+                        console.log("Generated image loaded successfully");
                       }}
                       {...props}
                     />
@@ -340,7 +481,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
                       <Button
                         onClick={() => {
                           if (!src) return;
-                          const link = document.createElement('a');
+                          const link = document.createElement("a");
                           link.href = src;
                           link.download = `barathai-generated-${Date.now()}.png`;
                           document.body.appendChild(link);
@@ -364,7 +505,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
                 </div>
               );
             }
-            
+
             // Regular image handling
             return (
               <img
@@ -372,9 +513,9 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
                 alt={alt}
                 className="max-w-full h-auto rounded-lg shadow-md border border-slate-200 dark:border-slate-700 my-4"
                 onError={(e) => {
-                  console.error('Regular image failed to load:', src);
+                  console.error("Regular image failed to load:", src);
                   const target = e.target as HTMLImageElement;
-                  target.alt = `[IMAGE] ${alt || 'Image failed to load'}`;
+                  target.alt = `[IMAGE] ${alt || "Image failed to load"}`;
                 }}
                 {...props}
               />
@@ -383,20 +524,32 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
           // Enhanced table rendering
           table: ({ node, ...props }) => (
             <div className="overflow-x-auto my-8 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
-              <table className="min-w-full bg-white dark:bg-slate-800" {...props} />
+              <table
+                className="min-w-full bg-white dark:bg-slate-800"
+                {...props}
+              />
             </div>
           ),
           thead: ({ node, ...props }) => (
             <thead className="bg-slate-50 dark:bg-slate-700" {...props} />
           ),
           th: ({ node, ...props }) => (
-            <th className="px-6 py-4 text-left text-slate-900 dark:text-white font-semibold border-b border-slate-200 dark:border-slate-600 text-sm" {...props} />
+            <th
+              className="px-6 py-4 text-left text-slate-900 dark:text-white font-semibold border-b border-slate-200 dark:border-slate-600 text-sm"
+              {...props}
+            />
           ),
           td: ({ node, ...props }) => (
-            <td className="px-6 py-4 text-slate-800 dark:text-slate-200 border-b border-slate-100 dark:border-slate-700 text-sm" {...props} />
+            <td
+              className="px-6 py-4 text-slate-800 dark:text-slate-200 border-b border-slate-100 dark:border-slate-700 text-sm"
+              {...props}
+            />
           ),
           tr: ({ node, ...props }) => (
-            <tr className="hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors" {...props} />
+            <tr
+              className="hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors"
+              {...props}
+            />
           ),
 
           // Enhanced horizontal rule
