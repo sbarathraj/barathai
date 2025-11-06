@@ -32,7 +32,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, title = "Chat 
       
       {/* Main Content */}
       <div className="md:pl-72">
-        <main className="pt-20 px-4 sm:px-6 pb-8 relative">
+        <main className="pt-16 sm:pt-20 px-2 sm:px-4 md:px-6 pb-6 sm:pb-8 relative">
           {children}
         </main>
       </div>

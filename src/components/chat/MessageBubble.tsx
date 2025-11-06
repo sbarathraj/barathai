@@ -193,12 +193,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
   return (
     <div
-      className={`flex ${isUser ? "justify-end" : "justify-start"} mb-6 animate-fade-in group`}
+      className={`flex ${isUser ? "justify-end" : "justify-start"} mb-4 sm:mb-6 animate-fade-in group px-2 sm:px-0`}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
       id={`message-${message.id}`}
     >
-      <div className={`max-w-[85%] ${isUser ? "order-2" : "order-1"} relative`}>
+      <div className={`max-w-[95%] sm:max-w-[85%] ${isUser ? "order-2" : "order-1"} relative`}>
         {!isUser && (
           <div className="flex items-center mb-2">
             <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-bold mr-3 shadow-lg">
@@ -218,7 +218,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         )}
 
         <div
-          className={`rounded-2xl px-4 py-3 shadow-lg backdrop-blur-sm border transition-all duration-200 hover:shadow-xl relative ${
+          className={`rounded-xl sm:rounded-2xl px-3 py-2 sm:px-4 sm:py-3 shadow-lg backdrop-blur-sm border transition-all duration-200 hover:shadow-xl relative ${
             isUser
               ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white border-blue-300 dark:border-blue-600"
               : "bg-white/80 dark:bg-slate-800/80 text-slate-900 dark:text-white border-slate-200 dark:border-slate-700"
@@ -290,13 +290,13 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           )}
 
           <div
-            className={`flex items-center justify-between mt-3 pt-2 border-t ${
+            className={`flex items-center justify-between mt-2 sm:mt-3 pt-2 border-t ${
               isUser
                 ? "border-white/20"
                 : "border-slate-200 dark:border-slate-600"
             }`}
           >
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1 sm:space-x-2">
               <span
                 className={`text-xs ${
                   isUser
@@ -321,7 +321,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 </span>
               )}
             </div>
-            <div className="flex items-center space-x-1">
+            <div className="flex items-center space-x-0.5 sm:space-x-1">
               {!isUser && (
                 <>
                   {/* Reaction buttons */}
