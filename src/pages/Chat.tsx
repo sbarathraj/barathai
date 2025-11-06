@@ -30,7 +30,6 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import type { Json } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
 import { ProfessionalMarkdown } from "@/components/ProfessionalMarkdown";
 import { TextToSpeech } from "@/components/TextToSpeech";
@@ -512,9 +511,9 @@ export const Chat = () => {
           content: string;
           role: string;
           created_at: string;
-          reasoning?: string | null;
-          model?: string | null;
-          usage?: Json | null;
+          reasoning?: string;
+          model?: string;
+          usage?: { total_tokens?: number } | null;
         }) => {
           let extractedImage: string | undefined = undefined;
           if (typeof msg.content === "string") {
@@ -543,8 +542,8 @@ export const Chat = () => {
             timestamp: new Date(msg.created_at),
             image: extractedImage,
             reasoning,
-            model: msg.model || undefined,
-            usage: msg.usage ? (msg.usage as { total_tokens?: number; prompt_tokens?: number; completion_tokens?: number }) : undefined,
+            model: msg.model,
+            usage: msg.usage || undefined,
           };
         },
       );
@@ -673,18 +672,7 @@ export const Chat = () => {
     }
   };
 
-  const logApiUsage = async (params: {
-    api_name: string;
-    endpoint_hit: string;
-    user_id?: string;
-    user_email?: string;
-    request_method?: string;
-    request_payload?: Json;
-    response_payload?: Json;
-    status_code?: number;
-    response_time?: number;
-    error_message?: string;
-  }) => {
+  const logApiUsage = async (params: object) => {
     try {
       const { error } = await supabase.from("api_usage_logs").insert(params);
       return !error;
