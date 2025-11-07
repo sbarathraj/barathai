@@ -16,6 +16,8 @@ export const ResetPassword = () => {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(true);
+  const [isValidLink, setIsValidLink] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -29,25 +31,100 @@ export const ResetPassword = () => {
   const [focusedField, setFocusedField] = useState('');
 
   useEffect(() => {
-    // Check if we have the required tokens from the URL
-    const accessToken = searchParams.get('access_token');
-    const refreshToken = searchParams.get('refresh_token');
-    
-    if (!accessToken || !refreshToken) {
-      toast({
-        title: "Invalid Reset Link",
-        description: "This password reset link is invalid or has expired.",
-        variant: "destructive",
-      });
-      navigate('/auth');
-      return;
-    }
+    const handlePasswordReset = async () => {
+      setIsVerifying(true);
+      
+      // Check for different possible URL parameter formats
+      const accessToken = searchParams.get('access_token');
+      const refreshToken = searchParams.get('refresh_token');
+      const token = searchParams.get('token');
+      const type = searchParams.get('type');
+      
+      // Handle the new Supabase format with token and type parameters
+      if (token && type === 'recovery') {
+        try {
+          const { data, error } = await supabase.auth.verifyOtp({
+            token_hash: token,
+            type: 'recovery'
+          });
+          
+          if (error) {
+            console.error('Token verification error:', error);
+            setIsValidLink(false);
+            toast({
+              title: "Invalid Reset Link",
+              description: "This password reset link is invalid or has expired. Please request a new one.",
+              variant: "destructive",
+            });
+            setTimeout(() => navigate('/forgot-password'), 3000);
+            return;
+          }
+          
+          if (data?.user) {
+            // Token is valid, user can now reset password
+            setIsValidLink(true);
+            toast({
+              title: "Link Verified",
+              description: "You can now set your new password.",
+            });
+          }
+        } catch (error) {
+          console.error('Password reset verification error:', error);
+          setIsValidLink(false);
+          toast({
+            title: "Error",
+            description: "Failed to verify reset link. Please try again.",
+            variant: "destructive",
+          });
+          setTimeout(() => navigate('/forgot-password'), 3000);
+        }
+      }
+      // Handle legacy format with access_token and refresh_token
+      else if (accessToken && refreshToken) {
+        try {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          
+          if (error) {
+            setIsValidLink(false);
+            toast({
+              title: "Invalid Reset Link",
+              description: "This password reset link is invalid or has expired. Please request a new one.",
+              variant: "destructive",
+            });
+            setTimeout(() => navigate('/forgot-password'), 3000);
+            return;
+          }
+          
+          setIsValidLink(true);
+        } catch (error) {
+          console.error('Session setup error:', error);
+          setIsValidLink(false);
+          toast({
+            title: "Error",
+            description: "Failed to verify reset link. Please try again.",
+            variant: "destructive",
+          });
+          setTimeout(() => navigate('/forgot-password'), 3000);
+        }
+      }
+      // No valid parameters found
+      else {
+        setIsValidLink(false);
+        toast({
+          title: "Invalid Reset Link",
+          description: "This password reset link is invalid or has expired. Please request a new one.",
+          variant: "destructive",
+        });
+        setTimeout(() => navigate('/forgot-password'), 3000);
+      }
+      
+      setIsVerifying(false);
+    };
 
-    // Set the session with the tokens
-    supabase.auth.setSession({
-      access_token: accessToken,
-      refresh_token: refreshToken,
-    });
+    handlePasswordReset();
   }, [searchParams, navigate, toast]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -119,32 +196,106 @@ export const ResetPassword = () => {
 
     setIsLoading(true);
     try {
+      // Check if user is authenticated first
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          title: "Session Expired",
+          description: "Your reset session has expired. Please request a new password reset link.",
+          variant: "destructive",
+        });
+        navigate('/forgot-password');
+        return;
+      }
+
       const { error } = await supabase.auth.updateUser({
         password: formData.password
       });
 
       if (error) {
+        console.error('Password update error:', error);
         toast({
           title: "Reset Failed",
-          description: error.message,
+          description: error.message || "Failed to update password. Please try again.",
           variant: "destructive",
         });
       } else {
         toast({
           title: "Success",
-          description: "Your password has been reset successfully!",
+          description: "Your password has been reset successfully! You can now sign in with your new password.",
         });
-        navigate('/chat');
+        
+        // Sign out the user so they can sign in with new password
+        await supabase.auth.signOut();
+        navigate('/auth');
       }
     } catch (error) {
+      console.error('Password reset error:', error);
       toast({
         title: "Error",
-        description: "An unexpected error occurred",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     }
     setIsLoading(false);
   };
+
+  // Show loading state while verifying the link
+  if (isVerifying) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center p-4 relative overflow-hidden transition-colors duration-500">
+        {/* Enhanced animated background */}
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute inset-0 bg-gradient-to-br from-cyan-100/30 via-violet-100/20 to-pink-100/30 dark:from-cyan-900/30 dark:via-violet-900/20 dark:to-pink-900/30 animate-gradient-move" />
+          <div className="absolute inset-0 bg-gradient-to-tl from-pink-100/20 via-cyan-100/10 to-violet-100/20 dark:from-pink-900/20 dark:via-cyan-900/10 dark:to-violet-900/20 animate-gradient-move" style={{ animationDelay: '2s' }} />
+        </div>
+        
+        {/* Animated background with balls */}
+        <AnimatedBackground />
+
+        <Card className="w-full max-w-md shadow-2xl border-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl rounded-3xl animate-fade-in">
+          <CardContent className="flex flex-col items-center justify-center py-16 px-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-violet-600 mb-4"></div>
+            <h3 className="text-xl font-semibold text-slate-700 dark:text-slate-300 mb-2">Verifying Reset Link</h3>
+            <p className="text-slate-500 dark:text-slate-400 text-center">Please wait while we verify your password reset link...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show error state if link is invalid
+  if (!isValidLink) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center p-4 relative overflow-hidden transition-colors duration-500">
+        {/* Enhanced animated background */}
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute inset-0 bg-gradient-to-br from-cyan-100/30 via-violet-100/20 to-pink-100/30 dark:from-cyan-900/30 dark:via-violet-900/20 dark:to-pink-900/30 animate-gradient-move" />
+          <div className="absolute inset-0 bg-gradient-to-tl from-pink-100/20 via-cyan-100/10 to-violet-100/20 dark:from-pink-900/20 dark:via-cyan-900/10 dark:to-violet-900/20 animate-gradient-move" style={{ animationDelay: '2s' }} />
+        </div>
+        
+        {/* Animated background with balls */}
+        <AnimatedBackground />
+
+        <Card className="w-full max-w-md shadow-2xl border-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl rounded-3xl animate-fade-in">
+          <CardContent className="flex flex-col items-center justify-center py-16 px-8 text-center">
+            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Shield className="w-8 h-8 text-red-600 dark:text-red-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-slate-700 dark:text-slate-300 mb-2">Invalid Reset Link</h3>
+            <p className="text-slate-500 dark:text-slate-400 mb-6">This password reset link is invalid or has expired. You'll be redirected to request a new one.</p>
+            <Button 
+              onClick={() => navigate('/forgot-password')}
+              className="bg-gradient-to-r from-cyan-500 via-violet-500 to-pink-500 hover:from-cyan-600 hover:via-violet-600 hover:to-pink-600 text-white"
+            >
+              Request New Link
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center p-4 relative overflow-hidden transition-colors duration-500">
