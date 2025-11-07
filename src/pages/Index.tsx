@@ -34,23 +34,28 @@ const Index = () => {
   }, [navigate]);
 
   return (
-    <div className="relative min-h-screen w-full overflow-x-hidden bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 transition-colors duration-300">
-      {/* Animated background */}
-      <div className="absolute inset-0 -z-10 animate-gradient-move bg-gradient-to-br from-rose-200/60 via-fuchsia-200/40 to-pink-200/60 dark:from-rose-900/60 dark:via-fuchsia-900/40 dark:to-pink-900/60 blur-2xl opacity-80" />
+    <div className="main-container relative min-h-screen w-full overflow-x-hidden bg-gradient-to-br from-cyan-50 via-violet-50 via-pink-50 to-orange-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 transition-colors duration-500 pt-16">
+      {/* Enhanced animated background */}
+      <div className="absolute inset-0 -z-10">
+        <div className="absolute inset-0 bg-gradient-to-br from-cyan-200/40 via-violet-200/30 to-pink-200/40 dark:from-cyan-900/30 dark:via-violet-900/20 dark:to-pink-900/30 animate-gradient-move" />
+        <div className="absolute inset-0 bg-gradient-to-tl from-pink-200/30 via-cyan-200/20 to-violet-200/30 dark:from-pink-900/20 dark:via-cyan-900/10 dark:to-violet-900/20 animate-gradient-move" style={{ animationDelay: '2s' }} />
+        <div className="absolute inset-0 bg-gradient-to-r from-emerald-100/25 via-teal-100/15 to-blue-100/25 dark:from-emerald-900/15 dark:via-teal-900/10 dark:to-blue-900/15 animate-gradient-move" style={{ animationDelay: '4s' }} />
+        <div className="absolute inset-0 bg-gradient-to-bl from-yellow-100/20 via-orange-100/15 to-red-100/20 dark:from-yellow-900/10 dark:via-orange-900/8 dark:to-red-900/10 animate-gradient-move" style={{ animationDelay: '6s' }} />
+      </div>
       <Navigation />
-      <div id="hero" className="scroll-mt-24 z-0">
+      <div id="hero" className="scroll-mt-24">
         <Hero />
       </div>
-      <div id="features" className="scroll-mt-24 z-0">
+      <div id="features" className="scroll-mt-24">
         <Features />
       </div>
-      <div id="how-it-works" className="scroll-mt-24 z-0">
+      <div id="how-it-works" className="scroll-mt-24">
         <HowItWorks />
       </div>
-      <div id="testimonials" className="scroll-mt-24 z-0">
+      <div id="testimonials" className="scroll-mt-24">
         <Testimonials />
       </div>
-      <div id="get-started" className="scroll-mt-24 z-0">
+      <div id="get-started" className="scroll-mt-24">
         <GetStarted />
       </div>
       <Footer />

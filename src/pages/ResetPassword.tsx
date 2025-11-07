@@ -1,91 +1,96 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Eye, EyeOff, Lock } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { Logo } from '@/components/Logo';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Eye, EyeOff, Lock, ArrowLeft, CheckCircle, Shield } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { Logo } from "@/components/Logo";
+import { AnimatedBackground } from "@/components/AnimatedBackground";
+
 
 export const ResetPassword = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchParams] = useSearchParams();
+  const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [isValidSession, setIsValidSession] = useState(false);
+  const [formData, setFormData] = useState({
+    password: '',
+    confirmPassword: ''
+  });
+  const [formErrors, setFormErrors] = useState({
+    password: '',
+    confirmPassword: ''
+  });
+  const [focusedField, setFocusedField] = useState('');
 
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
+    // Check if we have the required tokens from the URL
+    const accessToken = searchParams.get('access_token');
+    const refreshToken = searchParams.get('refresh_token');
+    
+    if (!accessToken || !refreshToken) {
+      toast({
+        title: "Invalid Reset Link",
+        description: "This password reset link is invalid or has expired.",
+        variant: "destructive",
+      });
+      navigate('/auth');
+      return;
+    }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state change:', event, session);
-        
-        if (event === 'PASSWORD_RECOVERY' && session) {
-          setIsValidSession(true);
-          setIsLoading(false);
-        } else if (event === 'SIGNED_IN' && session) {
-          // User might have already recovered and been signed in
-          setIsValidSession(true);
-          setIsLoading(false);
-        } else if (event === 'SIGNED_OUT') {
-          // Password was successfully reset, redirect to login
-          navigate('/auth');
+    // Set the session with the tokens
+    supabase.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    });
+  }, [searchParams, navigate, toast]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+
+    // Real-time validation
+    validateField(name, value);
+  };
+
+  const validateField = (name: string, value: string) => {
+    let error = '';
+    
+    switch (name) {
+      case 'password':
+        if (!value) {
+          error = 'Password is required';
+        } else if (value.length < 6) {
+          error = 'Password must be at least 6 characters';
         }
-      }
-    );
-
-    // Check if there's already a valid session
-    const checkExistingSession = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (session && !error) {
-          setIsValidSession(true);
-          setIsLoading(false);
-        } else {
-          // Give some time for the recovery flow to complete
-          timeoutId = setTimeout(() => {
-            if (!isValidSession) {
-              toast({
-                title: "Invalid Reset Link",
-                description: "This password reset link is invalid or has expired. Please request a new one.",
-                variant: "destructive",
-              });
-              navigate('/forgot-password');
-            }
-          }, 3000);
+        break;
+      case 'confirmPassword':
+        if (!value) {
+          error = 'Please confirm your password';
+        } else if (value !== formData.password) {
+          error = 'Passwords do not match';
         }
-      } catch (error) {
-        console.error('Error checking session:', error);
-        setIsLoading(false);
-        toast({
-          title: "Error",
-          description: "An error occurred. Please try again.",
-          variant: "destructive",
-        });
-        navigate('/forgot-password');
-      }
-    };
+        break;
+    }
 
-    checkExistingSession();
-
-    return () => {
-      subscription.unsubscribe();
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [navigate, toast, isValidSession]);
+    setFormErrors(prev => ({
+      ...prev,
+      [name]: error
+    }));
+  };
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!password || !confirmPassword) {
+    if (!formData.password || !formData.confirmPassword) {
       toast({
         title: "Error",
         description: "Please fill in all fields",
@@ -94,7 +99,7 @@ export const ResetPassword = () => {
       return;
     }
 
-    if (password !== confirmPassword) {
+    if (formData.password !== formData.confirmPassword) {
       toast({
         title: "Error",
         description: "Passwords do not match",
@@ -103,183 +108,215 @@ export const ResetPassword = () => {
       return;
     }
 
-    if (password.length < 6) {
+    if (formData.password.length < 6) {
       toast({
         title: "Error",
-        description: "Password must be at least 6 characters long",
+        description: "Password must be at least 6 characters",
         variant: "destructive",
       });
       return;
     }
 
-    setIsSubmitting(true);
-    
+    setIsLoading(true);
     try {
       const { error } = await supabase.auth.updateUser({
-        password: password
+        password: formData.password
       });
 
       if (error) {
         toast({
-          title: "Password Update Failed",
+          title: "Reset Failed",
           description: error.message,
           variant: "destructive",
         });
       } else {
         toast({
-          title: "Password Updated Successfully!",
-          description: "You will be redirected to the login page",
+          title: "Success",
+          description: "Your password has been reset successfully!",
         });
-        
-        // Sign out the user and redirect to login
-        setTimeout(async () => {
-          await supabase.auth.signOut();
-          navigate('/auth');
-        }, 1500);
+        navigate('/chat');
       }
     } catch (error) {
-      console.error('Password update error:', error);
       toast({
-        title: "Unexpected Error",
-        description: "An unexpected error occurred. Please try again.",
+        title: "Error",
+        description: "An unexpected error occurred",
         variant: "destructive",
       });
     }
-    
-    setIsSubmitting(false);
+    setIsLoading(false);
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4">
-        <Card className="w-full max-w-md shadow-2xl border-0 bg-white/70 dark:bg-slate-900/80 backdrop-blur-2xl rounded-3xl">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Logo size={56} className="mb-4 drop-shadow-xl" />
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
-            <p className="text-slate-600 dark:text-slate-400">Validating reset link...</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (!isValidSession) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4">
-        <Card className="w-full max-w-md shadow-2xl border-0 bg-white/70 dark:bg-slate-900/80 backdrop-blur-2xl rounded-3xl">
-          <CardHeader className="text-center pb-2">
-            <div className="flex justify-center mb-4">
-              <Logo size={56} className="drop-shadow-xl" />
-            </div>
-            <CardTitle className="text-3xl font-extrabold bg-gradient-to-r from-red-600 via-red-500 to-red-600 bg-clip-text text-transparent tracking-tight mb-1">
-              Invalid Link
-            </CardTitle>
-            <CardDescription className="text-base text-slate-500 dark:text-slate-300 mb-2">
-              This password reset link is invalid or has expired
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6 pt-0">
-            <Button onClick={() => navigate('/forgot-password')} className="w-full">
-              Request New Reset Link
-            </Button>
-            <Button variant="outline" onClick={() => navigate('/auth')} className="w-full">
-              Back to Login
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4">
-      <Card className="w-full max-w-md shadow-2xl border-0 bg-white/70 dark:bg-slate-900/80 backdrop-blur-2xl rounded-3xl">
-        <CardHeader className="text-center pb-2">
-          <div className="flex justify-center mb-4">
-            <Logo size={56} className="drop-shadow-xl" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center p-4 relative overflow-hidden transition-colors duration-500">
+      {/* Enhanced animated background */}
+      <div className="absolute inset-0 -z-10">
+        <div className="absolute inset-0 bg-gradient-to-br from-cyan-100/30 via-violet-100/20 to-pink-100/30 dark:from-cyan-900/30 dark:via-violet-900/20 dark:to-pink-900/30 animate-gradient-move" />
+        <div className="absolute inset-0 bg-gradient-to-tl from-pink-100/20 via-cyan-100/10 to-violet-100/20 dark:from-pink-900/20 dark:via-cyan-900/10 dark:to-violet-900/20 animate-gradient-move" style={{ animationDelay: '2s' }} />
+      </div>
+      
+      {/* Animated background with balls */}
+      <AnimatedBackground />
+
+      <Card className="w-full max-w-md shadow-2xl border-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl rounded-3xl animate-fade-in">
+        <CardHeader className="text-center pb-6 relative">
+          {/* Back button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate('/auth')}
+            className="absolute left-4 top-4 text-slate-600 dark:text-slate-300 hover:text-violet-600 dark:hover:text-violet-400 transition-all duration-300 hover:scale-110"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+
+          {/* Logo */}
+          <div className="flex justify-center mb-6">
+            <button 
+              onClick={() => navigate('/')}
+              className="transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-violet-500/30 rounded-full p-2"
+              aria-label="Go to Home"
+            >
+              <Logo size={56} className="animate-float drop-shadow-xl" />
+            </button>
           </div>
-          <CardTitle className="text-3xl font-extrabold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent tracking-tight mb-1">
+
+          <CardTitle className="text-3xl font-black bg-gradient-to-r from-cyan-600 via-violet-600 to-pink-600 bg-clip-text text-transparent tracking-tight mb-2 animate-gradient-text">
             Reset Password
           </CardTitle>
-          <CardDescription className="text-base text-slate-500 dark:text-slate-300 mb-2">
+          <CardDescription className="text-lg text-slate-600 dark:text-slate-300 mb-4">
             Enter your new password below
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6 pt-0">
-          <form onSubmit={handleResetPassword} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="new-password">New Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+        
+        <CardContent className="space-y-6 pt-0 px-8">
+          <form onSubmit={handleResetPassword} className="space-y-6">
+            <div className="space-y-3">
+              <Label 
+                htmlFor="password"
+                className={`text-sm font-semibold transition-colors duration-300 ${
+                  focusedField === 'password' ? 'text-violet-600 dark:text-violet-400' : 'text-slate-700 dark:text-slate-300'
+                }`}
+              >
+                New Password
+              </Label>
+              <div className="relative group">
+                <Lock className={`absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 transition-colors duration-300 ${
+                  focusedField === 'password' ? 'text-violet-500' : 'text-slate-400'
+                }`} />
                 <Input
-                  id="new-password"
+                  id="password"
+                  name="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="Enter new password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 pr-10 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                  placeholder="Enter your new password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  onFocus={() => setFocusedField('password')}
+                  onBlur={() => setFocusedField('')}
+                  className={`pl-12 pr-12 py-4 text-base rounded-xl border-2 transition-all duration-300 ${
+                    formErrors.password 
+                      ? 'border-red-300 focus:border-red-500' 
+                      : focusedField === 'password'
+                      ? 'border-violet-300 focus:border-violet-500 shadow-lg'
+                      : 'border-slate-200 dark:border-slate-700 focus:border-violet-400'
+                  }`}
                   required
-                  minLength={6}
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors duration-300"
                   onClick={() => setShowPassword(!showPassword)}
                   tabIndex={-1}
                 >
                   {showPassword ? (
-                    <EyeOff className="h-4 w-4 text-gray-400" />
+                    <EyeOff className="h-4 w-4 text-slate-500" />
                   ) : (
-                    <Eye className="h-4 w-4 text-gray-400" />
+                    <Eye className="h-4 w-4 text-slate-500" />
                   )}
                 </Button>
               </div>
+              {formErrors.password && (
+                <p className="text-red-500 text-sm animate-fade-in">{formErrors.password}</p>
+              )}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirm-password">Confirm Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+
+            <div className="space-y-3">
+              <Label 
+                htmlFor="confirmPassword"
+                className={`text-sm font-semibold transition-colors duration-300 ${
+                  focusedField === 'confirmPassword' ? 'text-violet-600 dark:text-violet-400' : 'text-slate-700 dark:text-slate-300'
+                }`}
+              >
+                Confirm New Password
+              </Label>
+              <div className="relative group">
+                <Lock className={`absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 transition-colors duration-300 ${
+                  focusedField === 'confirmPassword' ? 'text-violet-500' : 'text-slate-400'
+                }`} />
                 <Input
-                  id="confirm-password"
+                  id="confirmPassword"
+                  name="confirmPassword"
                   type={showConfirmPassword ? "text" : "password"}
-                  placeholder="Confirm new password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="pl-10 pr-10 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                  placeholder="Confirm your new password"
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange}
+                  onFocus={() => setFocusedField('confirmPassword')}
+                  onBlur={() => setFocusedField('')}
+                  className={`pl-12 pr-12 py-4 text-base rounded-xl border-2 transition-all duration-300 ${
+                    formErrors.confirmPassword 
+                      ? 'border-red-300 focus:border-red-500' 
+                      : focusedField === 'confirmPassword'
+                      ? 'border-violet-300 focus:border-violet-500 shadow-lg'
+                      : 'border-slate-200 dark:border-slate-700 focus:border-violet-400'
+                  }`}
                   required
-                  minLength={6}
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors duration-300"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   tabIndex={-1}
                 >
                   {showConfirmPassword ? (
-                    <EyeOff className="h-4 w-4 text-gray-400" />
+                    <EyeOff className="h-4 w-4 text-slate-500" />
                   ) : (
-                    <Eye className="h-4 w-4 text-gray-400" />
+                    <Eye className="h-4 w-4 text-slate-500" />
                   )}
                 </Button>
+                {formData.confirmPassword && !formErrors.confirmPassword && formData.password === formData.confirmPassword && (
+                  <CheckCircle className="absolute right-12 top-1/2 transform -translate-y-1/2 h-5 w-5 text-green-500" />
+                )}
               </div>
+              {formErrors.confirmPassword && (
+                <p className="text-red-500 text-sm animate-fade-in">{formErrors.confirmPassword}</p>
+              )}
             </div>
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? "Updating Password..." : "Update Password"}
+
+            <Button 
+              type="submit" 
+              className="w-full py-4 text-lg font-semibold rounded-xl bg-gradient-to-r from-cyan-500 via-violet-500 to-pink-500 hover:from-cyan-600 hover:via-violet-600 hover:to-pink-600 text-white transition-all duration-300 hover:scale-105 hover:shadow-xl group relative overflow-hidden" 
+              disabled={isLoading}
+            >
+              <div className="absolute inset-0 bg-white/20 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
+              <span className="relative z-10">
+                {isLoading ? "Updating Password..." : "Update Password"}
+              </span>
+              {!isLoading && <Shield className="ml-2 h-5 w-5 relative z-10" />}
             </Button>
           </form>
-          <div className="flex justify-center">
-            <Button variant="outline" onClick={() => navigate('/auth')} className="rounded-lg px-4 py-2 text-base font-medium">
-              ← Back to Login
-            </Button>
+
+          {/* Security note */}
+          <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+              <Shield className="w-4 h-4 text-green-500" />
+              <span>Your password will be encrypted and stored securely</span>
+            </div>
           </div>
         </CardContent>
       </Card>
     </div>
   );
 };
-
-export default ResetPassword;

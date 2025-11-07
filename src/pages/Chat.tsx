@@ -123,6 +123,7 @@ import { ChatFeatureShowcase } from "@/components/chat/ChatFeatureShowcase";
 import { ApiResponseParser } from "@/lib/apiResponseParser";
 import type { Message, MessageReasoning } from "@/types/message";
 
+
 interface ChatSession {
   id: string;
   title: string;
@@ -1577,12 +1578,13 @@ export const Chat = () => {
 
   return (
     <div
-      className={`flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 transition-colors duration-300 text-slate-900 dark:text-white no-horizontal-scroll ${
+      className={`flex flex-col bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 transition-colors duration-500 text-slate-900 dark:text-white no-horizontal-scroll ${
         isMobile ? "h-screen-mobile" : "h-screen"
       }`}
     >
+      
       <div
-        className={`flex w-full bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-blue-900/20 dark:to-purple-900/20 text-slate-900 dark:text-white transition-all duration-300 ${
+        className={`flex w-full text-slate-900 dark:text-white transition-all duration-300 relative ${
           isMobile ? "min-h-screen-mobile" : "min-h-screen"
         }`}
       >
@@ -2003,73 +2005,56 @@ export const Chat = () => {
 
         {/* Main Chat Area */}
         <div
-          className={`flex flex-col h-full w-full ${!isMobile ? "lg:ml-80" : ""}`}
+          className={`flex flex-col h-full w-full ${!isMobile ? "lg:ml-80" : ""} relative`}
         >
           <header
             ref={headerRef}
-            className={`fixed top-0 right-0 z-40 flex items-center justify-between transition-colors duration-300 shadow-sm ${
-              !isMobile ? "left-80 p-4" : "left-0"
-            } ${
-              isMobile
-                ? "p-3 pt-safe bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-700/80 min-h-[60px]"
-                : "bg-white/90 dark:bg-slate-800/90 backdrop-blur-lg border-b border-slate-200 dark:border-slate-700"
-            }`}
+            className={`fixed top-0 right-0 z-40 flex items-center justify-between h-16 transition-colors duration-300 ${
+              !isMobile ? "left-80" : "left-0"
+            } bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-700/50 shadow-sm`}
             style={
               isMobile
                 ? {
-                    paddingTop: "max(12px, env(safe-area-inset-top))",
                     width: "100vw",
                     left: 0,
                   }
                 : {}
             }
           >
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-3 px-4">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setSidebarOpen(true)}
                 className={`${
                   isMobile
-                    ? "h-10 w-10 text-slate-600 hover:text-slate-800 dark:text-slate-300 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all duration-200"
+                    ? "h-9 w-9 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                     : "hidden"
                 }`}
               >
-                <Menu size={22} />
+                <Menu className="h-4 w-4" />
               </Button>
-              <div className="flex items-center space-x-2">
-                {isMobile ? (
-                  <div className="w-9 h-9 min-w-[36px] min-h-[36px] flex-shrink-0 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600 shadow-md">
-                    <Logo size={28} />
-                  </div>
-                ) : (
-                  <Logo size={24} />
-                )}
-                <span
-                  className={`font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent ${
-                    isMobile ? "text-base" : "text-lg"
-                  }`}
-                >
+              <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/')}>
+                <Logo size={32} />
+                <span className="text-xl font-bold text-slate-900 dark:text-white">
                   BarathAI
                 </span>
               </div>
             </div>
 
-            <div
-              className={`flex items-center ${isMobile ? "space-x-1" : "space-x-2"}`}
-            >
+            <div className="flex items-center space-x-2 px-4">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowSearch(!showSearch)}
-                className={`${isMobile ? "h-10 w-10" : "h-9 w-9"} rounded-xl transition-all duration-200 ${
+                className={`h-9 w-9 transition-colors ${
                   showSearch
                     ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20"
-                    : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+                    : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
                 }`}
                 title="Search messages"
               >
-                <Search size={isMobile ? 20 : 18} />
+                <Search className="h-4 w-4" />
               </Button>
 
               {!isMobile && (
@@ -2090,13 +2075,9 @@ export const Chat = () => {
                 variant="ghost"
                 size="icon"
                 onClick={() => setDarkMode(!darkMode)}
-                className={`${isMobile ? "h-10 w-10" : "h-9 w-9"} rounded-xl text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200`}
+                className="h-9 w-9 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
-                {darkMode ? (
-                  <Sun size={isMobile ? 20 : 18} />
-                ) : (
-                  <Moon size={isMobile ? 20 : 18} />
-                )}
+                {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </Button>
               {isMobile ? (
                 // Mobile dropdown menu for additional actions
@@ -2105,9 +2086,9 @@ export const Chat = () => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-10 w-10 rounded-xl text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200"
+                      className="h-9 w-9 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                     >
-                      <MoreHorizontal size={20} />
+                      <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
@@ -2150,7 +2131,7 @@ export const Chat = () => {
                       variant="ghost"
                       size="icon"
                       onClick={() => navigate("/admin")}
-                      className="h-9 w-9 rounded-xl text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200"
+                      className="h-9 w-9 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                       title="Admin Panel"
                     >
                       <UserIcon className="h-4 w-4" />
@@ -2160,17 +2141,17 @@ export const Chat = () => {
                     onClick={() => navigate("/settings")}
                     variant="ghost"
                     size="icon"
-                    className="h-9 w-9 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200"
+                    className="h-9 w-9 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                   >
-                    <Settings size={18} />
+                    <Settings className="h-4 w-4" />
                   </Button>
                   <Button
                     onClick={handleLogout}
                     variant="ghost"
                     size="icon"
-                    className="h-9 w-9 rounded-xl text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200"
+                    className="h-9 w-9 text-slate-600 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                   >
-                    <LogOut size={18} />
+                    <LogOut className="h-4 w-4" />
                   </Button>
                 </>
               )}

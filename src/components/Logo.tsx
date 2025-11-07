@@ -6,6 +6,9 @@ interface LogoProps {
 }
 
 export const Logo: React.FC<LogoProps> = ({ className = "", size = 40 }) => {
+  // Generate unique ID for each logo instance
+  const gradientId = `logo-gradient-${Math.random().toString(36).substr(2, 9)}`;
+  
   return (
     <div className={`flex items-center justify-center ${className}`}>
       <svg
@@ -15,9 +18,10 @@ export const Logo: React.FC<LogoProps> = ({ className = "", size = 40 }) => {
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         className="drop-shadow-lg"
+        style={{ display: 'block' }}
       >
         {/* AI Neural Network inspired design */}
-        <circle cx="20" cy="20" r="18" fill="url(#gradient1)" />
+        <circle cx="20" cy="20" r="18" fill={`url(#${gradientId})`} />
         <circle cx="12" cy="12" r="3" fill="#ffffff" opacity="0.9" />
         <circle cx="28" cy="12" r="3" fill="#ffffff" opacity="0.9" />
         <circle cx="20" cy="20" r="3" fill="#ffffff" opacity="0.9" />
@@ -33,7 +37,7 @@ export const Logo: React.FC<LogoProps> = ({ className = "", size = 40 }) => {
         <line x1="12" y1="28" x2="28" y2="28" stroke="#ffffff" strokeWidth="1" opacity="0.5" />
         
         <defs>
-          <linearGradient id="gradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+          <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#3b82f6" />
             <stop offset="50%" stopColor="#8b5cf6" />
             <stop offset="100%" stopColor="#06b6d4" />
