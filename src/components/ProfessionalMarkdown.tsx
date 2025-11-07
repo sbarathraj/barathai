@@ -252,11 +252,20 @@ export const ProfessionalMarkdown: React.FC<ProfessionalMarkdownProps> = ({
   };
 
   const preprocessContent = (rawContent: string): string => {
-    // Ensure code blocks are properly separated with newlines to prevent paragraph wrapping
+    // FIX: Format numbered sections so the entire heading (number + title) is bold
+    // Pattern: "2. **Title text**" -> "**2. Title text**"
     let processed = rawContent.replace(
-      /(```[a-zA-Z]*[\s\S]*?```)/g,
-      "\n\n$1\n\n",
+      /^(\d+)\.\s+\*\*(.+?)\*\*/gm,
+      "**$1. $2**",
     );
+
+    // FIX: Format bullet points so the entire item (bullet + text) is bold
+    // Pattern: "- **Text**" -> "**- Text**"
+    // Pattern: "* **Text**" -> "*** Text**"
+    processed = processed.replace(/^([-*])\s+\*\*(.+?)\*\*/gm, "**$1 $2**");
+
+    // Ensure code blocks are properly separated with newlines to prevent paragraph wrapping
+    processed = processed.replace(/(```[a-zA-Z]*[\s\S]*?```)/g, "\n\n$1\n\n");
 
     // Clean up excessive newlines
     processed = processed.replace(/\n{3,}/g, "\n\n");

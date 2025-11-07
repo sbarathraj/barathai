@@ -53,6 +53,21 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
     // Handle escaped newlines from API responses
     processedText = processedText.replace(/\\n/g, "\n");
 
+    // FIX: Format numbered sections so the entire heading (number + title) is bold
+    // Pattern: "2. **Title text**" -> "**2. Title text**"
+    processedText = processedText.replace(
+      /^(\d+)\.\s+\*\*(.+?)\*\*/gm,
+      "**$1. $2**",
+    );
+
+    // FIX: Format bullet points so the entire item (bullet + text) is bold
+    // Pattern: "- **Text**" -> "**- Text**"
+    // Pattern: "* **Text**" -> "*** Text**"
+    processedText = processedText.replace(
+      /^([-*])\s+\*\*(.+?)\*\*/gm,
+      "**$1 $2**",
+    );
+
     // CRITICAL: Handle ALL single quote patterns BEFORE any other processing
     // This ensures single quotes NEVER trigger code block styling
 
