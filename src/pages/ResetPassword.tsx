@@ -34,14 +34,58 @@ export const ResetPassword = () => {
     const handlePasswordReset = async () => {
       setIsVerifying(true);
       
-      // Check for different possible URL parameter formats
+      // Check for hash fragments first (Supabase PKCE flow)
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const hashAccessToken = hashParams.get('access_token');
+      const hashRefreshToken = hashParams.get('refresh_token');
+      const hashType = hashParams.get('type');
+      
+      // Check for query parameters (legacy format)
       const accessToken = searchParams.get('access_token');
       const refreshToken = searchParams.get('refresh_token');
       const token = searchParams.get('token');
       const type = searchParams.get('type');
       
-      // Handle the new Supabase format with token and type parameters
-      if (token && type === 'recovery') {
+      // Handle hash fragment format (PKCE flow - most common)
+      if (hashAccessToken && hashType === 'recovery') {
+        try {
+          const { data, error } = await supabase.auth.setSession({
+            access_token: hashAccessToken,
+            refresh_token: hashRefreshToken || '',
+          });
+          
+          if (error) {
+            console.error('Session setup error:', error);
+            setIsValidLink(false);
+            toast({
+              title: "Invalid Reset Link",
+              description: "This password reset link is invalid or has expired. Please request a new one.",
+              variant: "destructive",
+            });
+            setTimeout(() => navigate('/forgot-password'), 3000);
+            return;
+          }
+          
+          if (data?.session) {
+            setIsValidLink(true);
+            toast({
+              title: "Link Verified ✓",
+              description: "You can now set your new password.",
+            });
+          }
+        } catch (error) {
+          console.error('Password reset verification error:', error);
+          setIsValidLink(false);
+          toast({
+            title: "Error",
+            description: "Failed to verify reset link. Please try again.",
+            variant: "destructive",
+          });
+          setTimeout(() => navigate('/forgot-password'), 3000);
+        }
+      }
+      // Handle query parameter format with token hash
+      else if (token && type === 'recovery') {
         try {
           const { data, error } = await supabase.auth.verifyOtp({
             token_hash: token,
@@ -60,11 +104,10 @@ export const ResetPassword = () => {
             return;
           }
           
-          if (data?.user) {
-            // Token is valid, user can now reset password
+          if (data?.session) {
             setIsValidLink(true);
             toast({
-              title: "Link Verified",
+              title: "Link Verified ✓",
               description: "You can now set your new password.",
             });
           }
@@ -79,7 +122,7 @@ export const ResetPassword = () => {
           setTimeout(() => navigate('/forgot-password'), 3000);
         }
       }
-      // Handle legacy format with access_token and refresh_token
+      // Handle legacy query parameter format with access/refresh tokens
       else if (accessToken && refreshToken) {
         try {
           const { error } = await supabase.auth.setSession({
