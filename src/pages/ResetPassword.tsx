@@ -34,61 +34,85 @@ export const ResetPassword = () => {
     const handlePasswordReset = async () => {
       setIsVerifying(true);
       
-      // Check for hash fragments first (Supabase PKCE flow)
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const hashAccessToken = hashParams.get('access_token');
-      const hashRefreshToken = hashParams.get('refresh_token');
-      const hashType = hashParams.get('type');
-      
-      // Check for query parameters (legacy format)
-      const accessToken = searchParams.get('access_token');
-      const refreshToken = searchParams.get('refresh_token');
-      const token = searchParams.get('token');
-      const type = searchParams.get('type');
-      
-      // Handle hash fragment format (PKCE flow - most common)
-      if (hashAccessToken && hashType === 'recovery') {
-        try {
+      try {
+        // First, check if there's already an active session (user might have clicked link again)
+        const { data: { session: existingSession } } = await supabase.auth.getSession();
+        
+        if (existingSession) {
+          console.log('Existing session found, user is already authenticated');
+          setIsValidLink(true);
+          setIsVerifying(false);
+          return;
+        }
+
+        // Parse hash fragments (Supabase PKCE flow - most common after email verification)
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const hashAccessToken = hashParams.get('access_token');
+        const hashRefreshToken = hashParams.get('refresh_token');
+        const hashType = hashParams.get('type');
+        const hashError = hashParams.get('error');
+        const hashErrorDescription = hashParams.get('error_description');
+        
+        // Parse query parameters (alternative formats)
+        const accessToken = searchParams.get('access_token');
+        const refreshToken = searchParams.get('refresh_token');
+        const tokenHash = searchParams.get('token_hash');
+        const type = searchParams.get('type');
+        
+        console.log('Reset password verification - URL params:', {
+          hashAccessToken: !!hashAccessToken,
+          hashType,
+          hashError,
+          accessToken: !!accessToken,
+          tokenHash: !!tokenHash,
+          type
+        });
+
+        // Check for errors in the URL
+        if (hashError) {
+          console.error('Auth error in URL:', hashError, hashErrorDescription);
+          setIsValidLink(false);
+          toast({
+            title: "Reset Link Error",
+            description: hashErrorDescription || "The reset link is invalid or has expired.",
+            variant: "destructive",
+          });
+          setTimeout(() => navigate('/forgot-password'), 3000);
+          setIsVerifying(false);
+          return;
+        }
+
+        // Handle hash fragment format with access token (PKCE flow)
+        if (hashAccessToken && hashRefreshToken) {
+          console.log('Setting session from hash fragments (PKCE flow)');
           const { data, error } = await supabase.auth.setSession({
             access_token: hashAccessToken,
-            refresh_token: hashRefreshToken || '',
+            refresh_token: hashRefreshToken,
           });
           
           if (error) {
             console.error('Session setup error:', error);
             setIsValidLink(false);
             toast({
-              title: "Invalid Reset Link",
-              description: "This password reset link is invalid or has expired. Please request a new one.",
+              title: "Session Error",
+              description: "Failed to establish session. Please request a new reset link.",
               variant: "destructive",
             });
             setTimeout(() => navigate('/forgot-password'), 3000);
-            return;
-          }
-          
-          if (data?.session) {
+          } else if (data?.session) {
+            console.log('Session established successfully');
             setIsValidLink(true);
             toast({
               title: "Link Verified ✓",
               description: "You can now set your new password.",
             });
           }
-        } catch (error) {
-          console.error('Password reset verification error:', error);
-          setIsValidLink(false);
-          toast({
-            title: "Error",
-            description: "Failed to verify reset link. Please try again.",
-            variant: "destructive",
-          });
-          setTimeout(() => navigate('/forgot-password'), 3000);
         }
-      }
-      // Handle query parameter format with token hash
-      else if (token && type === 'recovery') {
-        try {
+        // Handle query parameter format with token_hash (Supabase email links)
+        else if (tokenHash && type === 'recovery') {
+          console.log('Verifying OTP with token_hash');
           const { data, error } = await supabase.auth.verifyOtp({
-            token_hash: token,
+            token_hash: tokenHash,
             type: 'recovery'
           });
           
@@ -96,69 +120,59 @@ export const ResetPassword = () => {
             console.error('Token verification error:', error);
             setIsValidLink(false);
             toast({
-              title: "Invalid Reset Link",
-              description: "This password reset link is invalid or has expired. Please request a new one.",
+              title: "Verification Failed",
+              description: "This reset link is invalid or has expired. Please request a new one.",
               variant: "destructive",
             });
             setTimeout(() => navigate('/forgot-password'), 3000);
-            return;
-          }
-          
-          if (data?.session) {
+          } else if (data?.session) {
+            console.log('OTP verified, session established');
             setIsValidLink(true);
             toast({
               title: "Link Verified ✓",
               description: "You can now set your new password.",
             });
           }
-        } catch (error) {
-          console.error('Password reset verification error:', error);
-          setIsValidLink(false);
-          toast({
-            title: "Error",
-            description: "Failed to verify reset link. Please try again.",
-            variant: "destructive",
-          });
-          setTimeout(() => navigate('/forgot-password'), 3000);
         }
-      }
-      // Handle legacy query parameter format with access/refresh tokens
-      else if (accessToken && refreshToken) {
-        try {
-          const { error } = await supabase.auth.setSession({
+        // Handle legacy query parameter format with access/refresh tokens
+        else if (accessToken && refreshToken) {
+          console.log('Setting session from query parameters (legacy)');
+          const { data, error } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken,
           });
           
           if (error) {
+            console.error('Legacy session setup error:', error);
             setIsValidLink(false);
             toast({
-              title: "Invalid Reset Link",
-              description: "This password reset link is invalid or has expired. Please request a new one.",
+              title: "Session Error",
+              description: "Failed to establish session. Please request a new reset link.",
               variant: "destructive",
             });
             setTimeout(() => navigate('/forgot-password'), 3000);
-            return;
+          } else if (data?.session) {
+            console.log('Legacy session established');
+            setIsValidLink(true);
           }
-          
-          setIsValidLink(true);
-        } catch (error) {
-          console.error('Session setup error:', error);
+        }
+        // No valid parameters found
+        else {
+          console.error('No valid reset parameters found in URL');
           setIsValidLink(false);
           toast({
-            title: "Error",
-            description: "Failed to verify reset link. Please try again.",
+            title: "Invalid Reset Link",
+            description: "This link is missing required parameters. Please request a new reset link.",
             variant: "destructive",
           });
           setTimeout(() => navigate('/forgot-password'), 3000);
         }
-      }
-      // No valid parameters found
-      else {
+      } catch (error) {
+        console.error('Password reset verification error:', error);
         setIsValidLink(false);
         toast({
-          title: "Invalid Reset Link",
-          description: "This password reset link is invalid or has expired. Please request a new one.",
+          title: "Verification Error",
+          description: "An unexpected error occurred. Please try again.",
           variant: "destructive",
         });
         setTimeout(() => navigate('/forgot-password'), 3000);
