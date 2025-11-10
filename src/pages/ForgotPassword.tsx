@@ -47,26 +47,29 @@ export const ForgotPassword = () => {
       });
 
       if (error) {
+        console.error('Password reset error:', error);
         toast({
           title: "Reset Failed",
-          description: error.message,
+          description: error.message || "Failed to send reset email. Please try again.",
           variant: "destructive",
         });
       } else {
         setEmailSent(true);
         toast({
-          title: "Success",
+          title: "Success!",
           description: "Password reset link sent! Check your email inbox.",
         });
       }
     } catch (error) {
+      console.error('Unexpected error:', error);
       toast({
         title: "Error",
-        description: "An unexpected error occurred",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   if (emailSent) {

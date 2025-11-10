@@ -514,15 +514,7 @@ export const Chat = () => {
       if (error) throw error;
 
       const formattedMessages: Message[] = (data || []).map(
-        (msg: {
-          id: string;
-          content: string;
-          role: string;
-          created_at: string;
-          reasoning?: string | null;
-          model?: string | null;
-          usage?: { total_tokens?: number } | null;
-        }) => {
+        (msg: any) => {
           let extractedImage: string | undefined = undefined;
           if (typeof msg.content === "string") {
             // Try patterns: "[IMAGE]: <url>" or "[IMAGE] (<url>)" or content containing base64 image
@@ -680,7 +672,7 @@ export const Chat = () => {
     }
   };
 
-  const logApiUsage = async (params: object) => {
+  const logApiUsage = async (params: any) => {
     try {
       const { error } = await supabase.from("api_usage_logs").insert(params);
       return !error;
