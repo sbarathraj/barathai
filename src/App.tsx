@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -18,6 +17,7 @@ import SettingsDemo from "./pages/SettingsDemo";
 import NotFound from "./pages/NotFound";
 import { Footer } from "./components/Footer";
 import Admin from "./pages/Admin";
+import ModelDemo from "./pages/ModelDemo";
 
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,24 +32,25 @@ const InactivityHandler = () => {
 
   useEffect(() => {
     const now = Date.now();
-    const lastActivity = Number(localStorage.getItem('lastActivity'));
+    const lastActivity = Number(localStorage.getItem("lastActivity"));
     if (lastActivity && now - lastActivity > INACTIVITY_LIMIT_MS) {
       supabase.auth.signOut();
-      localStorage.removeItem('lastActivity');
-      navigate('/auth');
+      localStorage.removeItem("lastActivity");
+      navigate("/auth");
     } else {
-      localStorage.setItem('lastActivity', String(now));
+      localStorage.setItem("lastActivity", String(now));
     }
-  }, [location.pathname]);
+  }, [location.pathname, navigate]);
 
   // Also update lastActivity on user actions (click, keydown)
   useEffect(() => {
-    const updateActivity = () => localStorage.setItem('lastActivity', String(Date.now()));
-    window.addEventListener('click', updateActivity);
-    window.addEventListener('keydown', updateActivity);
+    const updateActivity = () =>
+      localStorage.setItem("lastActivity", String(Date.now()));
+    window.addEventListener("click", updateActivity);
+    window.addEventListener("keydown", updateActivity);
     return () => {
-      window.removeEventListener('click', updateActivity);
-      window.removeEventListener('keydown', updateActivity);
+      window.removeEventListener("click", updateActivity);
+      window.removeEventListener("keydown", updateActivity);
     };
   }, []);
   return null;
@@ -69,25 +70,26 @@ const App = () => {
           <Toaster />
           <Sonner />
           <BrowserRouter>
-        <InactivityHandler />
-        <div className="min-h-screen w-full bg-gradient-to-br from-rose-200/80 via-rose-100/70 to-pink-200/80 dark:from-rose-900/80 dark:via-rose-800/70 dark:to-pink-900/80 backdrop-blur-2xl flex flex-col items-center justify-center border border-white/30 dark:border-slate-800/40 shadow-2xl">
-          <div className="flex-1 w-full">
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/chat" element={<Chat />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/settings-demo" element={<SettingsDemo />} />
-              <Route path="/admin" element={<Admin />} />
+            <InactivityHandler />
+            <div className="min-h-screen w-full bg-gradient-to-br from-rose-200/80 via-rose-100/70 to-pink-200/80 dark:from-rose-900/80 dark:via-rose-800/70 dark:to-pink-900/80 backdrop-blur-2xl flex flex-col items-center justify-center border border-white/30 dark:border-slate-800/40 shadow-2xl">
+              <div className="flex-1 w-full">
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path="/chat" element={<Chat />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/settings-demo" element={<SettingsDemo />} />
+                  <Route path="/admin" element={<Admin />} />
+                  <Route path="/model-demo" element={<ModelDemo />} />
 
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </div>
-        </div>
-      </BrowserRouter>
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </div>
+            </div>
+          </BrowserRouter>
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>

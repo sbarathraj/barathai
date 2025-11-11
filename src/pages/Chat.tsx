@@ -122,7 +122,8 @@ import { MessageReactions } from "@/components/chat/MessageReactions";
 import { ChatFeatureShowcase } from "@/components/chat/ChatFeatureShowcase";
 import { ApiResponseParser } from "@/lib/apiResponseParser";
 import type { Message, MessageReasoning } from "@/types/message";
-
+import { ModelSelector } from "@/components/ModelSelector";
+import { useModelSelection } from "@/hooks/use-model-selection";
 
 interface ChatSession {
   id: string;
@@ -224,7 +225,9 @@ export const Chat = () => {
   const OPENROUTER_API_KEY2 = import.meta.env.VITE_OPENROUTER_API_KEY2;
   const API_URL = "https://openrouter.ai/api/v1/chat/completions";
   const API_URL2 = import.meta.env.VITE_OPENROUTER_API_URL2 || API_URL;
-  const OPENROUTER_MODEL = "openai/gpt-oss-20b:free";
+
+  // Model selection hook
+  const { selectedModel, setSelectedModel } = useModelSelection();
 
   // Clean up empty "New Chat" sessions (keep only the most recent one)
   const cleanupEmptyNewChats = async (userId: string) => {
@@ -514,6 +517,7 @@ export const Chat = () => {
       if (error) throw error;
 
       const formattedMessages: Message[] = (data || []).map(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (msg: any) => {
           let extractedImage: string | undefined = undefined;
           if (typeof msg.content === "string") {
@@ -672,6 +676,7 @@ export const Chat = () => {
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const logApiUsage = async (params: any) => {
     try {
       const { error } = await supabase.from("api_usage_logs").insert(params);
@@ -741,7 +746,7 @@ export const Chat = () => {
       ];
 
       const requestBody = {
-        model: OPENROUTER_MODEL,
+        model: selectedModel,
         messages: apiMessages,
         max_tokens: 2000,
         temperature: 0.7,
@@ -1574,7 +1579,6 @@ export const Chat = () => {
         isMobile ? "h-screen-mobile" : "h-screen"
       }`}
     >
-      
       <div
         className={`flex w-full text-slate-900 dark:text-white transition-all duration-300 relative ${
           isMobile ? "min-h-screen-mobile" : "min-h-screen"
@@ -2026,7 +2030,10 @@ export const Chat = () => {
               >
                 <Menu className="h-4 w-4" />
               </Button>
-              <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/')}>
+              <div
+                className="flex items-center space-x-2 cursor-pointer"
+                onClick={() => navigate("/")}
+              >
                 <Logo size={32} />
                 <span className="text-xl font-bold text-slate-900 dark:text-white">
                   BarathAI
@@ -2035,6 +2042,14 @@ export const Chat = () => {
             </div>
 
             <div className="flex items-center space-x-2 px-4">
+              {/* Model Selector - Desktop only */}
+              {!isMobile && (
+                <ModelSelector
+                  selectedModel={selectedModel}
+                  onModelChange={setSelectedModel}
+                />
+              )}
+
               <Button
                 variant="ghost"
                 size="icon"
@@ -2069,7 +2084,11 @@ export const Chat = () => {
                 onClick={() => setDarkMode(!darkMode)}
                 className="h-9 w-9 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
-                {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                {darkMode ? (
+                  <Sun className="h-4 w-4" />
+                ) : (
+                  <Moon className="h-4 w-4" />
+                )}
               </Button>
               {isMobile ? (
                 // Mobile dropdown menu for additional actions
@@ -2637,50 +2656,57 @@ export const Chat = () => {
                 <div
                   className={`flex items-center ml-2 ${isMobile ? "space-x-2" : "space-x-1"}`}
                 >
-                  <Button
-                    onClick={() => setIsImageMode(!isImageMode)}
-                    variant="outline"
-                    size="icon"
-                    className={`${isMobile ? "h-11 w-11" : "h-10 w-10"} rounded-xl transition-all duration-200 ${
-                      isImageMode
-                        ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white border-purple-400 shadow-lg"
-                        : "hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-300 dark:hover:border-purple-700"
-                    }`}
-                    disabled={isLoading || isGeneratingImage}
-                    title={
-                      isImageMode
-                        ? "Switch to chat mode"
-                        : "Switch to image generation mode"
-                    }
-                  >
-                    <ImageIcon
-                      size={isMobile ? 22 : 20}
-                      className={isImageMode ? "animate-pulse" : ""}
-                    />
-                  </Button>
-                  <Button
-                    onClick={toggleVoiceInput}
-                    variant="outline"
-                    size="icon"
-                    className={`${isMobile ? "h-11 w-11" : "h-10 w-10"} rounded-xl transition-all duration-200 ${
-                      isListening
-                        ? "bg-red-500 text-white border-red-400 shadow-lg"
-                        : "hover:bg-slate-50 dark:hover:bg-slate-800"
-                    }`}
-                    disabled={isLoading || isGeneratingImage}
-                  >
-                    {isListening ? (
-                      <span className="relative flex items-center justify-center">
-                        <span className="absolute inline-flex h-8 w-8 rounded-full bg-red-400 opacity-75 animate-ping"></span>
-                        <Mic
-                          size={isMobile ? 22 : 20}
-                          className="relative z-10 animate-pulse"
+                  {/* Desktop: Show Image and Voice icons */}
+                  {!isMobile && (
+                    <>
+                      <Button
+                        onClick={() => setIsImageMode(!isImageMode)}
+                        variant="outline"
+                        size="icon"
+                        className={`h-10 w-10 rounded-xl transition-all duration-200 ${
+                          isImageMode
+                            ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white border-purple-400 shadow-lg"
+                            : "hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-300 dark:hover:border-purple-700"
+                        }`}
+                        disabled={isLoading || isGeneratingImage}
+                        title={
+                          isImageMode
+                            ? "Switch to chat mode"
+                            : "Switch to image generation mode"
+                        }
+                      >
+                        <ImageIcon
+                          size={20}
+                          className={isImageMode ? "animate-pulse" : ""}
                         />
-                      </span>
-                    ) : (
-                      <Mic size={isMobile ? 22 : 20} />
-                    )}
-                  </Button>
+                      </Button>
+                      <Button
+                        onClick={toggleVoiceInput}
+                        variant="outline"
+                        size="icon"
+                        className={`h-10 w-10 rounded-xl transition-all duration-200 ${
+                          isListening
+                            ? "bg-red-500 text-white border-red-400 shadow-lg"
+                            : "hover:bg-slate-50 dark:hover:bg-slate-800"
+                        }`}
+                        disabled={isLoading || isGeneratingImage}
+                      >
+                        {isListening ? (
+                          <span className="relative flex items-center justify-center">
+                            <span className="absolute inline-flex h-8 w-8 rounded-full bg-red-400 opacity-75 animate-ping"></span>
+                            <Mic
+                              size={20}
+                              className="relative z-10 animate-pulse"
+                            />
+                          </span>
+                        ) : (
+                          <Mic size={20} />
+                        )}
+                      </Button>
+                    </>
+                  )}
+
+                  {/* Send Button - Always visible */}
                   <Button
                     onClick={sendMessage}
                     disabled={!message.trim() || isLoading || isGeneratingImage}
@@ -2706,8 +2732,64 @@ export const Chat = () => {
               }`}
             >
               <div
-                className={`flex items-center ${isMobile ? "space-x-3" : "space-x-2"}`}
+                className={`flex items-center gap-2 flex-1 ${isMobile ? "flex-wrap" : ""}`}
               >
+                {/* Mobile: Model Selector + Image & Voice Icons */}
+                {isMobile && (
+                  <>
+                    <ModelSelector
+                      selectedModel={selectedModel}
+                      onModelChange={setSelectedModel}
+                    />
+
+                    {/* Image Mode Button */}
+                    <Button
+                      onClick={() => setIsImageMode(!isImageMode)}
+                      variant="outline"
+                      size="icon"
+                      className={`h-9 w-9 rounded-lg transition-all ${
+                        isImageMode
+                          ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white border-purple-400 shadow-md"
+                          : "border-slate-300 dark:border-slate-700 hover:bg-purple-50 dark:hover:bg-purple-900/20"
+                      }`}
+                      disabled={isLoading || isGeneratingImage}
+                      title={isImageMode ? "Chat mode" : "Image mode"}
+                    >
+                      <ImageIcon
+                        size={18}
+                        className={isImageMode ? "animate-pulse" : ""}
+                      />
+                    </Button>
+
+                    {/* Voice Input Button */}
+                    <Button
+                      onClick={toggleVoiceInput}
+                      variant="outline"
+                      size="icon"
+                      className={`h-9 w-9 rounded-lg transition-all ${
+                        isListening
+                          ? "bg-red-500 text-white border-red-400 shadow-md"
+                          : "border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+                      }`}
+                      disabled={isLoading || isGeneratingImage}
+                      title={isListening ? "Stop listening" : "Voice input"}
+                    >
+                      {isListening ? (
+                        <span className="relative flex items-center justify-center">
+                          <span className="absolute inline-flex h-6 w-6 rounded-full bg-red-400 opacity-75 animate-ping"></span>
+                          <Mic
+                            size={18}
+                            className="relative z-10 animate-pulse"
+                          />
+                        </span>
+                      ) : (
+                        <Mic size={18} />
+                      )}
+                    </Button>
+                  </>
+                )}
+
+                {/* Image Mode Badge */}
                 {isImageMode && (
                   <span
                     className={`text-xs font-medium bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 text-purple-700 dark:text-purple-300 rounded-full border border-purple-200 dark:border-purple-700 shadow-sm ${
