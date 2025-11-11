@@ -54,9 +54,9 @@ const features = [
   },
   {
     icon: Shield,
-    title: "Privacy First",
+    title: "Secure & Reliable",
     description:
-      "Your conversations are encrypted and kept completely private and secure.",
+      "Built with enterprise-grade security and reliability powered by BarathAI.",
     gradient: "from-indigo-500 to-blue-500",
     bgGradient: "from-indigo-500/10 to-blue-500/10",
   },

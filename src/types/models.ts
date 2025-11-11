@@ -10,7 +10,7 @@ export interface AIModel {
 export const AI_MODELS: AIModel[] = [
   // Reasoning Models
   {
-    id: "deepseek/r1:free",
+    id: "deepseek/deepseek-r1:free",
     name: "DeepSeek R1",
     provider: "DeepSeek",
     category: "reasoning",
@@ -18,16 +18,16 @@ export const AI_MODELS: AIModel[] = [
     description: "Advanced reasoning model",
   },
   {
-    id: "deepseek/r1-0528:free",
-    name: "R1 0528",
+    id: "deepseek/deepseek-r1-0528:free",
+    name: "DeepSeek R1 0528",
     provider: "DeepSeek",
     category: "reasoning",
     isFree: true,
     description: "Latest reasoning model",
   },
   {
-    id: "deepseek/r1-distill-llama-70b:free",
-    name: "R1 Distill Llama 70B",
+    id: "deepseek/deepseek-r1-distill-llama-70b:free",
+    name: "DeepSeek R1 Distill Llama 70B",
     provider: "DeepSeek",
     category: "reasoning",
     isFree: true,
@@ -58,7 +58,7 @@ export const AI_MODELS: AIModel[] = [
     description: "Microsoft reasoning model",
   },
   {
-    id: "arliai/qwq-32b-rpr-v1:free",
+    id: "arliai/qwq-32b-arliai-rpr-v1:free",
     name: "QwQ 32B RpR v1",
     provider: "ArliAI",
     category: "reasoning",
@@ -76,7 +76,7 @@ export const AI_MODELS: AIModel[] = [
 
   // General Purpose Models
   {
-    id: "deepseek/deepseek-v3-0324:free",
+    id: "deepseek/deepseek-chat-v3-0324:free",
     name: "DeepSeek V3 0324",
     provider: "DeepSeek",
     category: "general",
@@ -84,7 +84,7 @@ export const AI_MODELS: AIModel[] = [
     description: "Latest general model",
   },
   {
-    id: "deepseek/deepseek-v3.1:free",
+    id: "deepseek/deepseek-chat-v3.1:free",
     name: "DeepSeek V3.1",
     provider: "DeepSeek",
     category: "general",
@@ -172,7 +172,7 @@ export const AI_MODELS: AIModel[] = [
     description: "Llama 4 variant",
   },
   {
-    id: "nousresearch/hermes-3-405b-instruct:free",
+    id: "nousresearch/hermes-3-llama-3.1-405b:free",
     name: "Hermes 3 405B Instruct",
     provider: "Nous",
     category: "general",
@@ -188,7 +188,7 @@ export const AI_MODELS: AIModel[] = [
     description: "Open-source GPT variant",
   },
   {
-    id: "moonshotai/kimi-k2-0711:free",
+    id: "moonshotai/kimi-k2:free",
     name: "Kimi K2 0711",
     provider: "MoonshotAI",
     category: "general",
@@ -204,8 +204,8 @@ export const AI_MODELS: AIModel[] = [
     description: "Fast chat model",
   },
   {
-    id: "venice/uncensored:free",
-    name: "Uncensored",
+    id: "cognitivecomputations/dolphin-mistral-24b-venice-edition:free",
+    name: "Venice Uncensored",
     provider: "Venice",
     category: "general",
     isFree: true,
@@ -214,7 +214,7 @@ export const AI_MODELS: AIModel[] = [
 
   // Coding Models
   {
-    id: "qwen/qwen3-coder-480b-a35b:free",
+    id: "qwen/qwen3-coder:free",
     name: "Qwen3 Coder 480B A35B",
     provider: "Qwen",
     category: "coding",
@@ -230,7 +230,7 @@ export const AI_MODELS: AIModel[] = [
     description: "Code generation specialist",
   },
   {
-    id: "kwaipilot/kat-coder:free",
+    id: "kwaipilot/kat-coder-pro:free",
     name: "Kat Coder",
     provider: "Kwaipilot",
     category: "coding",
@@ -264,7 +264,7 @@ export const AI_MODELS: AIModel[] = [
     description: "Vision-language model",
   },
   {
-    id: "nvidia/nemotron-nano-12b-2-vl:free",
+    id: "nvidia/nemotron-nano-12b-v2-vl:free",
     name: "Nemotron Nano 12B 2 VL",
     provider: "NVIDIA",
     category: "vision",
@@ -274,7 +274,7 @@ export const AI_MODELS: AIModel[] = [
 
   // Small/Fast Models
   {
-    id: "google/gemini-2.0-flash-experimental:free",
+    id: "google/gemini-2.0-flash-exp:free",
     name: "Gemini 2.0 Flash Experimental",
     provider: "Google",
     category: "small",
@@ -282,7 +282,7 @@ export const AI_MODELS: AIModel[] = [
     description: "Fast experimental model",
   },
   {
-    id: "google/gemma-3-27b:free",
+    id: "google/gemma-3-27b-it:free",
     name: "Gemma 3 27B",
     provider: "Google",
     category: "small",
@@ -290,7 +290,7 @@ export const AI_MODELS: AIModel[] = [
     description: "Gemma large variant",
   },
   {
-    id: "google/gemma-3-12b:free",
+    id: "google/gemma-3-12b-it:free",
     name: "Gemma 3 12B",
     provider: "Google",
     category: "small",
@@ -298,7 +298,7 @@ export const AI_MODELS: AIModel[] = [
     description: "Gemma mid-size",
   },
   {
-    id: "google/gemma-3-4b:free",
+    id: "meta-llama/llama-3.2-3b-instruct:free",
     name: "Gemma 3 4B",
     provider: "Google",
     category: "small",
@@ -306,7 +306,7 @@ export const AI_MODELS: AIModel[] = [
     description: "Compact Gemma",
   },
   {
-    id: "google/gemma-3n-4b:free",
+    id: "google/gemma-3n-e4b-it:free",
     name: "Gemma 3n 4B",
     provider: "Google",
     category: "small",
@@ -314,7 +314,7 @@ export const AI_MODELS: AIModel[] = [
     description: "Nano Gemma 4B",
   },
   {
-    id: "google/gemma-3n-2b:free",
+    id: "google/gemma-3n-e2b-it:free",
     name: "Gemma 3n 2B",
     provider: "Google",
     category: "small",
@@ -322,7 +322,7 @@ export const AI_MODELS: AIModel[] = [
     description: "Nano Gemma 2B",
   },
   {
-    id: "mistralai/mistral-small-3:free",
+    id: "mistralai/mistral-small-24b-instruct-2501:free",
     name: "Mistral Small 3",
     provider: "Mistral",
     category: "small",
@@ -330,7 +330,7 @@ export const AI_MODELS: AIModel[] = [
     description: "Latest small Mistral",
   },
   {
-    id: "mistralai/mistral-small-3.2-24b:free",
+    id: "mistralai/mistral-small-3.2-24b-instruct:free",
     name: "Mistral Small 3.2 24B",
     provider: "Mistral",
     category: "small",
@@ -338,7 +338,7 @@ export const AI_MODELS: AIModel[] = [
     description: "Mistral 3.2 variant",
   },
   {
-    id: "mistralai/mistral-small-3.1-24b:free",
+    id: "mistralai/mistral-small-3.1-24b-instruct:free",
     name: "Mistral Small 3.1 24B",
     provider: "Mistral",
     category: "small",

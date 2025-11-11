@@ -17,7 +17,7 @@ export const Footer: React.FC = () => {
             </div>
             <p className="text-slate-600 dark:text-slate-400 mb-4 max-w-md">
               Your intelligent conversation partner. Experience the future of AI interaction with 
-              natural language processing, voice capabilities, and privacy-first design.
+              natural language processing, voice capabilities, and advanced BarathAI technology.
             </p>
             <div className="flex space-x-4">
               <a href="#" className="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">

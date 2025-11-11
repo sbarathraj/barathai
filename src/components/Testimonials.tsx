@@ -35,7 +35,7 @@ const testimonials = [
     bgGradient: "from-pink-500/10 to-rose-500/10"
   },
   {
-    quote: "Privacy-focused AI that actually delivers. BarathAI understands context better than any other AI I've used.",
+    quote: "BarathAI delivers exceptional AI capabilities. The context understanding is better than any other AI I've used.",
     author: "Emma Rodriguez",
     role: "Marketing Director",
     avatar: "ER",
