@@ -67,9 +67,17 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
       grouped[model.provider].push(model);
     });
 
-    // Sort providers alphabetically
+    // Sort providers based on MODEL_PROVIDERS order
     return Object.keys(grouped)
-      .sort()
+      .sort((a, b) => {
+        const indexA = MODEL_PROVIDERS.indexOf(a as any);
+        const indexB = MODEL_PROVIDERS.indexOf(b as any);
+        // Handle cases where provider might not be in the list (fallback to alphabetical)
+        if (indexA === -1 && indexB === -1) return a.localeCompare(b);
+        if (indexA === -1) return 1;
+        if (indexB === -1) return -1;
+        return indexA - indexB;
+      })
       .reduce(
         (acc, key) => {
           acc[key] = grouped[key];

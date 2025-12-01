@@ -8,6 +8,14 @@ export interface AIModel {
 }
 
 export const AI_MODELS: AIModel[] = [
+  {
+    id: "x-ai/grok-4.1-fast:free",
+    name: "xAI: Grok 4.1 Fast (free)",
+    provider: "xAI",
+    category: "small",
+    isFree: true,
+    description: "Fast Grok model from xAI",
+  },
   // Reasoning Models
   {
     id: "deepseek/deepseek-r1:free",
@@ -212,6 +220,7 @@ export const AI_MODELS: AIModel[] = [
     description: "Uncensored model",
   },
 
+
   // Coding Models
   {
     id: "qwen/qwen3-coder:free",
@@ -398,6 +407,7 @@ export const MODEL_CATEGORIES = [
 
 export const MODEL_PROVIDERS = [
   "All",
+  "xAI",
   "DeepSeek",
   "Qwen",
   "Meta",
