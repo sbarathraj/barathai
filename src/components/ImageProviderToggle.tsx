@@ -1,12 +1,38 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+
+type ImageProvider = 'openrouter' | 'freepik' | 'deapi';
+
+interface ProviderOption {
+  id: ImageProvider;
+  name: string;
+  description: string;
+}
+
+const PROVIDER_OPTIONS: ProviderOption[] = [
+  {
+    id: 'openrouter',
+    name: 'OpenRouter (Google Gemini)',
+    description: 'Using OpenRouter with Google Gemini Flash Image model'
+  },
+  {
+    id: 'freepik',
+    name: 'Freepik Mystic',
+    description: 'Using Freepik AI with widescreen 16:9 aspect ratio'
+  },
+  {
+    id: 'deapi',
+    name: 'DeAPI (ZImageTurbo)',
+    description: 'Using DeAPI with ZImageTurbo INT8 model - Fast & High Quality'
+  }
+];
 
 export const ImageProviderToggle = () => {
-  const [provider, setProvider] = useState<'openrouter' | 'freepik'>('openrouter');
+  const [provider, setProvider] = useState<ImageProvider>('openrouter');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -22,7 +48,7 @@ export const ImageProviderToggle = () => {
         .single();
 
       if (error) throw error;
-      setProvider(data?.setting_value as 'openrouter' | 'freepik' || 'openrouter');
+      setProvider(data?.setting_value as ImageProvider || 'openrouter');
     } catch (error) {
       console.error('Error fetching provider setting:', error);
       toast.error('Failed to load provider setting');
@@ -31,9 +57,7 @@ export const ImageProviderToggle = () => {
     }
   };
 
-  const handleToggle = async (checked: boolean) => {
-    const newProvider = checked ? 'freepik' : 'openrouter';
-    
+  const handleProviderChange = async (newProvider: ImageProvider) => {
     try {
       const { error } = await supabase
         .from('system_settings')
@@ -43,7 +67,8 @@ export const ImageProviderToggle = () => {
       if (error) throw error;
 
       setProvider(newProvider);
-      toast.success(`Image provider switched to ${newProvider === 'freepik' ? 'Freepik' : 'OpenRouter'}`);
+      const providerName = PROVIDER_OPTIONS.find(p => p.id === newProvider)?.name || newProvider;
+      toast.success(`Image provider switched to ${providerName}`);
     } catch (error) {
       console.error('Error updating provider:', error);
       toast.error('Failed to update provider');
@@ -53,6 +78,8 @@ export const ImageProviderToggle = () => {
   if (loading) {
     return <div className="text-sm text-muted-foreground">Loading...</div>;
   }
+
+  const currentProvider = PROVIDER_OPTIONS.find(p => p.id === provider);
 
   return (
     <Card className="p-6">
@@ -64,24 +91,33 @@ export const ImageProviderToggle = () => {
           </p>
         </div>
         
-        <div className="flex items-center space-x-4">
-          <Label htmlFor="provider-toggle" className="text-base">
-            {provider === 'openrouter' ? 'OpenRouter' : 'Freepik'}
-          </Label>
-          <Switch
-            id="provider-toggle"
-            checked={provider === 'freepik'}
-            onCheckedChange={handleToggle}
-          />
-        </div>
+        <RadioGroup
+          value={provider}
+          onValueChange={(value) => handleProviderChange(value as ImageProvider)}
+          className="space-y-3"
+        >
+          {PROVIDER_OPTIONS.map((option) => (
+            <div
+              key={option.id}
+              className={`flex items-start space-x-3 p-3 rounded-lg border transition-colors ${
+                provider === option.id 
+                  ? 'border-primary bg-primary/5' 
+                  : 'border-border hover:bg-muted/50'
+              }`}
+            >
+              <RadioGroupItem value={option.id} id={option.id} className="mt-1" />
+              <Label htmlFor={option.id} className="flex-1 cursor-pointer">
+                <div className="font-medium">{option.name}</div>
+                <div className="text-sm text-muted-foreground mt-0.5">
+                  {option.description}
+                </div>
+              </Label>
+            </div>
+          ))}
+        </RadioGroup>
 
-        <div className="text-sm text-muted-foreground">
-          <p className="font-medium mb-1">Current: {provider === 'freepik' ? 'Freepik Mystic' : 'OpenRouter (Google Gemini)'}</p>
-          <p className="text-xs">
-            {provider === 'freepik' 
-              ? 'Using Freepik AI with widescreen 16:9 aspect ratio' 
-              : 'Using OpenRouter with Google Gemini Flash Image model'}
-          </p>
+        <div className="text-sm text-muted-foreground pt-2 border-t">
+          <p className="font-medium">Current: {currentProvider?.name}</p>
         </div>
       </div>
     </Card>

@@ -37,3 +37,6 @@ verify_jwt = true
 
 [functions.openrouter-generate]
 verify_jwt = true
+
+[functions.deapi-generate]
+verify_jwt = true

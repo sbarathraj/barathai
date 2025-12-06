@@ -974,16 +974,30 @@ export const Chat = () => {
         .single();
 
       const provider = settingData?.setting_value || "openrouter";
-      const functionName =
-        provider === "freepik" ? "freepik-generate" : "openrouter-generate";
+      
+      // Determine which function to call based on provider
+      let functionName: string;
+      if (provider === "freepik") {
+        functionName = "freepik-generate";
+      } else if (provider === "deapi") {
+        functionName = "deapi-generate";
+      } else {
+        functionName = "openrouter-generate";
+      }
 
-      const requestBody: { prompt: string; model?: string } = {
+      const requestBody: { prompt: string; model?: string; width?: number; height?: number } = {
         prompt: prompt,
       };
 
       // Only add model for openrouter
       if (provider === "openrouter") {
         requestBody.model = "google/gemini-2.5-flash-image-preview:free";
+      }
+      
+      // Add default dimensions for deapi
+      if (provider === "deapi") {
+        requestBody.width = 768;
+        requestBody.height = 768;
       }
 
       const response = await supabase.functions.invoke(functionName, {
@@ -1007,7 +1021,7 @@ export const Chat = () => {
         if (response.data?.success && response.data?.imageUrl) {
           imageUrl = response.data.imageUrl;
         }
-      } else {
+      } else if (provider === "deapi" || provider === "openrouter") {
         if (response.data?.success && response.data?.image) {
           imageUrl = response.data.image;
           assistantContent = response.data.content || assistantContent;
