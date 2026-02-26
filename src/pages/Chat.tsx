@@ -13,7 +13,6 @@ import {
   Moon,
   Sun,
   User,
-  Search,
   Edit2,
   Trash2,
   WifiOff,
@@ -167,7 +166,6 @@ export const Chat = () => {
   const [currentSessionId, setCurrentSessionId] = useState<string>("");
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
   const [editingSessionId, setEditingSessionId] = useState<string>("");
   const [editingTitle, setEditingTitle] = useState("");
   const [error, setError] = useState<string>("");
@@ -1264,9 +1262,7 @@ export const Chat = () => {
     }
   };
 
-  const filteredSessions = chatSessions.filter((session) =>
-    session.title.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+  const filteredSessions = chatSessions;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
@@ -1549,19 +1545,7 @@ export const Chat = () => {
                 New Chat
               </Button>
 
-              <div className="mt-3 relative">
-                <Search
-                  className="absolute left-2 top-1/2 transform -translate-y-1/2 text-slate-400"
-                  size={14}
-                />
-                <input
-                  type="text"
-                  placeholder="Search chats..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-8 pr-3 py-2 bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-md text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 text-sm"
-                />
-              </div>
+              <div className="mt-3"></div>
             </div>
 
             <div className="p-3 border-b border-slate-200 dark:border-slate-700 flex-shrink-0 bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-700/50 dark:to-blue-900/10">
@@ -1761,18 +1745,8 @@ export const Chat = () => {
                   New Chat
                 </Button>
 
-                <div className="mt-2 relative">
-                  <Search
-                    className="absolute left-2 top-1/2 transform -translate-y-1/2 text-slate-400"
-                    size={14}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Search chats..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-8 pr-3 py-2 bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-md text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 text-sm"
-                  />
+                <div className="mt-2 text-center text-xs text-slate-400 dark:text-slate-500">
+                  Manage your conversations below
                 </div>
               </div>
 
