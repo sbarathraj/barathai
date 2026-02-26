@@ -49,7 +49,6 @@ import {
 import { ProfessionalImageViewer } from "@/components/ProfessionalImageViewer";
 import { ProfessionalImageGallery } from "@/components/ProfessionalImageGallery";
 import { ReasoningDisplay } from "@/components/ReasoningDisplay";
-import { ChatSearch } from "@/components/chat/ChatSearch";
 import { ChatExport } from "@/components/chat/ChatExport";
 import { ProfessionalTypingIndicator } from "@/components/chat/ProfessionalTypingIndicator";
 
@@ -207,9 +206,6 @@ export const Chat = () => {
   });
 
   // Professional chat enhancements
-  const [showSearch, setShowSearch] = useState(false);
-  const [searchResults, setSearchResults] = useState<Message[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
   const [messageReactions, setMessageReactions] = useState<
     Record<string, { type: string; count: number }[]>
   >({});
@@ -974,7 +970,7 @@ export const Chat = () => {
         .single();
 
       const provider = settingData?.setting_value || "openrouter";
-      
+
       // Determine which function to call based on provider
       let functionName: string;
       if (provider === "freepik") {
@@ -985,7 +981,12 @@ export const Chat = () => {
         functionName = "openrouter-generate";
       }
 
-      const requestBody: { prompt: string; model?: string; width?: number; height?: number } = {
+      const requestBody: {
+        prompt: string;
+        model?: string;
+        width?: number;
+        height?: number;
+      } = {
         prompt: prompt,
       };
 
@@ -993,7 +994,7 @@ export const Chat = () => {
       if (provider === "openrouter") {
         requestBody.model = "google/gemini-2.5-flash-image-preview:free";
       }
-      
+
       // Add default dimensions for deapi
       if (provider === "deapi") {
         requestBody.width = 768;
@@ -1095,85 +1096,6 @@ export const Chat = () => {
   };
 
   // Professional chat enhancement functions
-  const handleSearch = async (
-    query: string,
-    filters: {
-      role?: string;
-      dateRange?: string;
-      hasImage?: boolean;
-      hasReasoning?: boolean;
-    },
-  ) => {
-    if (
-      !query.trim() &&
-      Object.values(filters).every((v) => v === "all" || v === false)
-    ) {
-      setSearchResults([]);
-      return;
-    }
-
-    setIsSearching(true);
-
-    try {
-      let filteredMessages = [...messages];
-
-      // Apply text search
-      if (query.trim()) {
-        filteredMessages = filteredMessages.filter((msg) =>
-          msg.content.toLowerCase().includes(query.toLowerCase()),
-        );
-      }
-
-      // Apply role filter
-      if (filters.role !== "all") {
-        filteredMessages = filteredMessages.filter(
-          (msg) => msg.role === filters.role,
-        );
-      }
-
-      // Apply date filter
-      if (filters.dateRange !== "all") {
-        const now = new Date();
-        const filterDate = new Date();
-
-        switch (filters.dateRange) {
-          case "today":
-            filterDate.setHours(0, 0, 0, 0);
-            break;
-          case "week":
-            filterDate.setDate(now.getDate() - 7);
-            break;
-          case "month":
-            filterDate.setMonth(now.getMonth() - 1);
-            break;
-        }
-
-        filteredMessages = filteredMessages.filter(
-          (msg) => msg.timestamp >= filterDate,
-        );
-      }
-
-      // Apply content filters
-      if (filters.hasImage) {
-        filteredMessages = filteredMessages.filter((msg) => msg.image);
-      }
-
-      if (filters.hasReasoning) {
-        filteredMessages = filteredMessages.filter((msg) => msg.reasoning);
-      }
-
-      setSearchResults(filteredMessages);
-    } catch (error) {
-      console.error("Search failed:", error);
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  const handleClearSearch = () => {
-    setSearchResults([]);
-  };
-
   const handleMessageReaction = (messageId: string, reaction: string) => {
     setMessageReactions((prev) => ({
       ...prev,
@@ -2064,20 +1986,6 @@ export const Chat = () => {
                 />
               )}
 
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowSearch(!showSearch)}
-                className={`h-9 w-9 transition-colors ${
-                  showSearch
-                    ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20"
-                    : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
-                }`}
-                title="Search messages"
-              >
-                <Search className="h-4 w-4" />
-              </Button>
-
               {!isMobile && (
                 <>
                   <ChatExport
@@ -2183,25 +2091,6 @@ export const Chat = () => {
             </div>
           </header>
 
-          {/* Search Component */}
-          {showSearch && (
-            <div
-              className="fixed top-0 right-0 z-30"
-              style={{
-                top: headerHeight,
-                width: !isMobile ? "calc(100% - 320px)" : "100%",
-                left: !isMobile ? "320px" : "0",
-              }}
-            >
-              <ChatSearch
-                onSearch={handleSearch}
-                onClear={handleClearSearch}
-                isSearching={isSearching}
-                resultCount={searchResults.length}
-              />
-            </div>
-          )}
-
           {/* Messages Area */}
           <div
             ref={chatScrollAreaRef}
@@ -2213,12 +2102,12 @@ export const Chat = () => {
             style={
               isMobile
                 ? {
-                    paddingTop: `max(${headerHeight + (showSearch ? 120 : 0) + 16}px, calc(env(safe-area-inset-top) + 76px))`,
+                    paddingTop: `max(${headerHeight + 16}px, calc(env(safe-area-inset-top) + 76px))`,
                     paddingBottom: `max(${inputHeight + 16}px, calc(env(safe-area-inset-bottom) + ${inputHeight + 16}px))`,
                     minHeight: "100dvh", // Dynamic viewport height for mobile
                   }
                 : {
-                    paddingTop: headerHeight + (showSearch ? 120 : 0) + 32,
+                    paddingTop: headerHeight + 32,
                     paddingBottom: inputHeight + 32,
                   }
             }
@@ -2333,15 +2222,14 @@ export const Chat = () => {
                   </div>
                 )}
 
-                {(searchResults.length > 0 ? searchResults : messages).map(
-                  (msg, idx) => (
+                {messages.map((msg, idx) => (
+                  <div
+                    key={msg.id}
+                    className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} group`}
+                    id={`message-${msg.id}`}
+                  >
                     <div
-                      key={msg.id}
-                      className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} group`}
-                      id={`message-${msg.id}`}
-                    >
-                      <div
-                        className={`
+                      className={`
                         ${isMobile ? "max-w-[85vw] mx-2" : "max-w-[70%]"}
                         rounded-xl transition-all duration-200
                         break-words whitespace-pre-wrap
@@ -2357,260 +2245,245 @@ export const Chat = () => {
                         ${isMobile ? "text-sm" : "text-base"}
                         relative
                       `}
-                      >
-                        {msg.role === "assistant" && (
-                          <div className="flex items-center mb-2">
-                            <div className="w-8 h-8 min-w-[32px] min-h-[32px] flex-shrink-0 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600 mr-2">
-                              <Logo size={20} />
-                            </div>
-                            <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-                              BarathAI
-                            </span>
+                    >
+                      {msg.role === "assistant" && (
+                        <div className="flex items-center mb-2">
+                          <div className="w-8 h-8 min-w-[32px] min-h-[32px] flex-shrink-0 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600 mr-2">
+                            <Logo size={20} />
                           </div>
-                        )}
-                        {msg.role === "assistant" ? (
-                          <div className="px-4 pb-4">
-                            {/* Display reasoning if available and enabled */}
-                            {reasoningEnabled && msg.reasoning && (
-                              <ReasoningDisplay
-                                reasoning={msg.reasoning.reasoning}
-                                reasoningDetails={
-                                  msg.reasoning.reasoning_details
-                                }
-                                className="mb-4"
-                              />
-                            )}
-                            {msg.content && (
-                              <ProfessionalMarkdown
-                                content={msg.content
-                                  .replace(/\[IMAGE\]:\s*\S+/g, "")
-                                  .trim()}
-                              />
-                            )}
-                            {!msg.image &&
-                              msg.content &&
-                              msg.content.includes("🎨 Generating") && (
-                                <div className="mt-4">
-                                  <div className="w-full max-w-[512px] aspect-square mx-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 flex flex-col items-center justify-center p-8">
-                                    <div className="relative">
-                                      <div className="w-16 h-16 border-4 border-blue-200 dark:border-blue-800 rounded-full animate-spin border-t-blue-600 dark:border-t-blue-400"></div>
-                                      <div className="absolute inset-0 flex items-center justify-center">
-                                        <ImageIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                                      </div>
+                          <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">
+                            BarathAI
+                          </span>
+                        </div>
+                      )}
+                      {msg.role === "assistant" ? (
+                        <div className="px-4 pb-4">
+                          {/* Display reasoning if available and enabled */}
+                          {reasoningEnabled && msg.reasoning && (
+                            <ReasoningDisplay
+                              reasoning={msg.reasoning.reasoning}
+                              reasoningDetails={msg.reasoning.reasoning_details}
+                              className="mb-4"
+                            />
+                          )}
+                          {msg.content && (
+                            <ProfessionalMarkdown
+                              content={msg.content
+                                .replace(/\[IMAGE\]:\s*\S+/g, "")
+                                .trim()}
+                            />
+                          )}
+                          {!msg.image &&
+                            msg.content &&
+                            msg.content.includes("🎨 Generating") && (
+                              <div className="mt-4">
+                                <div className="w-full max-w-[512px] aspect-square mx-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 flex flex-col items-center justify-center p-8">
+                                  <div className="relative">
+                                    <div className="w-16 h-16 border-4 border-blue-200 dark:border-blue-800 rounded-full animate-spin border-t-blue-600 dark:border-t-blue-400"></div>
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                      <ImageIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                                     </div>
-                                    <p className="mt-4 text-sm font-medium text-slate-600 dark:text-slate-400">
-                                      Creating your image...
-                                    </p>
-                                    <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
-                                      This may take a few moments
-                                    </p>
+                                  </div>
+                                  <p className="mt-4 text-sm font-medium text-slate-600 dark:text-slate-400">
+                                    Creating your image...
+                                  </p>
+                                  <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
+                                    This may take a few moments
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+                          {msg.image && (
+                            <div className="mt-4 relative group">
+                              {imageLoadingByMessageId[msg.id] && (
+                                <div className="w-full max-w-[512px] aspect-square mx-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 animate-pulse flex items-center justify-center">
+                                  <div className="flex flex-col items-center">
+                                    <Loader2 className="w-8 h-8 animate-spin text-blue-600 dark:text-blue-400" />
+                                    <span className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                                      Loading image...
+                                    </span>
                                   </div>
                                 </div>
                               )}
-                            {msg.image && (
-                              <div className="mt-4 relative group">
-                                {imageLoadingByMessageId[msg.id] && (
-                                  <div className="w-full max-w-[512px] aspect-square mx-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 animate-pulse flex items-center justify-center">
-                                    <div className="flex flex-col items-center">
-                                      <Loader2 className="w-8 h-8 animate-spin text-blue-600 dark:text-blue-400" />
-                                      <span className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-                                        Loading image...
-                                      </span>
+                              {!imageErrorByMessageId[msg.id] && (
+                                <div className="w-full max-w-[512px] mx-auto bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300">
+                                  <div
+                                    className="relative cursor-pointer"
+                                    onClick={() => openImageViewer(msg.image!)}
+                                  >
+                                    <img
+                                      src={msg.image}
+                                      alt="Generated image"
+                                      className="w-full h-auto object-contain transition-transform duration-300 hover:scale-105"
+                                      style={{
+                                        display: imageLoadingByMessageId[msg.id]
+                                          ? "none"
+                                          : "block",
+                                      }}
+                                      onLoad={() =>
+                                        setImageLoadingByMessageId((prev) => ({
+                                          ...prev,
+                                          [msg.id]: false,
+                                        }))
+                                      }
+                                      onError={() => {
+                                        setImageLoadingByMessageId((prev) => ({
+                                          ...prev,
+                                          [msg.id]: false,
+                                        }));
+                                        setImageErrorByMessageId((prev) => ({
+                                          ...prev,
+                                          [msg.id]: true,
+                                        }));
+                                      }}
+                                    />
+
+                                    {/* Hover Overlay */}
+                                    <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors duration-300 flex items-center justify-center opacity-0 hover:opacity-100">
+                                      <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full p-3">
+                                        <Eye className="w-6 h-6 text-gray-700 dark:text-gray-300" />
+                                      </div>
                                     </div>
                                   </div>
-                                )}
-                                {!imageErrorByMessageId[msg.id] && (
-                                  <div className="w-full max-w-[512px] mx-auto bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300">
-                                    <div
-                                      className="relative cursor-pointer"
+
+                                  {!imageLoadingByMessageId[msg.id] && (
+                                    <div className="p-4 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-700/50 dark:to-slate-800/50 border-t border-slate-200 dark:border-slate-600">
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                                          <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                                            Generated Image
+                                          </span>
+                                        </div>
+                                        <div className="flex gap-2">
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-8 px-3 text-xs bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-800"
+                                            onClick={() =>
+                                              openImageViewer(msg.image!)
+                                            }
+                                            title="View full size"
+                                          >
+                                            <Eye className="w-3 h-3 mr-1" />{" "}
+                                            View
+                                          </Button>
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-8 px-3 text-xs bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-800"
+                                            onClick={() =>
+                                              downloadImage(msg.image!)
+                                            }
+                                            title="Download image"
+                                          >
+                                            <Download className="w-3 h-3 mr-1" />{" "}
+                                            Save
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                              {imageErrorByMessageId[msg.id] && (
+                                <div className="w-full max-w-[512px] mx-auto rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-6 flex flex-col items-center justify-center text-center">
+                                  <div className="w-12 h-12 bg-red-100 dark:bg-red-900/50 rounded-full flex items-center justify-center mb-3">
+                                    <ImageIcon className="w-6 h-6 text-red-600 dark:text-red-400" />
+                                  </div>
+                                  <div className="text-sm font-medium text-red-800 dark:text-red-200 mb-2">
+                                    Unable to display image
+                                  </div>
+                                  <div className="text-xs text-red-600 dark:text-red-400 mb-4">
+                                    The image may be corrupted or in an
+                                    unsupported format
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-8 px-3 text-xs border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/30"
+                                      onClick={() => {
+                                        setImageErrorByMessageId((prev) => ({
+                                          ...prev,
+                                          [msg.id]: false,
+                                        }));
+                                        setImageLoadingByMessageId((prev) => ({
+                                          ...prev,
+                                          [msg.id]: true,
+                                        }));
+                                      }}
+                                    >
+                                      Retry
+                                    </Button>
+                                    <Button
+                                      variant="secondary"
+                                      size="sm"
+                                      className="h-8 px-3 text-xs"
                                       onClick={() =>
                                         openImageViewer(msg.image!)
                                       }
                                     >
-                                      <img
-                                        src={msg.image}
-                                        alt="Generated image"
-                                        className="w-full h-auto object-contain transition-transform duration-300 hover:scale-105"
-                                        style={{
-                                          display: imageLoadingByMessageId[
-                                            msg.id
-                                          ]
-                                            ? "none"
-                                            : "block",
-                                        }}
-                                        onLoad={() =>
-                                          setImageLoadingByMessageId(
-                                            (prev) => ({
-                                              ...prev,
-                                              [msg.id]: false,
-                                            }),
-                                          )
-                                        }
-                                        onError={() => {
-                                          setImageLoadingByMessageId(
-                                            (prev) => ({
-                                              ...prev,
-                                              [msg.id]: false,
-                                            }),
-                                          );
-                                          setImageErrorByMessageId((prev) => ({
-                                            ...prev,
-                                            [msg.id]: true,
-                                          }));
-                                        }}
-                                      />
-
-                                      {/* Hover Overlay */}
-                                      <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors duration-300 flex items-center justify-center opacity-0 hover:opacity-100">
-                                        <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full p-3">
-                                          <Eye className="w-6 h-6 text-gray-700 dark:text-gray-300" />
-                                        </div>
-                                      </div>
-                                    </div>
-
-                                    {!imageLoadingByMessageId[msg.id] && (
-                                      <div className="p-4 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-700/50 dark:to-slate-800/50 border-t border-slate-200 dark:border-slate-600">
-                                        <div className="flex items-center justify-between">
-                                          <div className="flex items-center gap-2">
-                                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                                            <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
-                                              Generated Image
-                                            </span>
-                                          </div>
-                                          <div className="flex gap-2">
-                                            <Button
-                                              variant="outline"
-                                              size="sm"
-                                              className="h-8 px-3 text-xs bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-800"
-                                              onClick={() =>
-                                                openImageViewer(msg.image!)
-                                              }
-                                              title="View full size"
-                                            >
-                                              <Eye className="w-3 h-3 mr-1" />{" "}
-                                              View
-                                            </Button>
-                                            <Button
-                                              variant="outline"
-                                              size="sm"
-                                              className="h-8 px-3 text-xs bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-800"
-                                              onClick={() =>
-                                                downloadImage(msg.image!)
-                                              }
-                                              title="Download image"
-                                            >
-                                              <Download className="w-3 h-3 mr-1" />{" "}
-                                              Save
-                                            </Button>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    )}
+                                      <Eye className="w-3 h-3 mr-1" /> View Raw
+                                    </Button>
                                   </div>
-                                )}
-                                {imageErrorByMessageId[msg.id] && (
-                                  <div className="w-full max-w-[512px] mx-auto rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-6 flex flex-col items-center justify-center text-center">
-                                    <div className="w-12 h-12 bg-red-100 dark:bg-red-900/50 rounded-full flex items-center justify-center mb-3">
-                                      <ImageIcon className="w-6 h-6 text-red-600 dark:text-red-400" />
-                                    </div>
-                                    <div className="text-sm font-medium text-red-800 dark:text-red-200 mb-2">
-                                      Unable to display image
-                                    </div>
-                                    <div className="text-xs text-red-600 dark:text-red-400 mb-4">
-                                      The image may be corrupted or in an
-                                      unsupported format
-                                    </div>
-                                    <div className="flex gap-2">
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="h-8 px-3 text-xs border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/30"
-                                        onClick={() => {
-                                          setImageErrorByMessageId((prev) => ({
-                                            ...prev,
-                                            [msg.id]: false,
-                                          }));
-                                          setImageLoadingByMessageId(
-                                            (prev) => ({
-                                              ...prev,
-                                              [msg.id]: true,
-                                            }),
-                                          );
-                                        }}
-                                      >
-                                        Retry
-                                      </Button>
-                                      <Button
-                                        variant="secondary"
-                                        size="sm"
-                                        className="h-8 px-3 text-xs"
-                                        onClick={() =>
-                                          openImageViewer(msg.image!)
-                                        }
-                                      >
-                                        <Eye className="w-3 h-3 mr-1" /> View
-                                        Raw
-                                      </Button>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <p className="whitespace-pre-wrap leading-relaxed">
-                            {msg.content}
-                          </p>
-                        )}
-                        <div className="flex items-center justify-between mt-3 px-4 pb-2">
-                          <div className="flex items-center space-x-2">
-                            <div className="text-xs opacity-70">
-                              {msg.timestamp.toLocaleTimeString()}
+                                </div>
+                              )}
                             </div>
-                            {msg.usage && (
-                              <span className="text-xs px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded-full opacity-70">
-                                {msg.usage.total_tokens} tokens
-                              </span>
-                            )}
+                          )}
+                        </div>
+                      ) : (
+                        <p className="whitespace-pre-wrap leading-relaxed">
+                          {msg.content}
+                        </p>
+                      )}
+                      <div className="flex items-center justify-between mt-3 px-4 pb-2">
+                        <div className="flex items-center space-x-2">
+                          <div className="text-xs opacity-70">
+                            {msg.timestamp.toLocaleTimeString()}
                           </div>
-                          <div className="flex items-center space-x-2">
-                            {msg.role === "assistant" && (
-                              <MessageReactions
-                                messageId={msg.id}
-                                reactions={Object.entries(
-                                  messageReactions[msg.id] || {},
-                                ).map(([type, data]) => ({
-                                  type: type as
-                                    | "like"
-                                    | "dislike"
-                                    | "love"
-                                    | "happy"
-                                    | "sad"
-                                    | "star",
-                                  count:
-                                    (data as { count?: number }).count || 0,
-                                  userReacted:
-                                    (data as { userReacted?: boolean })
-                                      .userReacted || false,
-                                }))}
-                                onReact={handleMessageReaction}
-                                compact={true}
+                          {msg.usage && (
+                            <span className="text-xs px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded-full opacity-70">
+                              {msg.usage.total_tokens} tokens
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          {msg.role === "assistant" && (
+                            <MessageReactions
+                              messageId={msg.id}
+                              reactions={Object.entries(
+                                messageReactions[msg.id] || {},
+                              ).map(([type, data]) => ({
+                                type: type as
+                                  | "like"
+                                  | "dislike"
+                                  | "love"
+                                  | "happy"
+                                  | "sad"
+                                  | "star",
+                                count: (data as { count?: number }).count || 0,
+                                userReacted:
+                                  (data as { userReacted?: boolean })
+                                    .userReacted || false,
+                              }))}
+                              onReact={handleMessageReaction}
+                              compact={true}
+                            />
+                          )}
+                          {msg.role === "assistant" &&
+                            (!msg.content ||
+                              !msg.content.startsWith("[IMAGE]")) && (
+                              <TextToSpeech
+                                text={msg.content}
+                                className="ml-2"
                               />
                             )}
-                            {msg.role === "assistant" &&
-                              (!msg.content ||
-                                !msg.content.startsWith("[IMAGE]")) && (
-                                <TextToSpeech
-                                  text={msg.content}
-                                  className="ml-2"
-                                />
-                              )}
-                          </div>
                         </div>
                       </div>
                     </div>
-                  ),
-                )}
+                  </div>
+                ))}
                 {isBarathAITyping && (
                   <ProfessionalTypingIndicator
                     variant={typingVariant}

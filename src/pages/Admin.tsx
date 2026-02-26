@@ -1,20 +1,35 @@
+import React, { useEffect, useState, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Sidebar } from "@/components/ui/sidebar";
+import { Topbar } from "@/components/ui/topbar";
+import UserManagementTab from "@/components/UserManagementTab";
+import ApiTrackingTab from "@/components/ApiTrackingTab";
+import ImageGenerationTrackingTab from "@/components/ImageGenerationTrackingTab";
+import { ImageProviderToggle } from "@/components/ImageProviderToggle";
 
-import React, { useEffect, useState, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { Sidebar } from '@/components/ui/sidebar';
-import { Topbar } from '@/components/ui/topbar';
-import UserManagementTab from '@/components/UserManagementTab';
-import ApiTrackingTab from '@/components/ApiTrackingTab';
-import ImageGenerationTrackingTab from '@/components/ImageGenerationTrackingTab';
-import { ImageProviderToggle } from '@/components/ImageProviderToggle';
+import { Button } from "@/components/ui/button";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faUser,
+  faTachometerAlt,
+  faUsers,
+  faChartBar,
+  faImage,
+  faCog,
+} from "@fortawesome/free-solid-svg-icons";
+import { User } from "@supabase/supabase-js";
 
-import { Button } from '@/components/ui/button';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUser, faTachometerAlt, faUsers, faChartBar, faImage, faCog } from '@fortawesome/free-solid-svg-icons';
+interface Activity {
+  type: string;
+  title: string;
+  user: string | null;
+  time: Date;
+  color: string;
+}
 
 const Admin: React.FC = () => {
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [totalUsers, setTotalUsers] = useState<number | null>(null);
   const [apiCalls, setApiCalls] = useState<number | null>(null);
@@ -23,12 +38,21 @@ const Admin: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const [tab, setTab] = useState('dashboard');
+  const [tab, setTab] = useState("dashboard");
   const mainContentRef = useRef<HTMLDivElement>(null);
+
+  const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
+  const [systemStatus, setSystemStatus] = useState({
+    database: "checking",
+    api: "checking",
+    images: "checking",
+  });
 
   useEffect(() => {
     const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       setCurrentUser(session?.user || null);
       setAuthChecked(true);
     };
@@ -37,53 +61,219 @@ const Admin: React.FC = () => {
 
   useEffect(() => {
     if (!authChecked) return;
-    if (!currentUser || currentUser.email !== 'jcibarathraj@gmail.com') {
-      setTimeout(() => navigate('/'), 2000);
+    if (!currentUser || currentUser.email !== "jcibarathraj@gmail.com") {
+      setTimeout(() => navigate("/"), 2000);
     } else {
       fetchDashboardStats();
+      fetchRecentActivity();
+      checkSystemStatus();
+
+      // Setup interval for real-time updates
+      const interval = setInterval(() => {
+        fetchDashboardStats();
+        fetchRecentActivity();
+        checkSystemStatus();
+      }, 30000); // Every 30 seconds
+
+      return () => clearInterval(interval);
     }
   }, [authChecked, currentUser, navigate]);
 
   useEffect(() => {
     // Set tab from query param
     const params = new URLSearchParams(location.search);
-    const t = params.get('tab');
-    if (t === 'users' || t === 'api' || t === 'images' || t === 'settings') setTab(t);
-    else setTab('dashboard');
+    const t = params.get("tab");
+    if (t === "users" || t === "api" || t === "images" || t === "settings")
+      setTab(t);
+    else setTab("dashboard");
   }, [location.search]);
 
+  const checkSystemStatus = async () => {
+    try {
+      // 1. Check Database (Supabase)
+      const { data, error: dbError } = await supabase
+        .from("profiles")
+        .select("id", { count: "exact", head: true })
+        .limit(1);
+      setSystemStatus((prev) => ({
+        ...prev,
+        database: dbError ? "offline" : "online",
+      }));
+
+      // 2. Check API Services (check if any logs in last 10m)
+      const tenMinsAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+      const { count: apiCount, error: apiError } = await supabase
+        .from("api_usage_logs")
+        .select("*", { count: "exact", head: true })
+        .gte("created_at", tenMinsAgo);
+      setSystemStatus((prev) => ({
+        ...prev,
+        api: apiError
+          ? "error"
+          : apiCount && apiCount > 0
+            ? "operational"
+            : "idle",
+      }));
+
+      // 3. Check Image Generation
+      const { count: imgCount, error: imgError } = await supabase
+        .from("image_generation_logs")
+        .select("*", { count: "exact", head: true })
+        .gte("created_at", tenMinsAgo);
+      setSystemStatus((prev) => ({
+        ...prev,
+        images: imgError
+          ? "error"
+          : imgCount && imgCount > 0
+            ? "active"
+            : "idle",
+      }));
+    } catch (err) {
+      console.error("Status check failed:", err);
+    }
+  };
+
   const fetchDashboardStats = async () => {
-    const { count: userCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+    const { count: userCount } = await supabase
+      .from("profiles")
+      .select("*", { count: "exact", head: true });
     setTotalUsers(userCount ?? 0);
-    const { count: apiCount } = await supabase.from('api_usage_logs').select('*', { count: 'exact', head: true });
+    const { count: apiCount } = await supabase
+      .from("api_usage_logs")
+      .select("*", { count: "exact", head: true });
     setApiCalls(apiCount ?? 0);
-    const { count: adminCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('email', 'jcibarathraj@gmail.com');
+    const { count: adminCount } = await supabase
+      .from("profiles")
+      .select("*", { count: "exact", head: true })
+      .eq("email", "jcibarathraj@gmail.com");
     setActiveAdmins(adminCount ?? 0);
-    const { count: imageCount } = await supabase.from('image_generation_logs').select('*', { count: 'exact', head: true });
+    const { count: imageCount } = await supabase
+      .from("image_generation_logs")
+      .select("*", { count: "exact", head: true });
     setImageGenerations(imageCount ?? 0);
   };
 
+  const fetchRecentActivity = async () => {
+    try {
+      // Fetch latest API logs
+      const { data: apiLogs } = await supabase
+        .from("api_usage_logs")
+        .select("created_at, api_name, user_email")
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      // Fetch latest Image logs
+      const { data: imageLogs } = await supabase
+        .from("image_generation_logs")
+        .select("created_at, api_provider, user_email")
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      // Fetch latest registrations
+      const { data: newUsers } = await supabase
+        .from("profiles")
+        .select("created_at, full_name, email")
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      const combined: Activity[] = [
+        ...(apiLogs || []).map((log) => ({
+          type: "api",
+          title: `API request: ${log.api_name}`,
+          user: log.user_email,
+          time: new Date(log.created_at || ""),
+          color: "blue",
+        })),
+        ...(imageLogs || []).map((log) => ({
+          type: "image",
+          title: `Image generated via ${log.api_provider}`,
+          user: log.user_email,
+          time: new Date(log.created_at || ""),
+          color: "purple",
+        })),
+        ...(newUsers || []).map((user) => ({
+          type: "user",
+          title: `New user: ${user.full_name || user.email}`,
+          user: user.email,
+          time: new Date(user.created_at || ""),
+          color: "green",
+        })),
+      ];
+
+      // Sort by time and take top 3
+      combined.sort((a, b) => b.time.getTime() - a.time.getTime());
+      setRecentActivities(combined.slice(0, 3));
+    } catch (error) {
+      console.error("Error fetching recent activity:", error);
+    }
+  };
+
+  const getTimeAgo = (date: Date) => {
+    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    return date.toLocaleDateString();
+  };
+
   if (!authChecked) return null;
-  if (!currentUser || currentUser.email !== 'jcibarathraj@gmail.com') {
+  if (!currentUser || currentUser.email !== "jcibarathraj@gmail.com") {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-rose-100 via-blue-100 to-pink-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-          <div className="mb-6">
-            <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="32" cy="32" r="32" fill="url(#grad403)" />
-              <rect x="20" y="28" width="24" height="20" rx="4" fill="#fff" stroke="#e11d48" strokeWidth="2" />
-              <rect x="28" y="36" width="8" height="8" rx="4" fill="#e11d48" />
-              <defs>
-                <linearGradient id="grad403" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-                  <stop stopColor="#f472b6" />
-                  <stop offset="1" stopColor="#60a5fa" />
-                </linearGradient>
-              </defs>
-            </svg>
-          </div>
-          <div className="text-5xl font-extrabold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-blue-500">403</div>
-          <div className="text-2xl font-bold mb-2 text-slate-800 dark:text-slate-100">Forbidden</div>
-          <div className="text-slate-500 dark:text-slate-400 mb-6 text-center max-w-xs">You do not have permission to access the Admin Portal. If you believe this is a mistake, contact your administrator.</div>
-          <Button variant="default" onClick={() => navigate('/')} className="px-8 py-2 text-lg font-semibold rounded-full shadow-lg">Go to Home</Button>
+        <div className="mb-6">
+          <svg
+            width="64"
+            height="64"
+            viewBox="0 0 64 64"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <circle cx="32" cy="32" r="32" fill="url(#grad403)" />
+            <rect
+              x="20"
+              y="28"
+              width="24"
+              height="20"
+              rx="4"
+              fill="#fff"
+              stroke="#e11d48"
+              strokeWidth="2"
+            />
+            <rect x="28" y="36" width="8" height="8" rx="4" fill="#e11d48" />
+            <defs>
+              <linearGradient
+                id="grad403"
+                x1="0"
+                y1="0"
+                x2="64"
+                y2="64"
+                gradientUnits="userSpaceOnUse"
+              >
+                <stop stopColor="#f472b6" />
+                <stop offset="1" stopColor="#60a5fa" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div className="text-5xl font-extrabold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-blue-500">
+          403
+        </div>
+        <div className="text-2xl font-bold mb-2 text-slate-800 dark:text-slate-100">
+          Forbidden
+        </div>
+        <div className="text-slate-500 dark:text-slate-400 mb-6 text-center max-w-xs">
+          You do not have permission to access the Admin Portal. If you believe
+          this is a mistake, contact your administrator.
+        </div>
+        <Button
+          variant="default"
+          onClick={() => navigate("/")}
+          className="px-8 py-2 text-lg font-semibold rounded-full shadow-lg"
+        >
+          Go to Home
+        </Button>
       </div>
     );
   }
@@ -92,89 +282,159 @@ const Admin: React.FC = () => {
     <div className="h-screen overflow-hidden bg-gradient-to-br from-rose-100 via-blue-100 to-pink-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       {/* Sidebar (truly fixed, static) */}
       <div className="fixed left-0 top-0 h-full z-40 w-64 hidden md:block">
-        <Sidebar mobileOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-            </div>
+        <Sidebar
+          mobileOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+        />
+      </div>
       {/* Topbar */}
       <Topbar
         onMenuClick={() => setSidebarOpen(true)}
-        onSettings={() => navigate('/settings')}
-        onLogout={async () => { await supabase.auth.signOut(); navigate('/'); }}
+        onSettings={() => navigate("/settings")}
+        onLogout={async () => {
+          await supabase.auth.signOut();
+          navigate("/");
+        }}
       />
       {/* Main Content (scrollable, with left padding) */}
       <div className="flex flex-col flex-grow h-full md:pl-64">
-        <main id="admin-main-content" ref={mainContentRef} className="pt-20 px-2 sm:px-6 pb-8 relative overflow-y-auto">
+        <main
+          id="admin-main-content"
+          ref={mainContentRef}
+          className="pt-20 px-2 sm:px-6 pb-8 relative overflow-y-auto"
+        >
           <div className="bg-white/90 dark:bg-slate-900/90 rounded-3xl shadow-2xl border border-white/30 dark:border-slate-800/40 animate-fade-in p-0 sm:p-0">
             <div className="flex items-center gap-4 px-6 pt-10 pb-2 border-b border-slate-200 dark:border-slate-700 mb-6">
               <div className="bg-gradient-to-br from-blue-500 via-pink-400 to-yellow-400 rounded-full p-3 shadow-lg flex items-center justify-center">
-                <FontAwesomeIcon icon={faUser} size="2x" className="text-white drop-shadow-lg" style={{ background: 'linear-gradient(135deg, #60a5fa 0%, #f472b6 100%)', borderRadius: '50%', padding: '6px' }} />
+                <FontAwesomeIcon
+                  icon={faUser}
+                  size="2x"
+                  className="text-white drop-shadow-lg"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, #60a5fa 0%, #f472b6 100%)",
+                    borderRadius: "50%",
+                    padding: "6px",
+                  }}
+                />
               </div>
               <div>
-                <h2 className="text-3xl font-extrabold bg-gradient-to-r from-blue-600 to-pink-500 bg-clip-text text-transparent mb-1">Admin Control Panel</h2>
-                <p className="text-slate-500 dark:text-slate-400 text-sm">Complete system administration and monitoring dashboard</p>
+                <h2 className="text-3xl font-extrabold bg-gradient-to-r from-blue-600 to-pink-500 bg-clip-text text-transparent mb-1">
+                  Admin Control Panel
+                </h2>
+                <p className="text-slate-500 dark:text-slate-400 text-sm">
+                  Complete system administration and monitoring dashboard
+                </p>
               </div>
             </div>
             {/* Render section based on tab */}
-            {tab === 'dashboard' && (
+            {tab === "dashboard" && (
               <div className="space-y-8 px-6 pb-6">
                 {/* Key Metrics Cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                   <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-2xl p-6 shadow-xl border border-blue-200 dark:border-blue-800/40 backdrop-blur-xl transition-all hover:scale-105 hover:shadow-2xl">
                     <div className="flex items-center justify-between mb-4">
                       <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-3 shadow-lg">
-                        <FontAwesomeIcon icon={faUsers} size="lg" className="text-white" />
+                        <FontAwesomeIcon
+                          icon={faUsers}
+                          size="lg"
+                          className="text-white"
+                        />
                       </div>
                       <div className="text-right">
-                        <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{totalUsers !== null ? totalUsers.toLocaleString() : '--'}</div>
-                        <div className="text-sm text-blue-500 dark:text-blue-300 font-medium">Total Users</div>
+                        <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                          {totalUsers !== null
+                            ? totalUsers.toLocaleString()
+                            : "--"}
+                        </div>
+                        <div className="text-sm text-blue-500 dark:text-blue-300 font-medium">
+                          Total Users
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center text-xs text-blue-600 dark:text-blue-400">
-                      <span className="bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded-full">Active Platform Users</span>
+                      <span className="bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded-full">
+                        Active Platform Users
+                      </span>
                     </div>
                   </div>
 
                   <div className="bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/20 rounded-2xl p-6 shadow-xl border border-pink-200 dark:border-pink-800/40 backdrop-blur-xl transition-all hover:scale-105 hover:shadow-2xl">
                     <div className="flex items-center justify-between mb-4">
                       <div className="bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl p-3 shadow-lg">
-                        <FontAwesomeIcon icon={faChartBar} size="lg" className="text-white" />
+                        <FontAwesomeIcon
+                          icon={faChartBar}
+                          size="lg"
+                          className="text-white"
+                        />
                       </div>
                       <div className="text-right">
-                        <div className="text-2xl font-bold text-pink-600 dark:text-pink-400">{apiCalls !== null ? apiCalls.toLocaleString() : '--'}</div>
-                        <div className="text-sm text-pink-500 dark:text-pink-300 font-medium">API Calls</div>
+                        <div className="text-2xl font-bold text-pink-600 dark:text-pink-400">
+                          {apiCalls !== null ? apiCalls.toLocaleString() : "--"}
+                        </div>
+                        <div className="text-sm text-pink-500 dark:text-pink-300 font-medium">
+                          API Calls
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center text-xs text-pink-600 dark:text-pink-400">
-                      <span className="bg-pink-100 dark:bg-pink-900/30 px-2 py-1 rounded-full">Total Requests</span>
+                      <span className="bg-pink-100 dark:bg-pink-900/30 px-2 py-1 rounded-full">
+                        Total Requests
+                      </span>
                     </div>
                   </div>
 
                   <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-2xl p-6 shadow-xl border border-green-200 dark:border-green-800/40 backdrop-blur-xl transition-all hover:scale-105 hover:shadow-2xl">
                     <div className="flex items-center justify-between mb-4">
                       <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-3 shadow-lg">
-                        <FontAwesomeIcon icon={faUser} size="lg" className="text-white" />
+                        <FontAwesomeIcon
+                          icon={faUser}
+                          size="lg"
+                          className="text-white"
+                        />
                       </div>
                       <div className="text-right">
-                        <div className="text-2xl font-bold text-green-600 dark:text-green-400">{activeAdmins !== null ? activeAdmins.toLocaleString() : '--'}</div>
-                        <div className="text-sm text-green-500 dark:text-green-300 font-medium">Active Admins</div>
+                        <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                          {activeAdmins !== null
+                            ? activeAdmins.toLocaleString()
+                            : "--"}
+                        </div>
+                        <div className="text-sm text-green-500 dark:text-green-300 font-medium">
+                          Active Admins
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center text-xs text-green-600 dark:text-green-400">
-                      <span className="bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full">System Administrators</span>
+                      <span className="bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full">
+                        System Administrators
+                      </span>
                     </div>
                   </div>
 
                   <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-2xl p-6 shadow-xl border border-purple-200 dark:border-purple-800/40 backdrop-blur-xl transition-all hover:scale-105 hover:shadow-2xl">
                     <div className="flex items-center justify-between mb-4">
                       <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-3 shadow-lg">
-                        <FontAwesomeIcon icon={faImage} size="lg" className="text-white" />
+                        <FontAwesomeIcon
+                          icon={faImage}
+                          size="lg"
+                          className="text-white"
+                        />
                       </div>
                       <div className="text-right">
-                        <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{imageGenerations !== null ? imageGenerations.toLocaleString() : '--'}</div>
-                        <div className="text-sm text-purple-500 dark:text-purple-300 font-medium">AI Images</div>
+                        <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                          {imageGenerations !== null
+                            ? imageGenerations.toLocaleString()
+                            : "--"}
+                        </div>
+                        <div className="text-sm text-purple-500 dark:text-purple-300 font-medium">
+                          AI Images
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center text-xs text-purple-600 dark:text-purple-400">
-                      <span className="bg-purple-100 dark:bg-purple-900/30 px-2 py-1 rounded-full">Generated Images</span>
+                      <span className="bg-purple-100 dark:bg-purple-900/30 px-2 py-1 rounded-full">
+                        Generated Images
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -183,59 +443,72 @@ const Admin: React.FC = () => {
                 <div className="bg-white/80 dark:bg-slate-900/80 rounded-2xl p-6 shadow-xl border border-white/30 dark:border-slate-800/40 backdrop-blur-xl">
                   <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-3">
                     <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
-                      <FontAwesomeIcon icon={faTachometerAlt} className="text-white text-sm" />
+                      <FontAwesomeIcon
+                        icon={faTachometerAlt}
+                        className="text-white text-sm"
+                      />
                     </div>
                     Quick Actions
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <Button 
-                      onClick={() => navigate('/admin?tab=users')}
+                    <Button
+                      onClick={() => navigate("/admin?tab=users")}
                       className="h-16 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold rounded-xl shadow-lg transition-all hover:scale-105"
                     >
                       <div className="flex items-center gap-3">
                         <FontAwesomeIcon icon={faUsers} size="lg" />
                         <div className="text-left">
                           <div className="text-sm font-bold">Manage Users</div>
-                          <div className="text-xs opacity-90">View & edit user accounts</div>
+                          <div className="text-xs opacity-90">
+                            View & edit user accounts
+                          </div>
                         </div>
                       </div>
                     </Button>
-                    
-                    <Button 
-                      onClick={() => navigate('/admin?tab=api')}
+
+                    <Button
+                      onClick={() => navigate("/admin?tab=api")}
                       className="h-16 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white font-semibold rounded-xl shadow-lg transition-all hover:scale-105"
                     >
                       <div className="flex items-center gap-3">
                         <FontAwesomeIcon icon={faChartBar} size="lg" />
                         <div className="text-left">
                           <div className="text-sm font-bold">API Analytics</div>
-                          <div className="text-xs opacity-90">Monitor API usage & performance</div>
+                          <div className="text-xs opacity-90">
+                            Monitor API usage & performance
+                          </div>
                         </div>
                       </div>
                     </Button>
-                    
-                    <Button 
-                      onClick={() => navigate('/admin?tab=images')}
+
+                    <Button
+                      onClick={() => navigate("/admin?tab=images")}
                       className="h-16 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg transition-all hover:scale-105"
                     >
                       <div className="flex items-center gap-3">
                         <FontAwesomeIcon icon={faImage} size="lg" />
                         <div className="text-left">
-                          <div className="text-sm font-bold">Image Analytics</div>
-                          <div className="text-xs opacity-90">Track AI image generation</div>
+                          <div className="text-sm font-bold">
+                            Image Analytics
+                          </div>
+                          <div className="text-xs opacity-90">
+                            Track AI image generation
+                          </div>
                         </div>
                       </div>
                     </Button>
-                    
-                    <Button 
-                      onClick={() => navigate('/admin?tab=settings')}
+
+                    <Button
+                      onClick={() => navigate("/admin?tab=settings")}
                       className="h-16 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold rounded-xl shadow-lg transition-all hover:scale-105"
                     >
                       <div className="flex items-center gap-3">
                         <FontAwesomeIcon icon={faCog} size="lg" />
                         <div className="text-left">
                           <div className="text-sm font-bold">Settings</div>
-                          <div className="text-xs opacity-90">Configure system options</div>
+                          <div className="text-xs opacity-90">
+                            Configure system options
+                          </div>
                         </div>
                       </div>
                     </Button>
@@ -246,23 +519,70 @@ const Admin: React.FC = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="bg-white/80 dark:bg-slate-900/80 rounded-2xl p-6 shadow-xl border border-white/30 dark:border-slate-800/40 backdrop-blur-xl">
                     <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-3">
-                      <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                        <div className="w-2 h-2 bg-white rounded-full"></div>
+                      <div
+                        className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                          systemStatus.database === "online" &&
+                          systemStatus.api === "operational"
+                            ? "bg-green-500"
+                            : "bg-yellow-500"
+                        }`}
+                      >
+                        <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
                       </div>
                       System Status
                     </h3>
                     <div className="space-y-3">
-                      <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Database</span>
-                        <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-2 py-1 rounded-full font-semibold">Online</span>
+                      <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                          Database
+                        </span>
+                        <span
+                          className={`text-xs px-2 py-1 rounded-full font-semibold capitalize ${
+                            systemStatus.database === "online"
+                              ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
+                              : systemStatus.database === "checking"
+                                ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+                                : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300"
+                          }`}
+                        >
+                          {systemStatus.database}
+                        </span>
                       </div>
-                      <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">API Services</span>
-                        <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-2 py-1 rounded-full font-semibold">Operational</span>
+                      <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                          API Services
+                        </span>
+                        <span
+                          className={`text-xs px-2 py-1 rounded-full font-semibold capitalize ${
+                            systemStatus.api === "operational"
+                              ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
+                              : systemStatus.api === "idle"
+                                ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+                                : systemStatus.api === "checking"
+                                  ? "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
+                                  : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300"
+                          }`}
+                        >
+                          {systemStatus.api}
+                        </span>
                       </div>
-                      <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Image Generation</span>
-                        <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-2 py-1 rounded-full font-semibold">Active</span>
+                      <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                          Image Generation
+                        </span>
+                        <span
+                          className={`text-xs px-2 py-1 rounded-full font-semibold capitalize ${
+                            systemStatus.images === "active"
+                              ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
+                              : systemStatus.images === "idle"
+                                ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+                                : systemStatus.images === "checking"
+                                  ? "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
+                                  : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300"
+                          }`}
+                        >
+                          {systemStatus.images}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -270,52 +590,75 @@ const Admin: React.FC = () => {
                   <div className="bg-white/80 dark:bg-slate-900/80 rounded-2xl p-6 shadow-xl border border-white/30 dark:border-slate-800/40 backdrop-blur-xl">
                     <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-3">
                       <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                        <FontAwesomeIcon icon={faChartBar} className="text-white text-xs" />
+                        <FontAwesomeIcon
+                          icon={faChartBar}
+                          className="text-white text-xs"
+                        />
                       </div>
                       Recent Activity
                     </h3>
                     <div className="space-y-3">
-                      <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                        <div className="flex-1">
-                          <div className="text-sm font-medium text-slate-700 dark:text-slate-300">New user registration</div>
-                          <div className="text-xs text-slate-500 dark:text-slate-400">2 minutes ago</div>
+                      {recentActivities.length > 0 ? (
+                        recentActivities.map((activity, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg transition-all hover:bg-slate-100 dark:hover:bg-slate-800"
+                          >
+                            <div
+                              className={`w-2 h-2 rounded-full ${
+                                activity.color === "blue"
+                                  ? "bg-blue-500"
+                                  : activity.color === "purple"
+                                    ? "bg-purple-500"
+                                    : "bg-green-500"
+                              }`}
+                            ></div>
+                            <div className="flex-1">
+                              <div className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                                {activity.title}
+                              </div>
+                              <div className="flex justify-between items-center mt-1">
+                                <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono italic truncate max-w-[150px]">
+                                  {activity.user || "Anonymous"}
+                                </div>
+                                <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                                  {getTimeAgo(activity.time)}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-8 text-slate-500 dark:text-slate-400 text-sm italic">
+                          No recent activity found
                         </div>
-                      </div>
-                      <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <div className="flex-1">
-                          <div className="text-sm font-medium text-slate-700 dark:text-slate-300">API request completed</div>
-                          <div className="text-xs text-slate-500 dark:text-slate-400">5 minutes ago</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                        <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                        <div className="flex-1">
-                          <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Image generated successfully</div>
-                          <div className="text-xs text-slate-500 dark:text-slate-400">8 minutes ago</div>
-                        </div>
-                      </div>
+                      )}
                     </div>
                   </div>
                 </div>
               </div>
             )}
-            {tab === 'users' && <UserManagementTab currentUser={currentUser} />}
-            {tab === 'api' && <ApiTrackingTab currentUser={currentUser} />}
-            {tab === 'images' && <ImageGenerationTrackingTab currentUser={currentUser} />}
-            {tab === 'settings' && (
+            {tab === "users" && <UserManagementTab currentUser={currentUser} />}
+            {tab === "api" && <ApiTrackingTab currentUser={currentUser} />}
+            {tab === "images" && (
+              <ImageGenerationTrackingTab currentUser={currentUser} />
+            )}
+            {tab === "settings" && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-2">System Settings</h2>
-                  <p className="text-sm text-muted-foreground">Configure global system options</p>
+                  <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-2">
+                    System Settings
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Configure global system options
+                  </p>
                 </div>
                 <ImageProviderToggle />
               </div>
             )}
           </div>
         </main>
-        </div>
+      </div>
       {/* Mobile Sidebar Drawer */}
       <Sidebar mobileOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
     </div>
@@ -323,4 +666,3 @@ const Admin: React.FC = () => {
 };
 
 export default Admin;
- 

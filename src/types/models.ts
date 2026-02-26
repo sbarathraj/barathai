@@ -8,14 +8,16 @@ export interface AIModel {
 }
 
 export const AI_MODELS: AIModel[] = [
+  // Free Models Router
   {
-    id: "x-ai/grok-4.1-fast:free",
-    name: "xAI: Grok 4.1 Fast (free)",
-    provider: "xAI",
-    category: "small",
+    id: "openrouter/free",
+    name: "Free Models Router",
+    provider: "OpenRouter",
+    category: "general",
     isFree: true,
-    description: "Fast Grok model from xAI",
+    description: "Auto-routes to free models",
   },
+
   // Reasoning Models
   {
     id: "deepseek/deepseek-r1:free",
@@ -81,6 +83,14 @@ export const AI_MODELS: AIModel[] = [
     isFree: true,
     description: "Deep research model",
   },
+  {
+    id: "liquid/lfm-2.5-1.2b-thinking:free",
+    name: "LFM2.5-1.2B-Thinking",
+    provider: "LiquidAI",
+    category: "reasoning",
+    isFree: true,
+    description: "Lightweight thinking model",
+  },
 
   // General Purpose Models
   {
@@ -140,6 +150,14 @@ export const AI_MODELS: AIModel[] = [
     description: "Instruction-tuned model",
   },
   {
+    id: "qwen/qwen3-next-80b-a3b-instruct:free",
+    name: "Qwen3 Next 80B A3B Instruct",
+    provider: "Qwen",
+    category: "general",
+    isFree: true,
+    description: "Next-gen Qwen 80B model",
+  },
+  {
     id: "meta-llama/llama-3.3-70b-instruct:free",
     name: "Llama 3.3 70B Instruct",
     provider: "Meta",
@@ -196,8 +214,16 @@ export const AI_MODELS: AIModel[] = [
     description: "Open-source GPT variant",
   },
   {
+    id: "openai/gpt-oss-120b:free",
+    name: "GPT OSS 120B",
+    provider: "OpenAI",
+    category: "general",
+    isFree: true,
+    description: "Large open-source GPT model",
+  },
+  {
     id: "moonshotai/kimi-k2:free",
-    name: "Kimi K2 0711",
+    name: "Kimi K2",
     provider: "MoonshotAI",
     category: "general",
     isFree: true,
@@ -219,7 +245,46 @@ export const AI_MODELS: AIModel[] = [
     isFree: true,
     description: "Uncensored model",
   },
-
+  {
+    id: "arcee-ai/trinity-large-preview:free",
+    name: "Trinity Large Preview",
+    provider: "Arcee AI",
+    category: "general",
+    isFree: true,
+    description: "Arcee Trinity large model preview",
+  },
+  {
+    id: "arcee-ai/trinity-mini:free",
+    name: "Trinity Mini",
+    provider: "Arcee AI",
+    category: "general",
+    isFree: true,
+    description: "Compact Arcee Trinity model",
+  },
+  {
+    id: "stepfun/step-3.5-flash:free",
+    name: "Step 3.5 Flash",
+    provider: "StepFun",
+    category: "general",
+    isFree: true,
+    description: "Fast StepFun model",
+  },
+  {
+    id: "z-ai/glm-4.5-air:free",
+    name: "GLM 4.5 Air",
+    provider: "Z.AI",
+    category: "general",
+    isFree: true,
+    description: "Lightweight GLM",
+  },
+  {
+    id: "liquid/lfm-2.5-1.2b-instruct:free",
+    name: "LFM2.5-1.2B-Instruct",
+    provider: "LiquidAI",
+    category: "general",
+    isFree: true,
+    description: "Lightweight instruction model",
+  },
 
   // Coding Models
   {
@@ -307,7 +372,7 @@ export const AI_MODELS: AIModel[] = [
     description: "Gemma mid-size",
   },
   {
-    id: "meta-llama/llama-3.2-3b-instruct:free",
+    id: "google/gemma-3-4b-it:free",
     name: "Gemma 3 4B",
     provider: "Google",
     category: "small",
@@ -331,12 +396,12 @@ export const AI_MODELS: AIModel[] = [
     description: "Nano Gemma 2B",
   },
   {
-    id: "mistralai/mistral-small-24b-instruct-2501:free",
-    name: "Mistral Small 3",
+    id: "mistralai/mistral-small-3.1-24b-instruct:free",
+    name: "Mistral Small 3.1 24B",
     provider: "Mistral",
     category: "small",
     isFree: true,
-    description: "Latest small Mistral",
+    description: "Mistral 3.1 variant",
   },
   {
     id: "mistralai/mistral-small-3.2-24b-instruct:free",
@@ -347,28 +412,12 @@ export const AI_MODELS: AIModel[] = [
     description: "Mistral 3.2 variant",
   },
   {
-    id: "mistralai/mistral-small-3.1-24b-instruct:free",
-    name: "Mistral Small 3.1 24B",
-    provider: "Mistral",
+    id: "nvidia/nemotron-3-nano-30b-a3b:free",
+    name: "Nemotron 3 Nano 30B A3B",
+    provider: "NVIDIA",
     category: "small",
     isFree: true,
-    description: "Mistral 3.1 variant",
-  },
-  {
-    id: "mistralai/mistral-nemo:free",
-    name: "Mistral Nemo",
-    provider: "Mistral",
-    category: "small",
-    isFree: true,
-    description: "Compact Mistral",
-  },
-  {
-    id: "mistralai/mistral-7b-instruct:free",
-    name: "Mistral 7B Instruct",
-    provider: "Mistral",
-    category: "small",
-    isFree: true,
-    description: "Classic Mistral",
+    description: "Nvidia Nemotron nano model",
   },
   {
     id: "nvidia/nemotron-nano-9b-v2:free",
@@ -386,14 +435,6 @@ export const AI_MODELS: AIModel[] = [
     isFree: true,
     description: "MiniMax model",
   },
-  {
-    id: "z-ai/glm-4.5-air:free",
-    name: "GLM 4.5 Air",
-    provider: "Z.AI",
-    category: "small",
-    isFree: true,
-    description: "Lightweight GLM",
-  },
 ];
 
 export const MODEL_CATEGORIES = [
@@ -407,7 +448,7 @@ export const MODEL_CATEGORIES = [
 
 export const MODEL_PROVIDERS = [
   "All",
-  "xAI",
+  "OpenRouter",
   "DeepSeek",
   "Qwen",
   "Meta",
@@ -427,4 +468,8 @@ export const MODEL_PROVIDERS = [
   "MiniMax",
   "Z.AI",
   "Tongyi",
+  "Arcee AI",
+  "StepFun",
+  "LiquidAI",
+  "xAI",
 ] as const;
