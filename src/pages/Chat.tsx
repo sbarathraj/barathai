@@ -756,11 +756,17 @@ export const Chat = () => {
       let triedSecondary = false;
       let response;
       let apiError = null;
-      let apiResponseData = null;
       let apiStatus = null;
       let apiResponseTime = null;
-      let apiName = null;
       let attempt = 0;
+      // Helper: derive API name from WHICH KEY is active — not URL,
+      // because both keys can share the same OpenRouter endpoint.
+      const getApiName = (key: string) =>
+        key === OPENROUTER_API_KEY
+          ? "OpenRouter_API_1"
+          : key === OPENROUTER_API_KEY2
+            ? "OpenRouter_API_2"
+            : "Unknown";
       const maxAttempts = 3;
       while (attempt < maxAttempts) {
         attempt++;
@@ -774,23 +780,17 @@ export const Chat = () => {
               "HTTP-Referer": window.location.origin,
               "X-Title": "BarathAI Chat",
             },
-            body: JSON.stringify(requestBody),
+            body: JSON.stringify({ ...requestBody, stream: true }),
           });
           apiResponseTime = Date.now() - attemptStart;
           apiStatus = response.status;
-          apiName = usedApiUrl.includes("openrouter")
-            ? usedApiUrl === API_URL
-              ? "OpenRouter_API_1"
-              : "OpenRouter_API_2"
-            : "Unknown";
-          let logSuccess = false;
           if (!response.ok) {
             const errorText = await response.text();
             apiError = errorText;
-            logSuccess = await logApiUsage({
+            await logApiUsage({
               user_id: user.id,
               user_email: user.email,
-              api_name: apiName,
+              api_name: getApiName(usedApiKey),
               endpoint_hit: usedApiUrl,
               request_method: "POST",
               request_payload: requestBody,
@@ -798,41 +798,27 @@ export const Chat = () => {
               response_time: apiResponseTime,
               status_code: apiStatus,
             });
-            if (apiStatus === 429 && !triedSecondary && OPENROUTER_API_KEY2) {
+            if (
+              (apiStatus === 429 || apiStatus === 401) &&
+              !triedSecondary &&
+              OPENROUTER_API_KEY2
+            ) {
               usedApiKey = OPENROUTER_API_KEY2;
               usedApiUrl = API_URL2;
               triedSecondary = true;
               continue;
             }
             if (attempt < maxAttempts) {
-              await sleep(1000 * attempt); // Exponential backoff
+              await sleep(1000 * attempt);
               continue;
             }
             setError(`API error (${apiStatus}): ${errorText}`);
             setIsLoading(false);
             setIsBarathAITyping(false);
             return;
-          } else {
-            apiResponseData = await response.json();
-            logSuccess = await logApiUsage({
-              user_id: user.id,
-              user_email: user.email,
-              api_name: apiName,
-              endpoint_hit: usedApiUrl,
-              request_method: "POST",
-              request_payload: requestBody,
-              response_payload: apiResponseData,
-              response_time: apiResponseTime,
-              status_code: apiStatus,
-            });
-            if (!logSuccess) {
-              setError("Failed to log API usage. Please try again.");
-              setIsLoading(false);
-              setIsBarathAITyping(false);
-              return;
-            }
-            break;
           }
+          // Successful response — break retry loop and stream below
+          break;
         } catch (err: unknown) {
           apiResponseTime = Date.now() - attemptStart;
           apiStatus = null;
@@ -840,7 +826,7 @@ export const Chat = () => {
           await logApiUsage({
             user_id: user.id,
             user_email: user.email,
-            api_name: apiName || "Unknown",
+            api_name: getApiName(usedApiKey),
             endpoint_hit: usedApiUrl,
             request_method: "POST",
             request_payload: requestBody,
@@ -849,7 +835,7 @@ export const Chat = () => {
             status_code: apiStatus,
           });
           if (attempt < maxAttempts) {
-            await sleep(1000 * attempt); // Exponential backoff
+            await sleep(1000 * attempt);
             continue;
           }
           setError("Network error. Please try again.");
@@ -859,42 +845,115 @@ export const Chat = () => {
         }
       }
 
-      // Validate and parse API response
-      if (!ApiResponseParser.validateResponse(apiResponseData)) {
-        setError("Invalid response format from API");
+      if (!response || !response.body) {
+        setError("No response received from API");
         setIsLoading(false);
         setIsBarathAITyping(false);
         return;
       }
 
-      // Parse response with reasoning support
-      const parsedResponse =
-        ApiResponseParser.parseOpenRouterResponse(apiResponseData);
+      // ── Streaming SSE reader ───────────────────────────────────────────────
+      const assistantMsgId = (Date.now() + 1).toString();
+      let streamedContent = "";
+      let streamedModel = selectedModel;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let streamedUsage: any = undefined;
 
+      // Add an empty placeholder message immediately so the UI shows the cursor
+      setIsBarathAITyping(false);
       setTypingVariant("generating");
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: assistantMsgId,
+          content: "",
+          role: "assistant" as const,
+          timestamp: new Date(),
+          model: streamedModel,
+        },
+      ]);
 
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        content: parsedResponse.content,
-        role: "assistant",
-        timestamp: new Date(),
-        reasoning: parsedResponse.reasoning,
-        model: parsedResponse.model,
-        usage: parsedResponse.usage,
-      };
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let buffer = "";
 
-      const updatedMessages = [...newMessages, assistantMessage];
-      setMessages(updatedMessages);
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
+        buffer += decoder.decode(value, { stream: true });
+
+        // SSE lines are separated by "\n". Process complete lines.
+        const lines = buffer.split("\n");
+        // Keep the last (potentially incomplete) line in the buffer
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed === "data: [DONE]") continue;
+          if (!trimmed.startsWith("data:")) continue;
+
+          const jsonStr = trimmed.slice(5).trim();
+          try {
+            const chunk = JSON.parse(jsonStr);
+            const delta = chunk?.choices?.[0]?.delta;
+            if (delta?.content) {
+              streamedContent += delta.content;
+              // Update UI in real-time
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantMsgId
+                    ? { ...m, content: streamedContent }
+                    : m,
+                ),
+              );
+            }
+            // Capture model / usage from last chunk
+            if (chunk?.model) streamedModel = chunk.model;
+            if (chunk?.usage) streamedUsage = chunk.usage;
+          } catch {
+            // Malformed JSON in stream — skip silently
+          }
+        }
+      }
+      // ── End of stream ──────────────────────────────────────────────────────
+
+      // Finalise the message object with model & usage metadata
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantMsgId
+            ? {
+                ...m,
+                content: streamedContent,
+                model: streamedModel,
+                usage: streamedUsage,
+              }
+            : m,
+        ),
+      );
+
+      // Log usage after stream completes — key-based name so fallback shows OpenRouter_API_2
+      await logApiUsage({
+        user_id: user.id,
+        user_email: user.email,
+        api_name: getApiName(usedApiKey),
+        endpoint_hit: usedApiUrl,
+        request_method: "POST",
+        request_payload: requestBody,
+        response_payload: { streamed: true, model: streamedModel },
+        response_time: apiResponseTime,
+        status_code: apiStatus,
+      });
+
+      // Persist the completed message to the database
       try {
-        // Save message with reasoning data
         await saveMessageWithReasoning(
           currentSessionId,
-          assistantMessage.content,
+          streamedContent,
           "assistant",
-          parsedResponse.reasoning,
-          parsedResponse.model,
-          parsedResponse.usage,
+          undefined,
+          streamedModel,
+          streamedUsage,
         );
       } catch (error) {
         setError("Failed to save assistant message");
@@ -2206,7 +2265,7 @@ export const Chat = () => {
                       className={`
                         ${isMobile ? "max-w-[85vw] mx-2" : "max-w-[70%]"}
                         rounded-xl transition-all duration-200
-                        break-words whitespace-pre-wrap
+                        break-words
                         ${
                           msg.role === "user"
                             ? `bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg ${
@@ -2231,7 +2290,7 @@ export const Chat = () => {
                         </div>
                       )}
                       {msg.role === "assistant" ? (
-                        <div className="px-4 pb-4">
+                        <div className="px-4 pb-4 overflow-x-auto min-w-0">
                           {/* Display reasoning if available and enabled */}
                           {reasoningEnabled && msg.reasoning && (
                             <ReasoningDisplay

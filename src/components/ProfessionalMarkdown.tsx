@@ -252,20 +252,58 @@ export const ProfessionalMarkdown: React.FC<ProfessionalMarkdownProps> = ({
   };
 
   const preprocessContent = (rawContent: string): string => {
-    // FIX: Format numbered sections so the entire heading (number + title) is bold
-    // Pattern: "2. **Title text**" -> "**2. Title text**"
-    let processed = rawContent.replace(
-      /^(\d+)\.\s+\*\*(.+?)\*\*/gm,
-      "**$1. $2**",
-    );
+    let processed = rawContent;
 
-    // FIX: Format bullet points so the entire item (bullet + text) is bold
-    // Pattern: "- **Text**" -> "**- Text**"
-    // Pattern: "* **Text**" -> "*** Text**"
-    processed = processed.replace(/^([-*])\s+\*\*(.+?)\*\*/gm, "**$1 $2**");
+    // ── Streaming safety: complete unclosed code fences ───────────────────────
+    // Count opening backtick fences. If odd, a code block is still streaming.
+    const fenceMatches = processed.match(/^```/gm) || [];
+    if (fenceMatches.length % 2 !== 0) {
+      // Temporarily close the fence so the parser doesn't swallow everything
+      processed = processed + "\n```";
+    } else {
+      // Both fences present — pad spacing so the block is block-level
+      processed = processed.replace(/(```[a-zA-Z]*[\s\S]*?```)/g, "\n\n$1\n\n");
+    }
 
-    // Ensure code blocks are properly separated with newlines to prevent paragraph wrapping
-    processed = processed.replace(/(```[a-zA-Z]*[\s\S]*?```)/g, "\n\n$1\n\n");
+    // ── Streaming safety: fix partial/incomplete GFM table rows ──────────────
+    // A valid GFM table row must start and end with |.
+    // During streaming the last cell may be cut mid-way.
+    const lines = processed.split("\n");
+    const patchedLines: string[] = [];
+    for (const line of lines) {
+      const trimmed = line.trim();
+
+      // Skip lone "|" lines — these are stray pipes the model emits between
+      // code blocks and table rows; they confuse the GFM parser.
+      if (trimmed === "|") {
+        patchedLines.push("");
+        continue;
+      }
+
+      // Skip "| |" orphan rows where only the first cell is empty and there's
+      // no separator row above — artifact of model mixing code + table.
+      // Only filter if the line has ≤ 2 non-empty cells.
+      if (trimmed.startsWith("| |")) {
+        const cells = trimmed
+          .split("|")
+          .map((c) => c.trim())
+          .filter(Boolean);
+        // If first real cell is empty and row has only 1–2 meaningful cells,
+        // it's likely a stray continuation — skip it.
+        if (cells.length <= 2) {
+          patchedLines.push("");
+          continue;
+        }
+      }
+
+      // Partial row: starts with | but doesn't end with |
+      if (trimmed.startsWith("|") && !trimmed.endsWith("|")) {
+        patchedLines.push(line + " |");
+      } else {
+        patchedLines.push(line);
+      }
+    }
+    processed = patchedLines.join("\n");
 
     // Clean up excessive newlines
     processed = processed.replace(/\n{3,}/g, "\n\n");
@@ -366,17 +404,17 @@ export const ProfessionalMarkdown: React.FC<ProfessionalMarkdownProps> = ({
 
           // Enhanced list styling
           ul: ({ children }) => (
-            <ul className="list-disc list-outside pl-6 m-0 p-0 space-y-0 text-[15px] marker:text-xs marker:leading-none">
+            <ul className="list-disc list-outside pl-6 my-2 space-y-1.5 text-[15px]">
               {children}
             </ul>
           ),
           ol: ({ children }) => (
-            <ol className="list-decimal list-outside pl-6 m-0 p-0 space-y-0 text-[15px] marker:text-xs marker:leading-none">
+            <ol className="list-decimal list-outside pl-6 my-2 space-y-1.5 text-[15px]">
               {children}
             </ol>
           ),
           li: ({ children }) => (
-            <li className="m-0 p-0 leading-[1.0] text-[15px] break-words">
+            <li className="py-0.5 leading-relaxed text-[15px] break-words text-slate-700 dark:text-slate-300">
               {children}
             </li>
           ),
