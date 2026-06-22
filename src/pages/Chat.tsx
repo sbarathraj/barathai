@@ -940,7 +940,12 @@ export const Chat = () => {
         endpoint_hit: usedApiUrl,
         request_method: "POST",
         request_payload: requestBody,
-        response_payload: { streamed: true, model: streamedModel },
+        response_payload: {
+          streamed: true,
+          model: streamedModel,
+          content: streamedContent,
+          usage: streamedUsage || null,
+        },
         response_time: apiResponseTime,
         status_code: apiStatus,
       });
@@ -1567,12 +1572,12 @@ export const Chat = () => {
   return (
     <div
       className={`flex flex-col bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 transition-colors duration-500 text-slate-900 dark:text-white no-horizontal-scroll ${
-        isMobile ? "h-screen-mobile" : "h-screen"
+        isMobile ? "h-[100dvh]" : "h-screen"
       }`}
     >
       <div
         className={`flex w-full text-slate-900 dark:text-white transition-all duration-300 relative ${
-          isMobile ? "min-h-screen-mobile" : "min-h-screen"
+          isMobile ? "h-[100dvh]" : "min-h-screen"
         }`}
       >
         {!isOnline && (
@@ -2129,15 +2134,15 @@ export const Chat = () => {
             ref={chatScrollAreaRef}
             className={`flex-1 overflow-y-auto flex flex-col ${
               isMobile
-                ? "px-3 space-y-3 bg-gradient-to-b from-slate-50/80 to-slate-100/80 dark:from-slate-900/80 dark:to-slate-800/80 scroll-smooth-mobile overscroll-contain touch-manipulation"
+                ? "px-3 space-y-3 bg-gradient-to-b from-slate-50/80 to-slate-100/80 dark:from-slate-900/80 dark:to-slate-800/80 overscroll-contain touch-pan-y"
                 : "p-6 space-y-4 bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pt-8 pb-8"
             }`}
             style={
               isMobile
                 ? {
                     paddingTop: `max(${headerHeight + 16}px, calc(env(safe-area-inset-top) + 76px))`,
-                    paddingBottom: `max(${inputHeight + 16}px, calc(env(safe-area-inset-bottom) + ${inputHeight + 16}px))`,
-                    minHeight: "100dvh", // Dynamic viewport height for mobile
+                    paddingBottom: `max(${inputHeight + 24}px, calc(env(safe-area-inset-bottom) + ${inputHeight + 24}px))`,
+                    WebkitOverflowScrolling: "touch",
                   }
                 : {
                     paddingTop: headerHeight + 32,
