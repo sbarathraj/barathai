@@ -9,10 +9,15 @@ on:
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v4
+
       - name: Install dependencies
         run: npm install
+
       - name: Build with secret env
         env:
           VITE_OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
@@ -22,9 +27,20 @@ jobs:
           GMAIL_PASS: ${{ secrets.GMAIL_PASS }}
           GMAIL_ALERT_TO: ${{ secrets.GMAIL_ALERT_TO }}
         run: npm run build
-      - uses: FirebaseExtended/action-hosting-deploy@v0
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
         with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BARATHAI }}
-          channelId: live
-          projectId: barathai
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BARATHAI }}
+
+      - name: Deploy to Firebase Hosting
+        run: |
+          export FIREBASE_TOKEN=$(gcloud auth print-access-token)
+          DEPLOY_OUT=$(npx firebase-tools@latest deploy --only hosting --project barathai --non-interactive 2>&1)
+          DEPLOY_CODE=$?
+          echo "$DEPLOY_OUT"
+          if echo "$DEPLOY_OUT" | grep -q "is the current active version"; then
+            echo "✅ Already up to date — no new changes to deploy."
+            exit 0
+          fi
+          exit $DEPLOY_CODE
