@@ -36,11 +36,13 @@ jobs:
       - name: Deploy to Firebase Hosting
         run: |
           export FIREBASE_TOKEN=$(gcloud auth print-access-token)
-          DEPLOY_OUT=$(npx firebase-tools@latest deploy --only hosting --project barathai --non-interactive 2>&1)
-          DEPLOY_CODE=$?
-          echo "$DEPLOY_OUT"
-          if echo "$DEPLOY_OUT" | grep -q "is the current active version"; then
+          set +e
+          npx firebase-tools@latest deploy --only hosting --project barathai --non-interactive 2>&1 | tee /tmp/deploy_out.txt
+          DEPLOY_CODE=${PIPESTATUS[0]}
+          set -e
+          if grep -q "is the current active version" /tmp/deploy_out.txt; then
             echo "✅ Already up to date — no new changes to deploy."
             exit 0
           fi
           exit $DEPLOY_CODE
+
