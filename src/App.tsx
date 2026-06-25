@@ -18,6 +18,7 @@ import NotFound from "./pages/NotFound";
 import { Footer } from "./components/Footer";
 import Admin from "./pages/Admin";
 import ModelDemo from "./pages/ModelDemo";
+import PWAInstallPrompt from "./components/PWAInstallPrompt";
 
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -89,6 +90,7 @@ const App = () => {
                 </Routes>
               </div>
             </div>
+            <PWAInstallPrompt />
           </BrowserRouter>
         </TooltipProvider>
       </ThemeProvider>
